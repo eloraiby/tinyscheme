@@ -138,29 +138,29 @@ enum scheme_types {
 #define UNMARK       32767    /* 0111111111111111 */
 
 
-static num num_add(num a, num b);
-static num num_mul(num a, num b);
-static num num_div(num a, num b);
-static num num_intdiv(num a, num b);
-static num num_sub(num a, num b);
-static num num_rem(num a, num b);
-static num num_mod(num a, num b);
-static int num_eq(num a, num b);
-static int num_gt(num a, num b);
-static int num_ge(num a, num b);
-static int num_lt(num a, num b);
-static int num_le(num a, num b);
+static number_t num_add(number_t a, number_t b);
+static number_t num_mul(number_t a, number_t b);
+static number_t num_div(number_t a, number_t b);
+static number_t num_intdiv(number_t a, number_t b);
+static number_t num_sub(number_t a, number_t b);
+static number_t num_rem(number_t a, number_t b);
+static number_t num_mod(number_t a, number_t b);
+static int num_eq(number_t a, number_t b);
+static int num_gt(number_t a, number_t b);
+static int num_ge(number_t a, number_t b);
+static int num_lt(number_t a, number_t b);
+static int num_le(number_t a, number_t b);
 
 #if USE_MATH
 static double round_per_R5RS(double x);
 #endif
 static int is_zero_double(double x);
 static INLINE int num_is_integer(cell_ptr_t p) {
-	return ((p)->_object._number.is_fixnum);
+	return ((p)->_object._number.is_integer);
 }
 
-static num num_zero;
-static num num_one;
+static number_t num_zero;
+static number_t num_one;
 
 /* macros for cell operations */
 #define typeflag(p)      ((p)->_flag)
@@ -185,18 +185,18 @@ INTERFACE INLINE int is_integer(cell_ptr_t p) {
 }
 
 INTERFACE INLINE int is_real(cell_ptr_t p) {
-	return is_number(p) && (!(p)->_object._number.is_fixnum);
+	return is_number(p) && (!(p)->_object._number.is_integer);
 }
 
 INTERFACE INLINE int is_character(cell_ptr_t p) { return (type(p)==T_CHARACTER); }
 INTERFACE INLINE char *string_value(cell_ptr_t p) { return strvalue(p); }
-INLINE num nvalue(cell_ptr_t p)       { return ((p)->_object._number); }
+INLINE number_t nvalue(cell_ptr_t p)       { return ((p)->_object._number); }
 INTERFACE long ivalue(cell_ptr_t p)      { return (num_is_integer(p)?(p)->_object._number.value.ivalue:(long)(p)->_object._number.value.rvalue); }
 INTERFACE double rvalue(cell_ptr_t p)    { return (!num_is_integer(p)?(p)->_object._number.value.rvalue:(double)(p)->_object._number.value.ivalue); }
 #define ivalue_unchecked(p)       ((p)->_object._number.value.ivalue)
 #define rvalue_unchecked(p)       ((p)->_object._number.value.rvalue)
-#define set_num_integer(p)   (p)->_object._number.is_fixnum=1;
-#define set_num_real(p)      (p)->_object._number.is_fixnum=0;
+#define set_num_integer(p)   (p)->_object._number.is_integer=1;
+#define set_num_real(p)      (p)->_object._number.is_integer=0;
 INTERFACE  long charvalue(cell_ptr_t p)  { return ivalue_unchecked(p); }
 
 INTERFACE INLINE int is_port(cell_ptr_t p)     { return (type(p)==T_PORT); }
@@ -337,22 +337,22 @@ static cell_ptr_t find_consecutive_cells(scheme_t *sc, int n);
 static void finalize_cell(scheme_t *sc, cell_ptr_t a);
 static int count_consecutive_cells(cell_ptr_t x, int needed);
 static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t sym, int all);
-static cell_ptr_t mk_number(scheme_t *sc, num n);
+static cell_ptr_t mk_number(scheme_t *sc, number_t n);
 static char *store_string(scheme_t *sc, int len, const char *str, char fill);
 static cell_ptr_t mk_vector(scheme_t *sc, int len);
 static cell_ptr_t mk_atom(scheme_t *sc, char *q);
 static cell_ptr_t mk_sharp_const(scheme_t *sc, char *name);
-static cell_ptr_t mk_port(scheme_t *sc, port *p);
+static cell_ptr_t mk_port(scheme_t *sc, port_t *p);
 static cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop);
 static cell_ptr_t port_from_file(scheme_t *sc, FILE *, int prop);
 static cell_ptr_t port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
-static port *port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
-static port *port_rep_from_file(scheme_t *sc, FILE *, int prop);
-static port *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
+static port_t *port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
+static port_t *port_rep_from_file(scheme_t *sc, FILE *, int prop);
+static port_t *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
 static void port_close(scheme_t *sc, cell_ptr_t p, int flag);
 static void mark(cell_ptr_t a);
 static void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-static int basic_inchar(port *pt);
+static int basic_inchar(port_t *pt);
 static int inchar(scheme_t *sc);
 static void backchar(scheme_t *sc, int c);
 static char   *readstr_upto(scheme_t *sc, char *delim);
@@ -381,13 +381,13 @@ static void assign_syntax(scheme_t *sc, char *name);
 static int syntaxnum(cell_ptr_t p);
 static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
-#define num_ivalue(n)       (n.is_fixnum?(n).value.ivalue:(long)(n).value.rvalue)
-#define num_rvalue(n)       (!n.is_fixnum?(n).value.rvalue:(double)(n).value.ivalue)
+#define num_ivalue(n)       (n.is_integer?(n).value.ivalue:(long)(n).value.rvalue)
+#define num_rvalue(n)       (!n.is_integer?(n).value.rvalue:(double)(n).value.ivalue)
 
-static num num_add(num a, num b) {
-	num ret;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(ret.is_fixnum) {
+static number_t num_add(number_t a, number_t b) {
+	number_t ret;
+	ret.is_integer=a.is_integer && b.is_integer;
+	if(ret.is_integer) {
 		ret.value.ivalue= a.value.ivalue+b.value.ivalue;
 	} else {
 		ret.value.rvalue=num_rvalue(a)+num_rvalue(b);
@@ -395,10 +395,10 @@ static num num_add(num a, num b) {
 	return ret;
 }
 
-static num num_mul(num a, num b) {
-	num ret;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(ret.is_fixnum) {
+static number_t num_mul(number_t a, number_t b) {
+	number_t ret;
+	ret.is_integer=a.is_integer && b.is_integer;
+	if(ret.is_integer) {
 		ret.value.ivalue= a.value.ivalue*b.value.ivalue;
 	} else {
 		ret.value.rvalue=num_rvalue(a)*num_rvalue(b);
@@ -406,10 +406,10 @@ static num num_mul(num a, num b) {
 	return ret;
 }
 
-static num num_div(num a, num b) {
-	num ret;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum && a.value.ivalue%b.value.ivalue==0;
-	if(ret.is_fixnum) {
+static number_t num_div(number_t a, number_t b) {
+	number_t ret;
+	ret.is_integer=a.is_integer && b.is_integer && a.value.ivalue%b.value.ivalue==0;
+	if(ret.is_integer) {
 		ret.value.ivalue= a.value.ivalue/b.value.ivalue;
 	} else {
 		ret.value.rvalue=num_rvalue(a)/num_rvalue(b);
@@ -417,10 +417,10 @@ static num num_div(num a, num b) {
 	return ret;
 }
 
-static num num_intdiv(num a, num b) {
-	num ret;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(ret.is_fixnum) {
+static number_t num_intdiv(number_t a, number_t b) {
+	number_t ret;
+	ret.is_integer=a.is_integer && b.is_integer;
+	if(ret.is_integer) {
 		ret.value.ivalue= a.value.ivalue/b.value.ivalue;
 	} else {
 		ret.value.rvalue=num_rvalue(a)/num_rvalue(b);
@@ -428,10 +428,10 @@ static num num_intdiv(num a, num b) {
 	return ret;
 }
 
-static num num_sub(num a, num b) {
-	num ret;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(ret.is_fixnum) {
+static number_t num_sub(number_t a, number_t b) {
+	number_t ret;
+	ret.is_integer=a.is_integer && b.is_integer;
+	if(ret.is_integer) {
 		ret.value.ivalue= a.value.ivalue-b.value.ivalue;
 	} else {
 		ret.value.rvalue=num_rvalue(a)-num_rvalue(b);
@@ -439,10 +439,10 @@ static num num_sub(num a, num b) {
 	return ret;
 }
 
-static num num_rem(num a, num b) {
-	num ret;
+static number_t num_rem(number_t a, number_t b) {
+	number_t ret;
 	long e1, e2, res;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
+	ret.is_integer=a.is_integer && b.is_integer;
 	e1=num_ivalue(a);
 	e2=num_ivalue(b);
 	res=e1%e2;
@@ -460,10 +460,10 @@ static num num_rem(num a, num b) {
 	return ret;
 }
 
-static num num_mod(num a, num b) {
-	num ret;
+static number_t num_mod(number_t a, number_t b) {
+	number_t ret;
 	long e1, e2, res;
-	ret.is_fixnum=a.is_fixnum && b.is_fixnum;
+	ret.is_integer=a.is_integer && b.is_integer;
 	e1=num_ivalue(a);
 	e2=num_ivalue(b);
 	res=e1%e2;
@@ -475,10 +475,10 @@ static num num_mod(num a, num b) {
 	return ret;
 }
 
-static int num_eq(num a, num b) {
+static int num_eq(number_t a, number_t b) {
 	int ret;
-	int is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(is_fixnum) {
+	int is_integer=a.is_integer && b.is_integer;
+	if(is_integer) {
 		ret= a.value.ivalue==b.value.ivalue;
 	} else {
 		ret=num_rvalue(a)==num_rvalue(b);
@@ -487,10 +487,10 @@ static int num_eq(num a, num b) {
 }
 
 
-static int num_gt(num a, num b) {
+static int num_gt(number_t a, number_t b) {
 	int ret;
-	int is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(is_fixnum) {
+	int is_integer=a.is_integer && b.is_integer;
+	if(is_integer) {
 		ret= a.value.ivalue>b.value.ivalue;
 	} else {
 		ret=num_rvalue(a)>num_rvalue(b);
@@ -498,14 +498,14 @@ static int num_gt(num a, num b) {
 	return ret;
 }
 
-static int num_ge(num a, num b) {
+static int num_ge(number_t a, number_t b) {
 	return !num_lt(a,b);
 }
 
-static int num_lt(num a, num b) {
+static int num_lt(number_t a, number_t b) {
 	int ret;
-	int is_fixnum=a.is_fixnum && b.is_fixnum;
-	if(is_fixnum) {
+	int is_integer=a.is_integer && b.is_integer;
+	if(is_integer) {
 		ret= a.value.ivalue<b.value.ivalue;
 	} else {
 		ret=num_rvalue(a)<num_rvalue(b);
@@ -513,7 +513,7 @@ static int num_lt(num a, num b) {
 	return ret;
 }
 
-static int num_le(num a, num b) {
+static int num_le(number_t a, number_t b) {
 	return !num_gt(a,b);
 }
 
@@ -912,7 +912,7 @@ static cell_ptr_t oblist_all_symbols(scheme_t *sc)
 
 #endif
 
-static cell_ptr_t mk_port(scheme_t *sc, port *p) {
+static cell_ptr_t mk_port(scheme_t *sc, port_t *p) {
 	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
 
 	typeflag(x) = T_PORT|T_ATOM;
@@ -938,11 +938,11 @@ INTERFACE cell_ptr_t mk_character(scheme_t *sc, int c) {
 }
 
 /* get number atom (integer) */
-INTERFACE cell_ptr_t mk_integer(scheme_t *sc, long num) {
+INTERFACE cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
 	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
 
 	typeflag(x) = (T_NUMBER | T_ATOM);
-	ivalue_unchecked(x)= num;
+	ivalue_unchecked(x)= number_t;
 	set_num_integer(x);
 	return (x);
 }
@@ -956,8 +956,8 @@ INTERFACE cell_ptr_t mk_real(scheme_t *sc, double n) {
 	return (x);
 }
 
-static cell_ptr_t mk_number(scheme_t *sc, num n) {
-	if(n.is_fixnum) {
+static cell_ptr_t mk_number(scheme_t *sc, number_t n) {
+	if(n.is_integer) {
 		return mk_integer(sc,n.value.ivalue);
 	} else {
 		return mk_real(sc,n.value.rvalue);
@@ -1008,8 +1008,8 @@ INTERFACE static cell_ptr_t mk_vector(scheme_t *sc, int len)
 
 INTERFACE static void fill_vector(cell_ptr_t vec, cell_ptr_t obj) {
 	int i;
-	int num=ivalue(vec)/2+ivalue(vec)%2;
-	for(i=0; i<num; i++) {
+	int number_t=ivalue(vec)/2+ivalue(vec)%2;
+	for(i=0; i<number_t; i++) {
 		typeflag(vec+1+i) = T_PAIR;
 		setimmutable(vec+1+i);
 		car(vec+1+i)=obj;
@@ -1205,8 +1205,8 @@ static void mark(cell_ptr_t a) {
 E2:  setmark(p);
 	if(is_vector(p)) {
 		int i;
-		int num=ivalue_unchecked(p)/2+ivalue_unchecked(p)%2;
-		for(i=0; i<num; i++) {
+		int number_t=ivalue_unchecked(p)/2+ivalue_unchecked(p)%2;
+		for(i=0; i<number_t; i++) {
 			/* Vector cells will be treated like ordinary cells */
 			mark(p+1+i);
 		}
@@ -1366,10 +1366,10 @@ static int file_interactive(scheme_t *sc) {
 			&& sc->inport->_object._port->kind&port_file;
 }
 
-static port *port_rep_from_filename(scheme_t *sc, const char *fn, int prop) {
+static port_t *port_rep_from_filename(scheme_t *sc, const char *fn, int prop) {
 	FILE *f;
 	char *rw;
-	port *pt;
+	port_t *pt;
 	if(prop==(port_input|port_output)) {
 		rw="a+";
 	} else if(prop==port_output) {
@@ -1394,7 +1394,7 @@ static port *port_rep_from_filename(scheme_t *sc, const char *fn, int prop) {
 }
 
 static cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop) {
-	port *pt;
+	port_t *pt;
 	pt=port_rep_from_filename(sc,fn,prop);
 	if(pt==0) {
 		return sc->NIL;
@@ -1402,11 +1402,11 @@ static cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop) {
 	return mk_port(sc,pt);
 }
 
-static port *port_rep_from_file(scheme_t *sc, FILE *f, int prop)
+static port_t *port_rep_from_file(scheme_t *sc, FILE *f, int prop)
 {
-	port *pt;
+	port_t *pt;
 
-	pt = (port *)sc->malloc(sizeof *pt);
+	pt = (port_t*)sc->malloc(sizeof *pt);
 	if (pt == NULL) {
 		return NULL;
 	}
@@ -1417,7 +1417,7 @@ static port *port_rep_from_file(scheme_t *sc, FILE *f, int prop)
 }
 
 static cell_ptr_t port_from_file(scheme_t *sc, FILE *f, int prop) {
-	port *pt;
+	port_t *pt;
 	pt=port_rep_from_file(sc,f,prop);
 	if(pt==0) {
 		return sc->NIL;
@@ -1425,9 +1425,9 @@ static cell_ptr_t port_from_file(scheme_t *sc, FILE *f, int prop) {
 	return mk_port(sc,pt);
 }
 
-static port *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop) {
-	port *pt;
-	pt=(port*)sc->malloc(sizeof(port));
+static port_t *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop) {
+	port_t *pt;
+	pt=(port_t*)sc->malloc(sizeof(port_t));
 	if(pt==0) {
 		return 0;
 	}
@@ -1439,7 +1439,7 @@ static port *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end,
 }
 
 static cell_ptr_t port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop) {
-	port *pt;
+	port_t *pt;
 	pt=port_rep_from_string(sc,start,past_the_end,prop);
 	if(pt==0) {
 		return sc->NIL;
@@ -1449,10 +1449,10 @@ static cell_ptr_t port_from_string(scheme_t *sc, char *start, char *past_the_end
 
 #define BLOCK_SIZE 256
 
-static port *port_rep_from_scratch(scheme_t *sc) {
-	port *pt;
+static port_t *port_rep_from_scratch(scheme_t *sc) {
+	port_t *pt;
 	char *start;
-	pt=(port*)sc->malloc(sizeof(port));
+	pt=(port_t*)sc->malloc(sizeof(port_t));
 	if(pt==0) {
 		return 0;
 	}
@@ -1470,7 +1470,7 @@ static port *port_rep_from_scratch(scheme_t *sc) {
 }
 
 static cell_ptr_t port_from_scratch(scheme_t *sc) {
-	port *pt;
+	port_t *pt;
 	pt=port_rep_from_scratch(sc);
 	if(pt==0) {
 		return sc->NIL;
@@ -1479,7 +1479,7 @@ static cell_ptr_t port_from_scratch(scheme_t *sc) {
 }
 
 static void port_close(scheme_t *sc, cell_ptr_t p, int flag) {
-	port *pt=p->_object._port;
+	port_t *pt=p->_object._port;
 	pt->kind&=~flag;
 	if((pt->kind & (port_input|port_output))==0) {
 		if(pt->kind&port_file) {
@@ -1501,7 +1501,7 @@ static void port_close(scheme_t *sc, cell_ptr_t p, int flag) {
 /* get new character from input file */
 static int inchar(scheme_t *sc) {
 	int c;
-	port *pt;
+	port_t *pt;
 
 	pt = sc->inport->_object._port;
 	if(pt->kind & port_saw_EOF)
@@ -1518,7 +1518,7 @@ static int inchar(scheme_t *sc) {
 	return c;
 }
 
-static int basic_inchar(port *pt) {
+static int basic_inchar(port_t *pt) {
 	if(pt->kind & port_file) {
 		return fgetc(pt->rep.stdio.file);
 	} else {
@@ -1533,10 +1533,10 @@ static int basic_inchar(port *pt) {
 
 /* back character to input buffer */
 static void backchar(scheme_t *sc, int c) {
-	port *pt;
+	port_t *pt;
 	if(c==EOF) return;
 	pt=sc->inport->_object._port;
-	if(pt->kind&port_file) {
+	if(pt->kind & port_file) {
 		ungetc(c,pt->rep.stdio.file);
 	} else {
 		if(pt->rep.string.curr!=pt->rep.string.start) {
@@ -1545,7 +1545,7 @@ static void backchar(scheme_t *sc, int c) {
 	}
 }
 
-static int realloc_port_string(scheme_t *sc, port *p)
+static int realloc_port_string(scheme_t *sc, port_t *p)
 {
 	char *start=p->rep.string.start;
 	size_t new_size=p->rep.string.past_the_end-start+1+BLOCK_SIZE;
@@ -1565,8 +1565,8 @@ static int realloc_port_string(scheme_t *sc, port *p)
 }
 
 INTERFACE void putstr(scheme_t *sc, const char *s) {
-	port *pt=sc->outport->_object._port;
-	if(pt->kind&port_file) {
+	port_t *pt=sc->outport->_object._port;
+	if(pt->kind & port_file) {
 		fputs(s,pt->rep.stdio.file);
 	} else {
 		for(;*s;s++) {
@@ -1580,7 +1580,7 @@ INTERFACE void putstr(scheme_t *sc, const char *s) {
 }
 
 static void putchars(scheme_t *sc, const char *s, int len) {
-	port *pt=sc->outport->_object._port;
+	port_t *pt=sc->outport->_object._port;
 	if(pt->kind&port_file) {
 		fwrite(s,1,len,pt->rep.stdio.file);
 	} else {
@@ -1595,7 +1595,7 @@ static void putchars(scheme_t *sc, const char *s, int len) {
 }
 
 INTERFACE void putcharacter(scheme_t *sc, int c) {
-	port *pt=sc->outport->_object._port;
+	port_t *pt=sc->outport->_object._port;
 	if(pt->kind&port_file) {
 		fputc(c,pt->rep.stdio.file);
 	} else {
@@ -3099,7 +3099,7 @@ static cell_ptr_t opexe_1(scheme_t *sc, enum scheme_opcodes op) {
 
 static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x;
-	num v;
+	number_t v;
 #if USE_MATH
 	double dd;
 #endif
@@ -3628,8 +3628,8 @@ int list_length(scheme_t *sc, cell_ptr_t a) {
 
 static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x;
-	num v;
-	int (*comp_func)(num,num)=0;
+	number_t v;
+	int (*comp_func)(number_t,number_t)=0;
 
 	switch (op) {
 	case OP_NOT:        /* not */
@@ -3937,7 +3937,7 @@ static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 		s_return(sc,p);
 	}
 	case OP_GET_OUTSTRING: /* get-output-string */ {
-		port *p;
+		port_t *p;
 
 		if ((p=car(sc->args)->_object._port)->kind & port_string) {
 			size_t size;
@@ -4638,9 +4638,9 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	int i, n=sizeof(dispatch_table)/sizeof(dispatch_table[0]);
 	cell_ptr_t x;
 
-	num_zero.is_fixnum=1;
+	num_zero.is_integer=1;
 	num_zero.value.ivalue=0;
-	num_one.is_fixnum=1;
+	num_one.is_integer=1;
 	num_one.value.ivalue=1;
 
 #if USE_INTERFACE

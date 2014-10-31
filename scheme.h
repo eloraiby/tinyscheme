@@ -119,14 +119,14 @@ typedef struct cell_t* cell_ptr_t;
 typedef void * (*func_alloc)(size_t);
 typedef void (*func_dealloc)(void *);
 
-/* num, for generic arithmetic */
-typedef struct num {
-     char is_fixnum;
+/* number_t, for generic arithmetic */
+typedef struct number_t {
+     char is_integer;
      union {
           long ivalue;
           double rvalue;
      } value;
-} num;
+} number_t;
 
 SCHEME_EXPORT scheme_t *scheme_init_new();
 SCHEME_EXPORT scheme_t *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free);
@@ -149,8 +149,8 @@ SCHEME_EXPORT void scheme_define(scheme_t *sc, cell_ptr_t env, cell_ptr_t symbol
 typedef cell_ptr_t (*foreign_func)(scheme_t *, cell_ptr_t);
 
 cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable);
-cell_ptr_t mk_integer(scheme_t *sc, long num);
-cell_ptr_t mk_real(scheme_t *sc, double num);
+cell_ptr_t mk_integer(scheme_t *sc, long number_t);
+cell_ptr_t mk_real(scheme_t *sc, double number_t);
 cell_ptr_t mk_symbol(scheme_t *sc, const char *name);
 cell_ptr_t gensym(scheme_t *sc);
 cell_ptr_t mk_string(scheme_t *sc, const char *str);
@@ -169,8 +169,8 @@ struct scheme_interface {
   cell_ptr_t (*cons)(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
   cell_ptr_t (*immutable_cons)(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
   cell_ptr_t (*reserve_cells)(scheme_t *sc, int n);
-  cell_ptr_t (*mk_integer)(scheme_t *sc, long num);
-  cell_ptr_t (*mk_real)(scheme_t *sc, double num);
+  cell_ptr_t (*mk_integer)(scheme_t *sc, long number_t);
+  cell_ptr_t (*mk_real)(scheme_t *sc, double number_t);
   cell_ptr_t (*mk_symbol)(scheme_t *sc, const char *name);
   cell_ptr_t (*gensym)(scheme_t *sc);
   cell_ptr_t (*mk_string)(scheme_t *sc, const char *str);
@@ -184,7 +184,7 @@ struct scheme_interface {
   int (*is_string)(cell_ptr_t p);
   char *(*string_value)(cell_ptr_t p);
   int (*is_number)(cell_ptr_t p);
-  num (*nvalue)(cell_ptr_t p);
+  number_t (*nvalue)(cell_ptr_t p);
   long (*ivalue)(cell_ptr_t p);
   double (*rvalue)(cell_ptr_t p);
   int (*is_integer)(cell_ptr_t p);

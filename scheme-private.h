@@ -21,7 +21,7 @@ enum scheme_port_kind {
 	port_saw_EOF=64
 };
 
-typedef struct port {
+typedef struct port_t {
 	unsigned char kind;
 	union {
 		struct {
@@ -38,7 +38,7 @@ typedef struct port {
 			char *curr;
 		} string;
 	} rep;
-} port;
+} port_t;
 
 /* cell structure */
 struct cell_t {
@@ -48,8 +48,8 @@ struct cell_t {
 			char   *_svalue;
 			int   _length;
 		} _string;
-		num _number;
-		port *_port;
+		number_t _number;
+		port_t *_port;
 		foreign_func _ff;
 		struct {
 			cell_t *_car;
@@ -118,7 +118,7 @@ struct scheme_t {
 	cell_ptr_t loadport;
 
 #define MAXFIL 64
-	port load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
+	port_t load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
 	int nesting_stack[MAXFIL];
 	int file_i;
 	int nesting;
@@ -159,7 +159,7 @@ enum scheme_opcodes {
 int is_string(cell_ptr_t p);
 char *string_value(cell_ptr_t p);
 int is_number(cell_ptr_t p);
-num nvalue(cell_ptr_t p);
+number_t nvalue(cell_ptr_t p);
 long ivalue(cell_ptr_t p);
 double rvalue(cell_ptr_t p);
 int is_integer(cell_ptr_t p);
