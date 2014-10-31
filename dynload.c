@@ -30,13 +30,12 @@ typedef void (*FARPROC)();
 #define PREFIX ""
 #define SUFFIX ".dll"
 
-static void display_w32_error_msg(const char *additional_message)
-{
+static void display_w32_error_msg(const char *additional_message) {
 	LPVOID msg_buf;
 
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
-		      NULL, GetLastError(), 0,
-		      (LPTSTR)&msg_buf, 0, NULL);
+	              NULL, GetLastError(), 0,
+	              (LPTSTR)&msg_buf, 0, NULL);
 	fprintf(stderr, "scheme_t load-extension: %s: %s", additional_message, msg_buf);
 	LocalFree(msg_buf);
 }
@@ -87,8 +86,7 @@ static void dl_detach(HMODULE mo) {
 }
 #endif
 
-cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args)
-{
+cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args) {
 	cell_ptr_t first_arg;
 	cell_ptr_t retval;
 	char filename[MAXPATHLEN], init_fn[MAXPATHLEN+6];
@@ -103,19 +101,16 @@ cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args)
 		dll_handle = dl_attach(filename);
 		if (dll_handle == 0) {
 			retval = sc -> F;
-		}
-		else {
+		} else {
 			module_init = (void(*)(scheme_t *))dl_proc(dll_handle, init_fn);
 			if (module_init != 0) {
 				(*module_init)(sc);
 				retval = sc -> T;
-			}
-			else {
+			} else {
 				retval = sc->F;
 			}
 		}
-	}
-	else {
+	} else {
 		retval = sc -> F;
 	}
 

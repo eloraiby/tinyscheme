@@ -149,7 +149,7 @@ struct scheme_t {
 enum scheme_opcodes {
 #define _OP_DEF(A,B,C,D,E,OP) OP,
 #include "opdefines.h"
-	OP_MAXDEFINED
+    OP_MAXDEFINED
 };
 
 

@@ -12,7 +12,7 @@ TARGET = tinyscheme141
 CONFIG   += console
 CONFIG   -= app_bundle
 
-QMAKE_CFLAGS += -std=c89
+QMAKE_CFLAGS += -std=c99
 QMAKE_LIBS += -ldl
 
 TEMPLATE = app
@@ -20,7 +20,8 @@ TEMPLATE = app
 
 SOURCES += \
     dynload.c \
-    scheme.c
+    scheme.c \
+    number.c
 
 OTHER_FILES += \
     BUILDING \
@@ -36,4 +37,6 @@ HEADERS += \
     dynload.h \
     opdefines.h \
     scheme.h \
-    scheme-private.h
+    scheme-private.h \
+    parser.h \
+    number.h
