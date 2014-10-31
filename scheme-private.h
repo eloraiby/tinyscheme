@@ -1,4 +1,4 @@
-/* scheme-private.h */
+/* scheme_t-private.h */
 
 #ifndef _SCHEME_PRIVATE_H
 #define _SCHEME_PRIVATE_H
@@ -41,7 +41,7 @@ typedef struct port {
 } port;
 
 /* cell structure */
-struct cell {
+struct cell_t {
 	unsigned int _flag;
 	union {
 		struct {
@@ -52,13 +52,13 @@ struct cell {
 		port *_port;
 		foreign_func _ff;
 		struct {
-			struct cell *_car;
-			struct cell *_cdr;
+			cell_t *_car;
+			cell_t *_cdr;
 		} _cons;
 	} _object;
 };
 
-struct scheme {
+struct scheme_t {
 	/* arrays for segments */
 	func_alloc malloc;
 	func_dealloc free;
@@ -71,51 +71,51 @@ struct scheme {
 #define CELL_SEGSIZE    5000  /* # of cells in one segment */
 #define CELL_NSEGMENT   10    /* # of segments for cells */
 	char *alloc_seg[CELL_NSEGMENT];
-	pointer cell_seg[CELL_NSEGMENT];
+	cell_ptr_t cell_seg[CELL_NSEGMENT];
 	int     last_cell_seg;
 
 	/* We use 4 registers. */
-	pointer args;            /* register for arguments of function */
-	pointer envir;           /* stack register for current environment */
-	pointer code;            /* register for current code */
-	pointer dump;            /* stack register for next evaluation */
+	cell_ptr_t args;            /* register for arguments of function */
+	cell_ptr_t envir;           /* stack register for current environment */
+	cell_ptr_t code;            /* register for current code */
+	cell_ptr_t dump;            /* stack register for next evaluation */
 
 	int interactive_repl;    /* are we in an interactive REPL? */
 
-	struct cell _sink;
-	pointer sink;            /* when mem. alloc. fails */
-	struct cell _NIL;
-	pointer NIL;             /* special cell representing empty cell */
-	struct cell _HASHT;
-	pointer T;               /* special cell representing #t */
-	struct cell _HASHF;
-	pointer F;               /* special cell representing #f */
-	struct cell _EOF_OBJ;
-	pointer EOF_OBJ;         /* special cell representing end-of-file object */
-	pointer oblist;          /* pointer to symbol table */
-	pointer global_env;      /* pointer to global environment */
-	pointer c_nest;          /* stack for nested calls from C */
+	cell_t _sink;
+	cell_ptr_t sink;            /* when mem. alloc. fails */
+	cell_t _NIL;
+	cell_ptr_t NIL;             /* special cell representing empty cell */
+	cell_t _HASHT;
+	cell_ptr_t T;               /* special cell representing #t */
+	cell_t _HASHF;
+	cell_ptr_t F;               /* special cell representing #f */
+	cell_t _EOF_OBJ;
+	cell_ptr_t EOF_OBJ;         /* special cell representing end-of-file object */
+	cell_ptr_t oblist;          /* cell_ptr_t to symbol table */
+	cell_ptr_t global_env;      /* cell_ptr_t to global environment */
+	cell_ptr_t c_nest;          /* stack for nested calls from C */
 
 	/* global pointers to special symbols */
-	pointer LAMBDA;               /* pointer to syntax lambda */
-	pointer QUOTE;           /* pointer to syntax quote */
+	cell_ptr_t LAMBDA;               /* cell_ptr_t to syntax lambda */
+	cell_ptr_t QUOTE;           /* cell_ptr_t to syntax quote */
 
-	pointer QQUOTE;               /* pointer to symbol quasiquote */
-	pointer UNQUOTE;         /* pointer to symbol unquote */
-	pointer UNQUOTESP;       /* pointer to symbol unquote-splicing */
-	pointer FEED_TO;         /* => */
-	pointer COLON_HOOK;      /* *colon-hook* */
-	pointer ERROR_HOOK;      /* *error-hook* */
-	pointer SHARP_HOOK;  /* *sharp-hook* */
-	pointer COMPILE_HOOK;  /* *compile-hook* */
+	cell_ptr_t QQUOTE;               /* cell_ptr_t to symbol quasiquote */
+	cell_ptr_t UNQUOTE;         /* cell_ptr_t to symbol unquote */
+	cell_ptr_t UNQUOTESP;       /* cell_ptr_t to symbol unquote-splicing */
+	cell_ptr_t FEED_TO;         /* => */
+	cell_ptr_t COLON_HOOK;      /* *colon-hook* */
+	cell_ptr_t ERROR_HOOK;      /* *error-hook* */
+	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
+	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
 
-	pointer free_cell;       /* pointer to top of free cells */
+	cell_ptr_t free_cell;       /* cell_ptr_t to top of free cells */
 	long    fcells;          /* # of free cells */
 
-	pointer inport;
-	pointer outport;
-	pointer save_inport;
-	pointer loadport;
+	cell_ptr_t inport;
+	cell_ptr_t outport;
+	cell_ptr_t save_inport;
+	cell_ptr_t loadport;
 
 #define MAXFIL 64
 	port load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
@@ -134,14 +134,14 @@ struct scheme {
 	FILE *tmpfp;
 	int tok;
 	int print_flag;
-	pointer value;
+	cell_ptr_t value;
 	int op;
 
 	void *ext_data;     /* For the benefit of foreign functions */
 	long gensym_cnt;
 
 	struct scheme_interface *vptr;
-	void *dump_base;    /* pointer to base of allocated dump stack */
+	void *dump_base;    /* cell_ptr_t to base of allocated dump stack */
 	int dump_size;      /* number of frames allocated for dump stack */
 };
 
@@ -156,46 +156,46 @@ enum scheme_opcodes {
 #define cons(sc,a,b) _cons(sc,a,b,0)
 #define immutable_cons(sc,a,b) _cons(sc,a,b,1)
 
-int is_string(pointer p);
-char *string_value(pointer p);
-int is_number(pointer p);
-num nvalue(pointer p);
-long ivalue(pointer p);
-double rvalue(pointer p);
-int is_integer(pointer p);
-int is_real(pointer p);
-int is_character(pointer p);
-long charvalue(pointer p);
-int is_vector(pointer p);
+int is_string(cell_ptr_t p);
+char *string_value(cell_ptr_t p);
+int is_number(cell_ptr_t p);
+num nvalue(cell_ptr_t p);
+long ivalue(cell_ptr_t p);
+double rvalue(cell_ptr_t p);
+int is_integer(cell_ptr_t p);
+int is_real(cell_ptr_t p);
+int is_character(cell_ptr_t p);
+long charvalue(cell_ptr_t p);
+int is_vector(cell_ptr_t p);
 
-int is_port(pointer p);
+int is_port(cell_ptr_t p);
 
-int is_pair(pointer p);
-pointer pair_car(pointer p);
-pointer pair_cdr(pointer p);
-pointer set_car(pointer p, pointer q);
-pointer set_cdr(pointer p, pointer q);
+int is_pair(cell_ptr_t p);
+cell_ptr_t pair_car(cell_ptr_t p);
+cell_ptr_t pair_cdr(cell_ptr_t p);
+cell_ptr_t set_car(cell_ptr_t p, cell_ptr_t q);
+cell_ptr_t set_cdr(cell_ptr_t p, cell_ptr_t q);
 
-int is_symbol(pointer p);
-char *symname(pointer p);
-int hasprop(pointer p);
+int is_symbol(cell_ptr_t p);
+char *symname(cell_ptr_t p);
+int hasprop(cell_ptr_t p);
 
-int is_syntax(pointer p);
-int is_proc(pointer p);
-int is_foreign(pointer p);
-char *syntaxname(pointer p);
-int is_closure(pointer p);
+int is_syntax(cell_ptr_t p);
+int is_proc(cell_ptr_t p);
+int is_foreign(cell_ptr_t p);
+char *syntaxname(cell_ptr_t p);
+int is_closure(cell_ptr_t p);
 #ifdef USE_MACRO
-int is_macro(pointer p);
+int is_macro(cell_ptr_t p);
 #endif
-pointer closure_code(pointer p);
-pointer closure_env(pointer p);
+cell_ptr_t closure_code(cell_ptr_t p);
+cell_ptr_t closure_env(cell_ptr_t p);
 
-int is_continuation(pointer p);
-int is_promise(pointer p);
-int is_environment(pointer p);
-int is_immutable(pointer p);
-void setimmutable(pointer p);
+int is_continuation(cell_ptr_t p);
+int is_promise(cell_ptr_t p);
+int is_environment(cell_ptr_t p);
+int is_immutable(cell_ptr_t p);
+void setimmutable(cell_ptr_t p);
 
 #ifdef __cplusplus
 }

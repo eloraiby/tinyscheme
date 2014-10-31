@@ -37,7 +37,7 @@ static void display_w32_error_msg(const char *additional_message)
 	FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_ALLOCATE_BUFFER,
 		      NULL, GetLastError(), 0,
 		      (LPTSTR)&msg_buf, 0, NULL);
-	fprintf(stderr, "scheme load-extension: %s: %s", additional_message, msg_buf);
+	fprintf(stderr, "scheme_t load-extension: %s: %s", additional_message, msg_buf);
 	LocalFree(msg_buf);
 }
 
@@ -67,7 +67,7 @@ static void dl_detach(HMODULE mo) {
 static HMODULE dl_attach(const char *module) {
 	HMODULE so=dlopen(module,RTLD_LAZY);
 	if(!so) {
-		fprintf(stderr, "Error loading scheme extension \"%s\": %s\n", module, dlerror());
+		fprintf(stderr, "Error loading scheme_t extension \"%s\": %s\n", module, dlerror());
 	}
 	return so;
 }
@@ -78,7 +78,7 @@ static FARPROC dl_proc(HMODULE mo, const char *proc) {
 	if ((errmsg = dlerror()) == 0) {
 		return fp;
 	}
-	fprintf(stderr, "Error initializing scheme module \"%s\": %s\n", proc, errmsg);
+	fprintf(stderr, "Error initializing scheme_t module \"%s\": %s\n", proc, errmsg);
 	return 0;
 }
 
@@ -87,14 +87,14 @@ static void dl_detach(HMODULE mo) {
 }
 #endif
 
-pointer scm_load_ext(scheme *sc, pointer args)
+cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args)
 {
-	pointer first_arg;
-	pointer retval;
+	cell_ptr_t first_arg;
+	cell_ptr_t retval;
 	char filename[MAXPATHLEN], init_fn[MAXPATHLEN+6];
 	char *name;
 	HMODULE dll_handle;
-	void (*module_init)(scheme *sc);
+	void (*module_init)(scheme_t *sc);
 
 	if ((args != sc->NIL) && is_string((first_arg = pair_car(args)))) {
 		name = string_value(first_arg);
@@ -105,7 +105,7 @@ pointer scm_load_ext(scheme *sc, pointer args)
 			retval = sc -> F;
 		}
 		else {
-			module_init = (void(*)(scheme *))dl_proc(dll_handle, init_fn);
+			module_init = (void(*)(scheme_t *))dl_proc(dll_handle, init_fn);
 			if (module_init != 0) {
 				(*module_init)(sc);
 				retval = sc -> T;
