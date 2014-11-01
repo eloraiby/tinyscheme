@@ -247,7 +247,7 @@ enum scheme_types {
 	sc->op = (int)(a);                                  \
 	return sc->T; END
 
-extern cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
+cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
 #define s_return(sc,a) return _s_return(sc,a)
 
 #define s_retbool(tf)    s_return(sc,(tf) ? sc->T : sc->F)

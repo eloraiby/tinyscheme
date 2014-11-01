@@ -856,7 +856,7 @@ static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op) {
 		if (is_pair(sc->code)) { /* continue */
 			if (!is_pair(car(sc->code)) || !is_pair(cdar(sc->code))) {
 				error_1(sc, "Bad syntax of binding spec in let :",
-				        car(sc->code));
+					car(sc->code));
 			}
 			s_save(sc,OP_LET1, sc->args, cdr(sc->code));
 			sc->code = cadar(sc->code);
@@ -872,7 +872,7 @@ static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_LET2:       /* let */
 		new_frame_in_env(sc, sc->envir);
 		for (x = is_symbol(car(sc->code)) ? cadr(sc->code) : car(sc->code), y = sc->args;
-		        y != sc->NIL; x = cdr(x), y = cdr(y)) {
+			y != sc->NIL; x = cdr(x), y = cdr(y)) {
 			new_slot_in_env(sc, caar(x), car(y));
 		}
 		if (is_symbol(car(sc->code))) {    /* named let */
@@ -1879,70 +1879,74 @@ const char *procname(cell_ptr_t x) {
 /* kernel of this interpreter */
 static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 	sc->op = op;
-	for (;;) {
-		op_code_info *pcd=dispatch_table+sc->op;
-		if (pcd->name!=0) { /* if built-in function, check arguments */
-			char msg[STRBUFFSIZE];
-			int ok=1;
-			int n=list_length(sc,sc->args);
+	for( ; ; ) {
+		op_code_info*	pcd	= dispatch_table + sc->op;
+		if( pcd->name != 0 ) { /* if built-in function, check arguments */
+			char	msg[STRBUFFSIZE];
+			int	ok	= 1;
+			int	n	= list_length(sc, sc->args);
 
 			/* Check number of arguments */
-			if(n<pcd->min_arity) {
-				ok=0;
+			if( n < pcd->min_arity ) {
+				ok	= 0;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 				         pcd->name,
 				         pcd->min_arity==pcd->max_arity?"":" at least",
 				         pcd->min_arity);
 			}
-			if(ok && n>pcd->max_arity) {
+			if( ok && n>pcd->max_arity ) {
 				ok=0;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 				         pcd->name,
 				         pcd->min_arity==pcd->max_arity?"":" at most",
 				         pcd->max_arity);
 			}
-			if(ok) {
-				if(pcd->arg_tests_encoding!=0) {
-					int i=0;
-					int j;
-					const char *t=pcd->arg_tests_encoding;
-					cell_ptr_t arglist=sc->args;
+			if( ok ) {
+				if( pcd->arg_tests_encoding != 0 ) {
+					int		i = 0;
+					int		j;
+					const char*	t = pcd->arg_tests_encoding;
+					cell_ptr_t	arglist	= sc->args;
 					do {
-						cell_ptr_t arg=car(arglist);
-						j=(int)t[0];
-						if(j==TST_LIST[0]) {
-							if(arg!=sc->NIL && !is_pair(arg)) break;
+						cell_ptr_t	arg = car(arglist);
+						j	= (int)t[0];
+						if( j == TST_LIST[0] ) {
+							if( arg != sc->NIL && !is_pair(arg) ) break;
 						} else {
-							if(!tests[j].fct(arg)) break;
+							if( !tests[j].fct(arg) ) break;
 						}
 
-						if(t[1]!=0) { /* last test is replicated as necessary */
+						if( t[1] != 0 ) { /* last test is replicated as necessary */
 							t++;
 						}
-						arglist=cdr(arglist);
+						arglist	= cdr(arglist);
 						i++;
-					} while(i<n);
-					if(i<n) {
-						ok=0;
+					} while( i < n );
+					if( i < n ) {
+						ok	= 0;
 						snprintf(msg, STRBUFFSIZE, "%s: argument %d must be: %s",
 						         pcd->name,
-						         i+1,
+							 i + 1,
 						         tests[j].kind);
 					}
 				}
 			}
-			if(!ok) {
-				if(_error_1(sc,msg,0)==sc->NIL) {
+
+			if( !ok ) {
+				if( _error_1(sc,msg,0) == sc->NIL ) {
 					return;
 				}
-				pcd=dispatch_table+sc->op;
+				pcd	= dispatch_table + sc->op;
 			}
 		}
+
 		ok_to_freely_gc(sc);
-		if (pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL) {
+
+		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL ) {
 			return;
 		}
-		if(sc->no_memory) {
+
+		if( sc->no_memory ) {
 			fprintf(stderr,"No memory!\n");
 			return;
 		}
@@ -2239,20 +2243,20 @@ void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 
 void scheme_load_string(scheme_t *sc, const char *cmd) {
 	dump_stack_reset(sc);
-	sc->envir = sc->global_env;
-	sc->file_i=0;
-	sc->load_stack[0].kind=port_input|port_string;
-	sc->load_stack[0].rep.string.start=(char*)cmd; /* This func respects const */
-	sc->load_stack[0].rep.string.past_the_end=(char*)cmd+strlen(cmd);
-	sc->load_stack[0].rep.string.curr=(char*)cmd;
-	sc->loadport=mk_port(sc,sc->load_stack);
-	sc->retcode=0;
-	sc->interactive_repl=0;
-	sc->inport=sc->loadport;
-	sc->args = mk_integer(sc,sc->file_i);
+	sc->envir	= sc->global_env;
+	sc->file_i	= 0;
+	sc->load_stack[0].kind	= port_input | port_string;
+	sc->load_stack[0].rep.string.start		= (char*)cmd; /* This func respects const */
+	sc->load_stack[0].rep.string.past_the_end	= (char*)cmd + strlen(cmd);
+	sc->load_stack[0].rep.string.curr		= (char*)cmd;
+	sc->loadport	= mk_port(sc, sc->load_stack);
+	sc->retcode	= 0;
+	sc->interactive_repl	= 0;
+	sc->inport	= sc->loadport;
+	sc->args	= mk_integer(sc, sc->file_i);
 	Eval_Cycle(sc, OP_T0LVL);
-	typeflag(sc->loadport)=T_ATOM;
-	if(sc->retcode==0) {
+	typeflag(sc->loadport)	= T_ATOM;
+	if( sc->retcode == 0 ) {
 		sc->retcode=sc->nesting!=0;
 	}
 }
@@ -2357,7 +2361,8 @@ int MacTS_main(int argc, char **argv) {
 #else
 int main(int argc, char **argv) {
 #endif
-	scheme_t sc;
+	scheme_t* sc	= (scheme_t*)malloc(sizeof(scheme_t));
+
 	FILE *fin = NULL;
 	char *file_name=InitFile;
 	int retcode;
@@ -2376,17 +2381,17 @@ int main(int argc, char **argv) {
 		printf("Use - as filename for stdin.\n");
 		return 1;
 	}
-	if(!scheme_init(&sc)) {
+	if(!scheme_init(sc)) {
 		fprintf(stderr,"Could not initialize!\n");
 		return 2;
 	}
-	scheme_set_input_port_file(&sc, stdin);
-	scheme_set_output_port_file(&sc, stdout);
+	scheme_set_input_port_file(sc, stdin);
+	scheme_set_output_port_file(sc, stdout);
 
 	fprintf(stderr, "cell size: %lu\n", sizeof(cell_t));
 
 #if USE_DL
-	scheme_define(&sc,sc.global_env,mk_symbol(&sc,"load-extension"),mk_foreign_func(&sc, scm_load_ext));
+	scheme_define(sc, sc->global_env, mk_symbol(sc, "load-extension"), mk_foreign_func(sc, scm_load_ext));
 #endif
 	argv++;
 	if(access(file_name,0)!=0) {
@@ -2398,49 +2403,50 @@ int main(int argc, char **argv) {
 	do {
 		if(strcmp(file_name,"-")==0) {
 			fin=stdin;
-		} else if(strcmp(file_name,"-1")==0 || strcmp(file_name,"-c")==0) {
-			cell_ptr_t args=sc.NIL;
-			isfile=file_name[1]=='1';
-			file_name=*argv++;
-			if(strcmp(file_name,"-")==0) {
+		} else if( strcmp(file_name, "-1")==0 || strcmp(file_name, "-c") == 0 ) {
+			cell_ptr_t args	= sc->NIL;
+			isfile		= file_name[1] == '1';
+			file_name	= *argv++;
+			if( strcmp(file_name, "-") == 0 ) {
 				fin=stdin;
-			} else if(isfile) {
-				fin=fopen(file_name,"r");
+			} else if( isfile ) {
+				fin=fopen(file_name, "r");
 			}
-			for(; *argv; argv++) {
-				cell_ptr_t value=mk_string(&sc,*argv);
-				args=cons(&sc,value,args);
+			for( ; *argv; argv++ ) {
+				cell_ptr_t value	= mk_string(sc, *argv);
+				args	= cons(sc, value, args);
 			}
-			args=reverse_in_place(&sc,sc.NIL,args);
-			scheme_define(&sc,sc.global_env,mk_symbol(&sc,"*args*"),args);
+			args	= reverse_in_place(sc, sc->NIL, args);
+			scheme_define(sc, sc->global_env, mk_symbol(sc, "*args*"), args);
 
 		} else {
-			fin=fopen(file_name,"r");
+			fin	= fopen(file_name, "r");
 		}
-		if(isfile && fin==0) {
-			fprintf(stderr,"Could not open file %s\n",file_name);
+		if( isfile && fin == 0 ) {
+			fprintf(stderr, "Could not open file %s\n", file_name);
 		} else {
-			if(isfile) {
-				scheme_load_named_file(&sc,fin,file_name);
+			if( isfile ) {
+				scheme_load_named_file(sc, fin, file_name);
 			} else {
-				scheme_load_string(&sc,file_name);
+				scheme_load_string(sc, file_name);
 			}
-			if(!isfile || fin!=stdin) {
-				if(sc.retcode!=0) {
-					fprintf(stderr,"Errors encountered reading %s\n",file_name);
+			if( !isfile || fin!=stdin ) {
+				if(sc->retcode != 0) {
+					fprintf(stderr, "Errors encountered reading %s\n", file_name);
 				}
-				if(isfile) {
+				if( isfile ) {
 					fclose(fin);
 				}
 			}
 		}
-		file_name=*argv++;
-	} while(file_name!=0);
-	if(argc==1) {
-		scheme_load_named_file(&sc,stdin,0);
+		file_name	= *argv++;
+	} while( file_name != 0 );
+	if( argc == 1 ) {
+		scheme_load_named_file(sc, stdin,0);
 	}
-	retcode=sc.retcode;
-	scheme_deinit(&sc);
+	retcode	= sc->retcode;
+	scheme_deinit(sc);
+	free(sc);
 
 	return retcode;
 }

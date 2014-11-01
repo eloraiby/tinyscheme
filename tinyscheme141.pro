@@ -36,8 +36,7 @@ OTHER_FILES += \
     hack.txt \
     init.scm \
     Manual.txt \
-    MiniSCHEMETribute.txt \
-    makefile
+    MiniSCHEMETribute.txt
 
 HEADERS += \
     CHANGES \

@@ -94,13 +94,13 @@ void dump_stack_free(scheme_t *sc) {
 }
 
 cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a) {
-	sc->value = (a);
-	if(sc->dump==sc->NIL) return sc->NIL;
-	sc->op = ivalue(car(sc->dump));
-	sc->args = cadr(sc->dump);
-	sc->envir = caddr(sc->dump);
-	sc->code = cadddr(sc->dump);
-	sc->dump = cddddr(sc->dump);
+	sc->value	= (a);
+	if( sc->dump == sc->NIL ) return sc->NIL;
+	sc->op		= ivalue(car(sc->dump));
+	sc->args	= cadr(sc->dump);
+	sc->envir	= caddr(sc->dump);
+	sc->code	= cadddr(sc->dump);
+	sc->dump	= cddddr(sc->dump);
 	return sc->T;
 }
 
