@@ -2135,15 +2135,15 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	}
 
 	/* initialization of global pointers to special symbols */
-	sc->LAMBDA = mk_symbol(sc, "lambda");
-	sc->QUOTE = mk_symbol(sc, "quote");
-	sc->QQUOTE = mk_symbol(sc, "quasiquote");
-	sc->UNQUOTE = mk_symbol(sc, "unquote");
-	sc->UNQUOTESP = mk_symbol(sc, "unquote-splicing");
-	sc->FEED_TO = mk_symbol(sc, "=>");
-	sc->COLON_HOOK = mk_symbol(sc,"*colon-hook*");
-	sc->ERROR_HOOK = mk_symbol(sc, "*error-hook*");
-	sc->SHARP_HOOK = mk_symbol(sc, "*sharp-hook*");
+	sc->LAMBDA	= mk_symbol(sc, "lambda");
+	sc->QUOTE	= mk_symbol(sc, "quote");
+	sc->QQUOTE	= mk_symbol(sc, "quasiquote");
+	sc->UNQUOTE	= mk_symbol(sc, "unquote");
+	sc->UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
+	sc->FEED_TO	= mk_symbol(sc, "=>");
+	sc->COLON_HOOK	= mk_symbol(sc,"*colon-hook*");
+	sc->ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
+	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
 	sc->COMPILE_HOOK = mk_symbol(sc, "*compile-hook*");
 
 	return !sc->no_memory;
