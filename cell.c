@@ -2,7 +2,6 @@
 
 /* allocate new cell segment */
 int alloc_cellseg(scheme_t *sc) {
-	cell_ptr_t newp;
 	cell_ptr_t last;
 	cell_ptr_t p;
 

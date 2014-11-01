@@ -606,3 +606,300 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	*pp=p;
 	*plen=strlen(p);
 }
+
+cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
+	cell_ptr_t x;
+
+	switch( op ) {
+	case OP_CAR:        /* car */
+		s_return(sc,caar(sc->args));
+
+	case OP_CDR:        /* cdr */
+		s_return(sc,cdar(sc->args));
+
+	case OP_CONS:       /* cons */
+		cdr(sc->args) = cadr(sc->args);
+		s_return(sc,sc->args);
+
+	case OP_SETCAR:     /* set-car! */
+		if(!is_immutable(car(sc->args))) {
+			caar(sc->args) = cadr(sc->args);
+			s_return(sc,car(sc->args));
+		} else {
+			error_0(sc,"set-car!: unable to alter immutable pair");
+		}
+
+	case OP_SETCDR:     /* set-cdr! */
+		if(!is_immutable(car(sc->args))) {
+			cdar(sc->args) = cadr(sc->args);
+			s_return(sc,car(sc->args));
+		} else {
+			error_0(sc,"set-cdr!: unable to alter immutable pair");
+		}
+
+	case OP_CHAR2INT: { /* char->integer */
+		char c;
+		c=(char)ivalue(car(sc->args));
+		s_return(sc,mk_integer(sc,(unsigned char)c));
+	}
+
+	case OP_INT2CHAR: { /* integer->char */
+		unsigned char c;
+		c=(unsigned char)ivalue(car(sc->args));
+		s_return(sc,mk_character(sc,(char)c));
+	}
+
+	case OP_CHARUPCASE: {
+		unsigned char c;
+		c=(unsigned char)ivalue(car(sc->args));
+		c=toupper(c);
+		s_return(sc,mk_character(sc,(char)c));
+	}
+
+	case OP_CHARDNCASE: {
+		unsigned char c;
+		c=(unsigned char)ivalue(car(sc->args));
+		c=tolower(c);
+		s_return(sc,mk_character(sc,(char)c));
+	}
+
+	case OP_STR2SYM:  /* string->symbol */
+		s_return(sc,mk_symbol(sc,strvalue(car(sc->args))));
+
+	case OP_STR2ATOM: { /* string->atom */
+		char *s=strvalue(car(sc->args));
+		long pf = 0;
+		if(cdr(sc->args)!=sc->NIL) {
+			/* we know cadr(sc->args) is a natural number */
+			/* see if it is 2, 8, 10, or 16, or error */
+			pf = ivalue_unchecked(cadr(sc->args));
+			if(pf == 16 || pf == 10 || pf == 8 || pf == 2) {
+				/* base is OK */
+			} else {
+				pf = -1;
+			}
+		}
+		if (pf < 0) {
+			error_1(sc, "string->atom: bad base:", cadr(sc->args));
+		} else if(*s=='#') { /* no use of base! */
+			s_return(sc, mk_sharp_const(sc, s+1));
+		} else {
+			if (pf == 0 || pf == 10) {
+				s_return(sc, mk_atom(sc, s));
+			} else {
+				char *ep;
+				long iv = strtol(s,&ep,(int )pf);
+				if (*ep == 0) {
+					s_return(sc, mk_integer(sc, iv));
+				} else {
+					s_return(sc, sc->F);
+				}
+			}
+		}
+	}
+
+	case OP_SYM2STR: /* symbol->string */
+		x=mk_string(sc,symname(car(sc->args)));
+		setimmutable(x);
+		s_return(sc,x);
+
+	case OP_ATOM2STR: { /* atom->string */
+		long pf = 0;
+		x=car(sc->args);
+		if(cdr(sc->args)!=sc->NIL) {
+			/* we know cadr(sc->args) is a natural number */
+			/* see if it is 2, 8, 10, or 16, or error */
+			pf = ivalue_unchecked(cadr(sc->args));
+			if(is_number(x) && (pf == 16 || pf == 10 || pf == 8 || pf == 2)) {
+				/* base is OK */
+			} else {
+				pf = -1;
+			}
+		}
+		if (pf < 0) {
+			error_1(sc, "atom->string: bad base:", cadr(sc->args));
+		} else if(is_number(x) || is_character(x) || is_string(x) || is_symbol(x)) {
+			char *p;
+			int len;
+			atom2str(sc,x,(int )pf,&p,&len);
+			s_return(sc,mk_counted_string(sc,p,len));
+		} else {
+			error_1(sc, "atom->string: not an atom:", x);
+		}
+	}
+
+	case OP_MKSTRING: { /* make-string */
+		int fill=' ';
+		int len;
+
+		len=ivalue(car(sc->args));
+
+		if(cdr(sc->args)!=sc->NIL) {
+			fill=charvalue(cadr(sc->args));
+		}
+		s_return(sc,mk_empty_string(sc,len,(char)fill));
+	}
+
+	case OP_STRLEN:  /* string-length */
+		s_return(sc,mk_integer(sc,strlength(car(sc->args))));
+
+	case OP_STRREF: { /* string-ref */
+		char *str;
+		int index;
+
+		str=strvalue(car(sc->args));
+
+		index=ivalue(cadr(sc->args));
+
+		if(index>=strlength(car(sc->args))) {
+			error_1(sc,"string-ref: out of bounds:",cadr(sc->args));
+		}
+
+		s_return(sc,mk_character(sc,((unsigned char*)str)[index]));
+	}
+
+	case OP_STRSET: { /* string-set! */
+		char *str;
+		int index;
+		int c;
+
+		if(is_immutable(car(sc->args))) {
+			error_1(sc,"string-set!: unable to alter immutable string:",car(sc->args));
+		}
+		str=strvalue(car(sc->args));
+
+		index=ivalue(cadr(sc->args));
+		if(index>=strlength(car(sc->args))) {
+			error_1(sc,"string-set!: out of bounds:",cadr(sc->args));
+		}
+
+		c=charvalue(caddr(sc->args));
+
+		str[index]=(char)c;
+		s_return(sc,car(sc->args));
+	}
+
+	case OP_STRAPPEND: { /* string-append */
+		/* in 1.29 string-append was in Scheme in init.scm but was too slow */
+		int len = 0;
+		cell_ptr_t newstr;
+		char *pos;
+
+		/* compute needed length for new string */
+		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
+			len += strlength(car(x));
+		}
+		newstr = mk_empty_string(sc, len, ' ');
+		/* store the contents of the argument strings into the new string */
+		for (pos = strvalue(newstr), x = sc->args; x != sc->NIL;
+			pos += strlength(car(x)), x = cdr(x)) {
+			memcpy(pos, strvalue(car(x)), strlength(car(x)));
+		}
+		s_return(sc, newstr);
+	}
+
+	case OP_SUBSTR: { /* substring */
+		char *str;
+		int index0;
+		int index1;
+		int len;
+
+		str=strvalue(car(sc->args));
+
+		index0=ivalue(cadr(sc->args));
+
+		if(index0>strlength(car(sc->args))) {
+			error_1(sc,"substring: start out of bounds:",cadr(sc->args));
+		}
+
+		if(cddr(sc->args)!=sc->NIL) {
+			index1=ivalue(caddr(sc->args));
+			if(index1>strlength(car(sc->args)) || index1<index0) {
+				error_1(sc,"substring: end out of bounds:",caddr(sc->args));
+			}
+		} else {
+			index1=strlength(car(sc->args));
+		}
+
+		len=index1-index0;
+		x=mk_empty_string(sc,len,' ');
+		memcpy(strvalue(x),str+index0,len);
+		strvalue(x)[len]=0;
+
+		s_return(sc,x);
+	}
+
+	case OP_VECTOR: {   /* vector */
+		int i;
+		cell_ptr_t vec;
+		int len=list_length(sc,sc->args);
+		if(len<0) {
+			error_1(sc,"vector: not a proper list:",sc->args);
+		}
+		vec=mk_vector(sc,len);
+		if(sc->no_memory) {
+			s_return(sc, sc->sink);
+		}
+		for (x = sc->args, i = 0; is_pair(x); x = cdr(x), i++) {
+			set_vector_elem(vec,i,car(x));
+		}
+		s_return(sc,vec);
+	}
+
+	case OP_MKVECTOR: { /* make-vector */
+		cell_ptr_t fill=sc->NIL;
+		int len;
+		cell_ptr_t vec;
+
+		len=ivalue(car(sc->args));
+
+		if(cdr(sc->args)!=sc->NIL) {
+			fill=cadr(sc->args);
+		}
+		vec=mk_vector(sc,len);
+		if(sc->no_memory) {
+			s_return(sc, sc->sink);
+		}
+		if(fill!=sc->NIL) {
+			fill_vector(vec,fill);
+		}
+		s_return(sc,vec);
+	}
+
+	case OP_VECLEN:  /* vector-length */
+		s_return(sc,mk_integer(sc,ivalue(car(sc->args))));
+
+	case OP_VECREF: { /* vector-ref */
+		int index;
+
+		index=ivalue(cadr(sc->args));
+
+		if(index>=ivalue(car(sc->args))) {
+			error_1(sc,"vector-ref: out of bounds:",cadr(sc->args));
+		}
+
+		s_return(sc,vector_elem(car(sc->args),index));
+	}
+
+	case OP_VECSET: {   /* vector-set! */
+		int index;
+
+		if(is_immutable(car(sc->args))) {
+			error_1(sc,"vector-set!: unable to alter immutable vector:",car(sc->args));
+		}
+
+		index=ivalue(cadr(sc->args));
+		if(index>=ivalue(car(sc->args))) {
+			error_1(sc,"vector-set!: out of bounds:",cadr(sc->args));
+		}
+
+		set_vector_elem(car(sc->args),index,caddr(sc->args));
+		s_return(sc,car(sc->args));
+	}
+
+	default:
+		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
+		error_0(sc,sc->strbuff);
+	}
+	return sc->T;
+}

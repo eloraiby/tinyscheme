@@ -309,6 +309,7 @@ cell_ptr_t mk_sharp_const(scheme_t *sc, char *name);
 void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen);
 void printatom(scheme_t *sc, cell_ptr_t l, int f);
 
+cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op);
 /*******************************************************************************
  *
  * error.c

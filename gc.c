@@ -62,7 +62,6 @@ E6:   /* up.  Undo the link switching from steps E4 and E5. */
 /* garbage collection. parameter a, b is marked. */
 void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	cell_ptr_t p;
-	int i;
 
 	if(sc->gc_verbose) {
 		putstr(sc, "gc...");
