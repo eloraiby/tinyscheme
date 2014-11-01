@@ -1,5 +1,58 @@
 #include "scheme-private.h"
 
+#if USE_ASCII_NAMES
+static const char *charnames[32]= {
+	"nul",
+	"soh",
+	"stx",
+	"etx",
+	"eot",
+	"enq",
+	"ack",
+	"bel",
+	"bs",
+	"ht",
+	"lf",
+	"vt",
+	"ff",
+	"cr",
+	"so",
+	"si",
+	"dle",
+	"dc1",
+	"dc2",
+	"dc3",
+	"dc4",
+	"nak",
+	"syn",
+	"etb",
+	"can",
+	"em",
+	"sub",
+	"esc",
+	"fs",
+	"gs",
+	"rs",
+	"us"
+};
+
+static int is_ascii_name(const char *name, int *pc) {
+	int i;
+	for(i=0; i<32; i++) {
+		if(stricmp(name,charnames[i])==0) {
+			*pc=i;
+			return 1;
+		}
+	}
+	if(stricmp(name,"del")==0) {
+		*pc=127;
+		return 1;
+	}
+	return 0;
+}
+
+#endif
+
 #if USE_STRLWR
 static const char *strlwr(char *s) {
 	const char *p=s;
@@ -371,3 +424,185 @@ cell_ptr_t mk_sharp_const(scheme_t *sc, char *name) {
 		return (sc->NIL);
 }
 
+static void printslashstring(scheme_t *sc, char *p, int len) {
+	int i;
+	unsigned char *s=(unsigned char*)p;
+	putcharacter(sc,'"');
+	for ( i=0; i<len; i++) {
+		if(*s==0xff || *s=='"' || *s<' ' || *s=='\\') {
+			putcharacter(sc,'\\');
+			switch(*s) {
+			case '"':
+				putcharacter(sc,'"');
+				break;
+			case '\n':
+				putcharacter(sc,'n');
+				break;
+			case '\t':
+				putcharacter(sc,'t');
+				break;
+			case '\r':
+				putcharacter(sc,'r');
+				break;
+			case '\\':
+				putcharacter(sc,'\\');
+				break;
+			default: {
+				int d=*s/16;
+				putcharacter(sc,'x');
+				if(d<10) {
+					putcharacter(sc,d+'0');
+				} else {
+					putcharacter(sc,d-10+'A');
+				}
+				d=*s%16;
+				if(d<10) {
+					putcharacter(sc,d+'0');
+				} else {
+					putcharacter(sc,d-10+'A');
+				}
+			}
+			}
+		} else {
+			putcharacter(sc,*s);
+		}
+		s++;
+	}
+	putcharacter(sc,'"');
+}
+
+
+/* print atoms */
+void printatom(scheme_t *sc, cell_ptr_t l, int f) {
+	char *p;
+	int len;
+	atom2str(sc,l,f,&p,&len);
+	putchars(sc,p,len);
+}
+
+
+/* Uses internal buffer unless string cell_ptr_t is already available */
+void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
+	char *p;
+
+	if (l == sc->NIL) {
+		p = "()";
+	} else if (l == sc->T) {
+		p = "#t";
+	} else if (l == sc->F) {
+		p = "#f";
+	} else if (l == sc->EOF_OBJ) {
+		p = "#<EOF>";
+	} else if (is_port(l)) {
+		p = sc->strbuff;
+		snprintf(p, STRBUFFSIZE, "#<PORT>");
+	} else if (is_number(l)) {
+		p = sc->strbuff;
+		if (f <= 1 || f == 10) { /* f is the base for numbers if > 1 */
+			if(num_is_integer(l)) {
+				snprintf(p, STRBUFFSIZE, "%ld", ivalue_unchecked(l));
+			} else {
+				snprintf(p, STRBUFFSIZE, "%.10g", rvalue_unchecked(l));
+				/* r5rs says there must be a '.' (unless 'e'?) */
+				f = strcspn(p, ".e");
+				if (p[f] == 0) {
+					p[f] = '.'; /* not found, so add '.0' at the end */
+					p[f+1] = '0';
+					p[f+2] = 0;
+				}
+			}
+		} else {
+			long v = ivalue(l);
+			if (f == 16) {
+				if (v >= 0)
+					snprintf(p, STRBUFFSIZE, "%lx", v);
+				else
+					snprintf(p, STRBUFFSIZE, "-%lx", -v);
+			} else if (f == 8) {
+				if (v >= 0)
+					snprintf(p, STRBUFFSIZE, "%lo", v);
+				else
+					snprintf(p, STRBUFFSIZE, "-%lo", -v);
+			} else if (f == 2) {
+				unsigned long b = (v < 0) ? -v : v;
+				p = &p[STRBUFFSIZE-1];
+				*p = 0;
+				do {
+					*--p = (b&1) ? '1' : '0';
+					b >>= 1;
+				} while (b != 0);
+				if (v < 0) *--p = '-';
+			}
+		}
+	} else if (is_string(l)) {
+		if (!f) {
+			p = strvalue(l);
+		} else { /* Hack, uses the fact that printing is needed */
+			*pp=sc->strbuff;
+			*plen=0;
+			printslashstring(sc, strvalue(l), strlength(l));
+			return;
+		}
+	} else if (is_character(l)) {
+		int c=charvalue(l);
+		p = sc->strbuff;
+		if (!f) {
+			p[0]=c;
+			p[1]=0;
+		} else {
+			switch(c) {
+			case ' ':
+				snprintf(p,STRBUFFSIZE,"#\\space");
+				break;
+			case '\n':
+				snprintf(p,STRBUFFSIZE,"#\\newline");
+				break;
+			case '\r':
+				snprintf(p,STRBUFFSIZE,"#\\return");
+				break;
+			case '\t':
+				snprintf(p,STRBUFFSIZE,"#\\tab");
+				break;
+			default:
+#if USE_ASCII_NAMES
+				if(c==127) {
+					snprintf(p,STRBUFFSIZE, "#\\del");
+					break;
+				} else if(c<32) {
+					snprintf(p, STRBUFFSIZE, "#\\%s", charnames[c]);
+					break;
+				}
+#else
+				if(c<32) {
+					snprintf(p,STRBUFFSIZE,"#\\x%x",c);
+					break;
+					break;
+				}
+#endif
+				snprintf(p,STRBUFFSIZE,"#\\%c",c);
+				break;
+				break;
+			}
+		}
+	} else if (is_symbol(l)) {
+		p = symname(l);
+	} else if (is_proc(l)) {
+		p = sc->strbuff;
+		snprintf(p,STRBUFFSIZE,"#<%s PROCEDURE %ld>", procname(l),procnum(l));
+	} else if (is_macro(l)) {
+		p = "#<MACRO>";
+	} else if (is_closure(l)) {
+		p = "#<CLOSURE>";
+	} else if (is_promise(l)) {
+		p = "#<PROMISE>";
+	} else if (is_foreign(l)) {
+		p = sc->strbuff;
+		snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
+	} else if (is_continuation(l)) {
+		p = "#<CONTINUATION>";
+	} else {
+		p = "#<ERROR>";
+	}
+	*pp=p;
+	*plen=strlen(p);
+}

@@ -24,8 +24,12 @@ SOURCES += \
     number.c \
     error.c \
     frame.c \
-    atoms.c \
-    cell.c
+    cell.c \
+    gc.c \
+    atom.c \
+    stack.c \
+    port.c \
+    predicate.c
 
 OTHER_FILES += \
     BUILDING \

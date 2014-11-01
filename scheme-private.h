@@ -244,9 +244,11 @@ enum scheme_types {
 #     define Cislower(c)	(is_ascii(c) && islower(c))
 #endif
 
-#if USE_ASCII_NAMES
-int is_ascii_name(const char *name, int *pc);
-#endif
+
+/* true or false value macro */
+/* () is #t in R5RS */
+#define is_true(p)       ((p) != sc->F)
+#define is_false(p)      ((p) == sc->F)
 
 /* Too small to turn into function */
 # define  BEGIN     do {
@@ -257,6 +259,9 @@ int is_ascii_name(const char *name, int *pc);
 
 extern cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
 #define s_return(sc,a) return _s_return(sc,a)
+
+#define procnum(p)       ivalue(p)
+const char *procname(cell_ptr_t x);
 
 /*******************************************************************************
  *
@@ -306,7 +311,8 @@ cell_ptr_t mk_symbol(scheme_t *sc, const char *name);
 cell_ptr_t gensym(scheme_t *sc);
 cell_ptr_t mk_atom(scheme_t *sc, char *q);
 cell_ptr_t mk_sharp_const(scheme_t *sc, char *name);
-
+void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen);
+void printatom(scheme_t *sc, cell_ptr_t l, int f);
 
 /*******************************************************************************
  *
@@ -352,12 +358,58 @@ void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra);
 cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init);
 
+#if defined TSGRIND
+void check_cell_alloced(cell_ptr_t p, int expect_alloced);
+void check_range_alloced(cell_ptr_t p, int n, int expect_alloced);
+#endif
+cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable);
+void finalize_cell(scheme_t *sc, cell_ptr_t a);
+
+/*******************************************************************************
+ *
+ * stack.c
+ *
+ ******************************************************************************/
+void dump_stack_reset(scheme_t *sc);
+void dump_stack_initialize(scheme_t *sc);
+void dump_stack_free(scheme_t *sc);
+cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
+void s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code);
+void dump_stack_mark(scheme_t *sc);
+
 /*******************************************************************************
  *
  * gc.c
  *
  ******************************************************************************/
+void mark(cell_ptr_t a);
 void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+
+
+/*******************************************************************************
+ *
+ * port.c
+ *
+ ******************************************************************************/
+int file_push(scheme_t *sc, const char *fname);
+void file_pop(scheme_t *sc);
+int file_interactive(scheme_t *sc);
+port_t *port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
+cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop);
+port_t *port_rep_from_file(scheme_t *sc, FILE *f, int prop);
+cell_ptr_t port_from_file(scheme_t *sc, FILE *f, int prop);
+port_t *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
+cell_ptr_t port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
+port_t *port_rep_from_scratch(scheme_t *sc);
+cell_ptr_t port_from_scratch(scheme_t *sc);
+void port_close(scheme_t *sc, cell_ptr_t p, int flag);
+int inchar(scheme_t *sc);
+int basic_inchar(port_t *pt);
+void backchar(scheme_t *sc, int c);
+int realloc_port_string(scheme_t *sc, port_t *p);
+void putstr(scheme_t *sc, const char *s);
+void putchars(scheme_t *sc, const char *s, int len);
+void putcharacter(scheme_t *sc, int c);
 
 /*******************************************************************************
  *

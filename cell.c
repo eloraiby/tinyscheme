@@ -221,3 +221,51 @@ cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init) {
 	return cells;
 }
 
+#if defined TSGRIND
+void check_cell_alloced(cell_ptr_t p, int expect_alloced) {
+	/* Can't use putstr(sc,str) because callers have no access to
+	 sc.  */
+	if(typeflag(p) & !expect_alloced) {
+		fprintf(stderr,"Cell is already allocated!\n");
+	}
+	if(!(typeflag(p)) & expect_alloced) {
+		fprintf(stderr,"Cell is not allocated!\n");
+	}
+
+}
+void check_range_alloced(cell_ptr_t p, int n, int expect_alloced) {
+	int i;
+	for(i = 0; i<n; i++) {
+		(void)check_cell_alloced(p+i,expect_alloced);
+	}
+}
+
+#endif
+
+/* Medium level cell allocation */
+
+/* get new cons cell */
+cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable) {
+	cell_ptr_t x = get_cell(sc,a, b);
+
+	typeflag(x) = T_PAIR;
+	if(immutable) {
+		setimmutable(x);
+	}
+	car(x) = a;
+	cdr(x) = b;
+	return (x);
+}
+
+
+void finalize_cell(scheme_t *sc, cell_ptr_t a) {
+	if(is_string(a)) {
+		sc->free(strvalue(a));
+	} else if(is_port(a)) {
+		if(a->_object._port->kind&port_file
+			&& a->_object._port->rep.stdio.closeit) {
+			port_close(sc,a,port_input|port_output);
+		}
+		sc->free(a->_object._port);
+	}
+}
