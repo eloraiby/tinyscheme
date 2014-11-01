@@ -55,9 +55,6 @@ static int stricmp(const char *s1, const char *s2) {
 # define FIRST_CELLSEGS 3
 #endif
 
-number_t	__s_num_zero;
-number_t	__s_num_one;
-
 
 INTERFACE INLINE int is_string(cell_ptr_t p) {
 	return (type(p)==T_STRING);
@@ -2055,10 +2052,10 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	int i, n=sizeof(dispatch_table)/sizeof(dispatch_table[0]);
 	cell_ptr_t x;
 
-	__s_num_zero.is_integer=1;
-	__s_num_zero.value.ivalue=0;
-	__s_num_one.is_integer=1;
-	__s_num_one.value.ivalue=1;
+	sc->num_zero.is_integer		= 1;
+	sc->num_zero.value.ivalue	= 0;
+	sc->num_one.is_integer		= 1;
+	sc->num_one.value.ivalue	= 1;
 
 	sc->gensym_cnt=0;
 	sc->malloc=malloc;

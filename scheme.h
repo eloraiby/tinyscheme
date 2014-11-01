@@ -51,6 +51,10 @@ extern "C" {
  */
 #define USE_SCHEME_STACK
 
+#ifndef USE_DL
+# define USE_DL 1
+#endif
+
 #ifndef USE_MATH         /* If math support is needed */
 # define USE_MATH 1
 #endif

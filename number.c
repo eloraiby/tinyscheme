@@ -265,36 +265,36 @@ cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op) {
 #endif
 
 	case OP_ADD:        /* + */
-		v=__s_num_zero;
+		v = sc->num_zero;
 		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v=num_add(v,nvalue(car(x)));
+			v = num_add(v, nvalue(car(x)));
 		}
 		s_return(sc,mk_number(sc, v));
 
 	case OP_MUL:        /* * */
-		v=__s_num_one;
+		v = sc->num_one;
 		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v=num_mul(v,nvalue(car(x)));
+			v = num_mul(v,nvalue(car(x)));
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, v));
 
 	case OP_SUB:        /* - */
-		if(cdr(sc->args)==sc->NIL) {
+		if(cdr(sc->args) == sc->NIL) {
 			x	= sc->args;
-			v	= __s_num_zero;
+			v	= sc->num_zero;
 		} else {
 			x	= cdr(sc->args);
 			v	= nvalue(car(sc->args));
 		}
 		for (; x != sc->NIL; x = cdr(x)) {
-			v=num_sub(v,nvalue(car(x)));
+			v = num_sub(v,nvalue(car(x)));
 		}
 		s_return(sc,mk_number(sc, v));
 
 	case OP_DIV:        /* / */
 		if(cdr(sc->args)==sc->NIL) {
 			x	= sc->args;
-			v	= __s_num_one;
+			v	= sc->num_one;
 		} else {
 			x = cdr(sc->args);
 			v = nvalue(car(sc->args));
@@ -311,7 +311,7 @@ cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_INTDIV:        /* quotient */
 		if(cdr(sc->args)==sc->NIL) {
 			x	= sc->args;
-			v	= __s_num_one;
+			v	= sc->num_one;
 		} else {
 			x = cdr(sc->args);
 			v = nvalue(car(sc->args));

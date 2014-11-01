@@ -158,6 +158,10 @@ struct scheme_t {
 #define STRBUFFSIZE 256
 	char    strbuff[STRBUFFSIZE];
 
+	number_t	num_zero;
+	number_t	num_one;
+
+
 	FILE *tmpfp;
 	int tok;
 	int print_flag;
@@ -256,9 +260,6 @@ const char *procname(cell_ptr_t x);
  * number.c
  *
  ******************************************************************************/
-extern number_t		__s_num_zero;
-extern number_t		__s_num_one;
-
 #define num_ivalue(n)       (n.is_integer?(n).value.ivalue:(long)(n).value.rvalue)
 #define num_rvalue(n)       (!n.is_integer?(n).value.rvalue:(double)(n).value.ivalue)
 

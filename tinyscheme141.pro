@@ -4,9 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core
-
-QT       -= gui
+QT       -= core gui
 
 TARGET = tinyscheme141
 CONFIG   += console
