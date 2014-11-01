@@ -6,29 +6,30 @@
 
 QT       -= core gui
 
-TARGET = tinyscheme141
+TARGET = tinyscheme
 CONFIG   += console
 CONFIG   -= app_bundle
 
 QMAKE_CC = clang
 QMAKE_CFLAGS += -std=c99
 QMAKE_LIBS += -ldl
+INCLUDEPATH += ./include
 
 TEMPLATE = app
 
 
 SOURCES += \
-    dynload.c \
-    scheme.c \
-    number.c \
-    error.c \
-    frame.c \
-    cell.c \
-    gc.c \
-    atom.c \
-    stack.c \
-    port.c \
-    predicate.c
+    src/dynload.c \
+    src/scheme.c \
+    src/number.c \
+    src/error.c \
+    src/frame.c \
+    src/cell.c \
+    src/gc.c \
+    src/atom.c \
+    src/stack.c \
+    src/port.c \
+    src/predicate.c
 
 OTHER_FILES += \
     BUILDING \
@@ -40,8 +41,8 @@ OTHER_FILES += \
 
 HEADERS += \
     CHANGES \
-    dynload.h \
-    opdefines.h \
-    scheme.h \
-    scheme-private.h \
-    parser.h
+    include/dynload.h \
+    src/opdefines.h \
+    include/scheme.h \
+    src/scheme-private.h \
+    src/parser.h

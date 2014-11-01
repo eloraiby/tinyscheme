@@ -5,7 +5,7 @@
 #ifndef DYNLOAD_H
 #define DYNLOAD_H
 
-#include "scheme-private.h"
+#include "scheme.h"
 
 SCHEME_EXPORT cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t arglist);
 
