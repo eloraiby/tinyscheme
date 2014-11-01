@@ -12,6 +12,7 @@ TARGET = tinyscheme141
 CONFIG   += console
 CONFIG   -= app_bundle
 
+QMAKE_CC = clang
 QMAKE_CFLAGS += -std=c99
 QMAKE_LIBS += -ldl
 

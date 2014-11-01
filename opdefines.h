@@ -34,6 +34,7 @@
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_LET0AST          )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_LET1AST          )
     _OP_DEF(opexe_0, 0,                                0,  0,       0,                               OP_LET2AST          )
+
     _OP_DEF(opexe_1, 0,                                0,  0,       0,                               OP_LET0REC          )
     _OP_DEF(opexe_1, 0,                                0,  0,       0,                               OP_LET1REC          )
     _OP_DEF(opexe_1, 0,                                0,  0,       0,                               OP_LET2REC          )
@@ -156,7 +157,6 @@
     _OP_DEF(opexe_4, "quit",                           0,  1,       TST_NUMBER,                      OP_QUIT             )
     _OP_DEF(opexe_4, "gc",                             0,  0,       0,                               OP_GC               )
     _OP_DEF(opexe_4, "gc-verbose",                     0,  1,       TST_NONE,                        OP_GCVERB           )
-    _OP_DEF(opexe_4, "new-segment",                    0,  1,       TST_NUMBER,                      OP_NEWSEGMENT       )
     _OP_DEF(opexe_4, "oblist",                         0,  0,       0,                               OP_OBLIST           )
     _OP_DEF(opexe_4, "current-input-port",             0,  0,       0,                               OP_CURR_INPORT      )
     _OP_DEF(opexe_4, "current-output-port",            0,  0,       0,                               OP_CURR_OUTPORT     )
@@ -173,6 +173,7 @@
     _OP_DEF(opexe_4, "close-output-port",              1,  1,       TST_OUTPORT,                     OP_CLOSE_OUTPORT    )
     _OP_DEF(opexe_4, "interaction-environment",        0,  0,       0,                               OP_INT_ENV          )
     _OP_DEF(opexe_4, "current-environment",            0,  0,       0,                               OP_CURR_ENV         )
+
     _OP_DEF(opexe_5, "read",                           0,  1,       TST_INPORT,                      OP_READ             )
     _OP_DEF(opexe_5, "read-char",                      0,  1,       TST_INPORT,                      OP_READ_CHAR        )
     _OP_DEF(opexe_5, "peek-char",                      0,  1,       TST_INPORT,                      OP_PEEK_CHAR        )
@@ -191,6 +192,7 @@
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_P0LIST           )
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_P1LIST           )
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_PVECFROM         )
+
     _OP_DEF(opexe_6, "length",                         1,  1,       TST_LIST,                        OP_LIST_LENGTH      )
     _OP_DEF(opexe_6, "assq",                           2,  2,       TST_NONE,                        OP_ASSQ             )
     _OP_DEF(opexe_6, "get-closure-code",               1,  1,       TST_NONE,                        OP_GET_CLOSURE      )

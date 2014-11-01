@@ -1,59 +1,23 @@
 #include "scheme-private.h"
 
 /* allocate new cell segment */
-int alloc_cellseg(scheme_t *sc, int n) {
+int alloc_cellseg(scheme_t *sc) {
 	cell_ptr_t newp;
 	cell_ptr_t last;
 	cell_ptr_t p;
-	char *cp;
-	long i;
-	int k;
-	size_t adj = ADJ;
 
-	if(adj<sizeof(cell_t)) {
-		adj=sizeof(cell_t);
-	}
 
-	for (k = 0; k < n; k++) {
-		if (sc->last_cell_seg >= CELL_NSEGMENT - 1)
-			return k;
-		cp = (char*) sc->malloc(CELL_SEGSIZE * sizeof(cell_t)+adj);
-		if (cp == 0)
-			return k;
-		i = ++sc->last_cell_seg ;
-		sc->alloc_seg[i] = cp;
-		/* adjust in TYPE_BITS-bit boundary */
-		if(((unsigned long)cp)%adj!=0) {
-			cp=(char*)(adj*((unsigned long)cp/adj+1));
-		}
-		/* insert new segment in address order */
-		newp=(cell_ptr_t)cp;
-		sc->cell_seg[i] = newp;
-		while (i > 0 && sc->cell_seg[i - 1] > sc->cell_seg[i]) {
-			p = sc->cell_seg[i];
-			sc->cell_seg[i] = sc->cell_seg[i - 1];
-			sc->cell_seg[--i] = p;
-		}
-		sc->fcells += CELL_SEGSIZE;
-		last = newp + CELL_SEGSIZE - 1;
-		for (p = newp; p <= last; p++) {
-			typeflag(p) = 0;
-			cdr(p) = p + 1;
-			car(p) = sc->NIL;
-		}
-		/* insert new cells in address order on free list */
-		if (sc->free_cell == sc->NIL || p < sc->free_cell) {
-			cdr(last) = sc->free_cell;
-			sc->free_cell = newp;
-		} else {
-			p = sc->free_cell;
-			while (cdr(p) != sc->NIL && newp > cdr(p))
-				p = cdr(p);
-			cdr(last) = cdr(p);
-			cdr(p) = newp;
-		}
+	/* insert new segment in address order */
+	sc->fcells += CELL_MAX_COUNT;
+	last = sc->cell_seg + CELL_MAX_COUNT - 1;
+
+	for (p = sc->cell_seg; p <= last; p++) {
+		typeflag(p) = 0;
+		cdr(p) = p + 1;
+		car(p) = sc->NIL;
 	}
-	return n;
+	sc->free_cell = sc->cell_seg;
+	return 1;
 }
 
 cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
@@ -76,15 +40,11 @@ cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	}
 
 	if (sc->free_cell == sc->NIL) {
-		const int min_to_be_recovered = sc->last_cell_seg*8;
+		const int min_to_be_recovered = 8;
 		gc(sc,a, b);
-		if (sc->fcells < min_to_be_recovered
-			|| sc->free_cell == sc->NIL) {
-			/* if only a few recovered, get more to avoid fruitless gc's */
-			if (!alloc_cellseg(sc,1) && sc->free_cell == sc->NIL) {
-				sc->no_memory=1;
-				return sc->sink;
-			}
+		if (sc->fcells < min_to_be_recovered || sc->free_cell == sc->NIL) {
+			sc->no_memory=1;
+			return sc->sink;
 		}
 	}
 	x = sc->free_cell;
@@ -103,13 +63,6 @@ cell_ptr_t reserve_cells(scheme_t *sc, int n) {
 	if (sc->fcells < n) {
 		/* If not, try gc'ing some */
 		gc(sc, sc->NIL, sc->NIL);
-		if (sc->fcells < n) {
-			/* If there still aren't, try getting more heap */
-			if (!alloc_cellseg(sc,1)) {
-				sc->no_memory=1;
-				return sc->NIL;
-			}
-		}
 		if (sc->fcells < n) {
 			/* If all fail, report failure */
 			sc->no_memory=1;
@@ -137,22 +90,10 @@ cell_ptr_t get_consecutive_cells(scheme_t *sc, int n) {
 	x=find_consecutive_cells(sc,n);
 	if (x != sc->NIL) {
 		return x;
-	}
-
-	/* If there still aren't, try getting more heap */
-	if (!alloc_cellseg(sc,1)) {
+	} else {
 		sc->no_memory=1;
 		return sc->sink;
 	}
-
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) {
-		return x;
-	}
-
-	/* If all fail, report failure */
-	sc->no_memory=1;
-	return sc->sink;
 }
 
 int count_consecutive_cells(cell_ptr_t x, int needed) {

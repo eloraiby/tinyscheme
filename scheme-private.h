@@ -98,11 +98,8 @@ struct scheme_t {
 	int tracing;
 
 
-#define CELL_SEGSIZE    5000  /* # of cells in one segment */
-#define CELL_NSEGMENT   10    /* # of segments for cells */
-	char *alloc_seg[CELL_NSEGMENT];
-	cell_ptr_t cell_seg[CELL_NSEGMENT];
-	int     last_cell_seg;
+#define CELL_MAX_COUNT    128 * 1024  /* # of cells in the memory segment */
+	cell_t	cell_seg[CELL_MAX_COUNT];
 
 	/* We use 4 registers. */
 	cell_ptr_t args;            /* register for arguments of function */
@@ -345,7 +342,7 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
  * cell.c
  *
  ******************************************************************************/
-int alloc_cellseg(scheme_t *sc, int n);
+int alloc_cellseg(scheme_t *sc);
 cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 cell_ptr_t reserve_cells(scheme_t *sc, int n);

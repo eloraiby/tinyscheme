@@ -101,22 +101,20 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	 (which are also kept sorted by address) downwards to build the
 	 free-list in sorted order.
 	*/
-	for (i = sc->last_cell_seg; i >= 0; i--) {
-		p = sc->cell_seg[i] + CELL_SEGSIZE;
-		while (--p >= sc->cell_seg[i]) {
-			if (is_mark(p)) {
-				clrmark(p);
-			} else {
-				/* reclaim cell */
-				if (typeflag(p) != 0) {
-					finalize_cell(sc, p);
-					typeflag(p) = 0;
-					car(p) = sc->NIL;
-				}
-				++sc->fcells;
-				cdr(p) = sc->free_cell;
-				sc->free_cell = p;
+	p = sc->cell_seg + CELL_MAX_COUNT;
+	while (--p >= sc->cell_seg) {
+		if (is_mark(p)) {
+			clrmark(p);
+		} else {
+			/* reclaim cell */
+			if (typeflag(p) != 0) {
+				finalize_cell(sc, p);
+				typeflag(p) = 0;
+				car(p) = sc->NIL;
 			}
+			++sc->fcells;
+			cdr(p) = sc->free_cell;
+			sc->free_cell = p;
 		}
 	}
 

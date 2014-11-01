@@ -1633,13 +1633,6 @@ static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 		s_retbool(was);
 	}
 
-	case OP_NEWSEGMENT: /* new-segment */
-		if (!is_pair(sc->args) || !is_number(car(sc->args))) {
-			error_0(sc,"new-segment: argument must be a number");
-		}
-		alloc_cellseg(sc, (int) ivalue(car(sc->args)));
-		s_return(sc,sc->T);
-
 	case OP_OBLIST: /* oblist */
 		s_return(sc, oblist_all_symbols(sc));
 
@@ -2171,7 +2164,7 @@ typedef struct {
 static op_code_info dispatch_table[]= {
 #define _OP_DEF(A,B,C,D,E,OP) {A,B,C,D,E},
 #include "opdefines.h"
-	{ 0 }
+	{ 0, 0, 0, 0, 0 }
 };
 
 const char *procname(cell_ptr_t x) {
@@ -2367,7 +2360,6 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->gensym_cnt=0;
 	sc->malloc=malloc;
 	sc->free=free;
-	sc->last_cell_seg = -1;
 	sc->sink = &sc->_sink;
 	sc->NIL = &sc->_NIL;
 	sc->T = &sc->_HASHT;
@@ -2383,7 +2375,7 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->nesting=0;
 	sc->interactive_repl=0;
 
-	if (alloc_cellseg(sc,FIRST_CELLSEGS) != FIRST_CELLSEGS) {
+	if( !alloc_cellseg(sc) ) {
 		sc->no_memory=1;
 		return 0;
 	}
@@ -2502,10 +2494,6 @@ void scheme_deinit(scheme_t *sc) {
 	sc->loadport=sc->NIL;
 	sc->gc_verbose=0;
 	gc(sc,sc->NIL,sc->NIL);
-
-	for(i=0; i<=sc->last_cell_seg; i++) {
-		sc->free(sc->alloc_seg[i]);
-	}
 
 #if SHOW_ERROR_LINE
 	for(i=0; i<=sc->file_i; i++) {
@@ -2694,6 +2682,9 @@ int main(int argc, char **argv) {
 	}
 	scheme_set_input_port_file(&sc, stdin);
 	scheme_set_output_port_file(&sc, stdout);
+
+	fprintf(stderr, "cell size: %lu\n", sizeof(cell_t));
+
 #if USE_DL
 	scheme_define(&sc,sc.global_env,mk_symbol(&sc,"load-extension"),mk_foreign_func(&sc, scm_load_ext));
 #endif
