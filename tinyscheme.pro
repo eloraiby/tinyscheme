@@ -32,15 +32,15 @@ SOURCES += \
     src/predicate.c
 
 OTHER_FILES += \
-    BUILDING \
+    CHANGES \
+    docs/BUILDING \
     COPYING \
-    hack.txt \
-    init.scm \
-    Manual.txt \
+    docs/hack.txt \
+    scm/init.scm \
+    docs/Manual.txt \
     MiniSCHEMETribute.txt
 
 HEADERS += \
-    CHANGES \
     include/dynload.h \
     src/opdefines.h \
     include/scheme.h \
