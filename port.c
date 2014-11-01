@@ -277,3 +277,14 @@ void putcharacter(scheme_t *sc, int c) {
 	}
 }
 
+int is_port(cell_ptr_t p) {
+	return (type(p)==T_PORT);
+}
+
+int is_inport(cell_ptr_t p) {
+	return is_port(p) && p->_object._port->kind & port_input;
+}
+
+int is_outport(cell_ptr_t p) {
+	return is_port(p) && p->_object._port->kind & port_output;
+}

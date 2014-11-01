@@ -234,17 +234,6 @@ enum scheme_types {
 #define setmark(p)       typeflag(p) |= MARK
 #define clrmark(p)       typeflag(p) &= UNMARK
 
-#if USE_CHAR_CLASSIFIERS
-#     define is_ascii(c)	(((c) & ~0x7f) == 0)	/* If C is a 7 bit value.  */
-
-#     define Cisalpha(c)	(is_ascii(c) && isalpha(c))
-#     define Cisdigit(c)	(is_ascii(c) && isdigit(c))
-#     define Cisspace(c)	(is_ascii(c) && isspace(c))
-#     define Cisupper(c)	(is_ascii(c) && isupper(c))
-#     define Cislower(c)	(is_ascii(c) && islower(c))
-#endif
-
-
 /* true or false value macro */
 /* () is #t in R5RS */
 #define is_true(p)       ((p) != sc->F)
@@ -254,11 +243,13 @@ enum scheme_types {
 # define  BEGIN     do {
 # define  END  } while (0)
 #define s_goto(sc,a) BEGIN                                  \
-	sc->op = (int)(a);                                      \
+	sc->op = (int)(a);                                  \
 	return sc->T; END
 
 extern cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
 #define s_return(sc,a) return _s_return(sc,a)
+
+#define s_retbool(tf)    s_return(sc,(tf) ? sc->T : sc->F)
 
 #define procnum(p)       ivalue(p)
 const char *procname(cell_ptr_t x);
@@ -284,6 +275,13 @@ long binary_decode(const char *s);
 #define set_num_real(p)      (p)->_object._number.is_integer=0;
 
 cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op);
+/*******************************************************************************
+ *
+ * predicate.c
+ *
+ ******************************************************************************/
+int eqv(cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t op_predicate(scheme_t *sc, enum scheme_opcodes op);
 
 /*******************************************************************************
  *
@@ -391,6 +389,7 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
  * port.c
  *
  ******************************************************************************/
+
 int file_push(scheme_t *sc, const char *fname);
 void file_pop(scheme_t *sc);
 int file_interactive(scheme_t *sc);
@@ -410,6 +409,9 @@ int realloc_port_string(scheme_t *sc, port_t *p);
 void putstr(scheme_t *sc, const char *s);
 void putchars(scheme_t *sc, const char *s, int len);
 void putcharacter(scheme_t *sc, int c);
+int is_port(cell_ptr_t p);
+int is_inport(cell_ptr_t p);
+int is_outport(cell_ptr_t p);
 
 /*******************************************************************************
  *
@@ -431,8 +433,6 @@ int is_character(cell_ptr_t p);
 long charvalue(cell_ptr_t p);
 int is_vector(cell_ptr_t p);
 
-int is_port(cell_ptr_t p);
-
 int is_pair(cell_ptr_t p);
 cell_ptr_t pair_car(cell_ptr_t p);
 cell_ptr_t pair_cdr(cell_ptr_t p);
@@ -448,9 +448,8 @@ int is_proc(cell_ptr_t p);
 int is_foreign(cell_ptr_t p);
 char *syntaxname(cell_ptr_t p);
 int is_closure(cell_ptr_t p);
-#ifdef USE_MACRO
 int is_macro(cell_ptr_t p);
-#endif
+
 cell_ptr_t closure_code(cell_ptr_t p);
 cell_ptr_t closure_env(cell_ptr_t p);
 

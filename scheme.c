@@ -101,16 +101,6 @@ INTERFACE  long charvalue(cell_ptr_t p) {
 	return ivalue_unchecked(p);
 }
 
-INTERFACE INLINE int is_port(cell_ptr_t p) {
-	return (type(p)==T_PORT);
-}
-INTERFACE INLINE int is_inport(cell_ptr_t p) {
-	return is_port(p) && p->_object._port->kind & port_input;
-}
-INTERFACE INLINE int is_outport(cell_ptr_t p) {
-	return is_port(p) && p->_object._port->kind & port_output;
-}
-
 INTERFACE INLINE int is_pair(cell_ptr_t p) {
 	return (type(p)==T_PAIR);
 }
@@ -188,12 +178,6 @@ INTERFACE INLINE void setimmutable(cell_ptr_t p) {
 	typeflag(p) |= T_IMMUTABLE;
 }
 
-static int num_eq(number_t a, number_t b);
-static int num_gt(number_t a, number_t b);
-static int num_ge(number_t a, number_t b);
-static int num_lt(number_t a, number_t b);
-static int num_le(number_t a, number_t b);
-
 static INLINE int is_one_of(char *s, int c);
 static char   *readstr_upto(scheme_t *sc, char *delim);
 static cell_ptr_t readstrexp(scheme_t *sc);
@@ -208,7 +192,6 @@ static cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_1(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_6(scheme_t *sc, enum scheme_opcodes op);
@@ -549,45 +532,8 @@ static cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	return sc->F;   /* signal an error */
 }
 
-/* equivalence of atoms */
-int eqv(cell_ptr_t a, cell_ptr_t b) {
-	if (is_string(a)) {
-		if (is_string(b))
-			return (strvalue(a) == strvalue(b));
-		else
-			return (0);
-	} else if (is_number(a)) {
-		if (is_number(b)) {
-			if (num_is_integer(a) == num_is_integer(b))
-				return num_eq(nvalue(a),nvalue(b));
-		}
-		return (0);
-	} else if (is_character(a)) {
-		if (is_character(b))
-			return charvalue(a)==charvalue(b);
-		else
-			return (0);
-	} else if (is_port(a)) {
-		if (is_port(b))
-			return a==b;
-		else
-			return (0);
-	} else if (is_proc(a)) {
-		if (is_proc(b))
-			return procnum(a)==procnum(b);
-		else
-			return (0);
-	} else {
-		return (a == b);
-	}
-}
 
 /* ========== Evaluation Cycle ========== */
-
-
-
-
-#define s_retbool(tf)    s_return(sc,(tf) ? sc->T : sc->F)
 
 static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x, y;
@@ -1537,155 +1483,6 @@ int list_length(scheme_t *sc, cell_ptr_t a) {
 	}
 }
 
-static int num_eq(number_t a, number_t b) {
-	int ret;
-	int is_integer=a.is_integer && b.is_integer;
-	if(is_integer) {
-		ret= a.value.ivalue==b.value.ivalue;
-	} else {
-		ret=num_rvalue(a)==num_rvalue(b);
-	}
-	return ret;
-}
-
-
-static int num_gt(number_t a, number_t b) {
-	int ret;
-	int is_integer=a.is_integer && b.is_integer;
-	if(is_integer) {
-		ret= a.value.ivalue>b.value.ivalue;
-	} else {
-		ret=num_rvalue(a)>num_rvalue(b);
-	}
-	return ret;
-}
-
-static int num_ge(number_t a, number_t b) {
-	return !num_lt(a,b);
-}
-
-static int num_lt(number_t a, number_t b) {
-	int ret;
-	int is_integer=a.is_integer && b.is_integer;
-	if(is_integer) {
-		ret= a.value.ivalue<b.value.ivalue;
-	} else {
-		ret=num_rvalue(a)<num_rvalue(b);
-	}
-	return ret;
-}
-
-static int num_le(number_t a, number_t b) {
-	return !num_gt(a,b);
-}
-
-
-static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x;
-	number_t v;
-	int (*comp_func)(number_t,number_t)=0;
-
-	switch (op) {
-	case OP_NOT:        /* not */
-		s_retbool(is_false(car(sc->args)));
-	case OP_BOOLP:       /* boolean? */
-		s_retbool(car(sc->args) == sc->F || car(sc->args) == sc->T);
-	case OP_EOFOBJP:       /* boolean? */
-		s_retbool(car(sc->args) == sc->EOF_OBJ);
-	case OP_NULLP:       /* null? */
-		s_retbool(car(sc->args) == sc->NIL);
-	case OP_NUMEQ:      /* = */
-	case OP_LESS:       /* < */
-	case OP_GRE:        /* > */
-	case OP_LEQ:        /* <= */
-	case OP_GEQ:        /* >= */
-		switch(op) {
-		case OP_NUMEQ:
-			comp_func=num_eq;
-			break;
-		case OP_LESS:
-			comp_func=num_lt;
-			break;
-		case OP_GRE:
-			comp_func=num_gt;
-			break;
-		case OP_LEQ:
-			comp_func=num_le;
-			break;
-		case OP_GEQ:
-			comp_func=num_ge;
-			break;
-		default:
-			break;
-		}
-		x=sc->args;
-		v=nvalue(car(x));
-		x=cdr(x);
-
-		for (; x != sc->NIL; x = cdr(x)) {
-			if(!comp_func(v,nvalue(car(x)))) {
-				s_retbool(0);
-			}
-			v=nvalue(car(x));
-		}
-		s_retbool(1);
-	case OP_SYMBOLP:     /* symbol? */
-		s_retbool(is_symbol(car(sc->args)));
-	case OP_NUMBERP:     /* number? */
-		s_retbool(is_number(car(sc->args)));
-	case OP_STRINGP:     /* string? */
-		s_retbool(is_string(car(sc->args)));
-	case OP_INTEGERP:     /* integer? */
-		s_retbool(is_integer(car(sc->args)));
-	case OP_REALP:     /* real? */
-		s_retbool(is_number(car(sc->args))); /* All numbers are real */
-	case OP_CHARP:     /* char? */
-		s_retbool(is_character(car(sc->args)));
-#if USE_CHAR_CLASSIFIERS
-	case OP_CHARAP:     /* char-alphabetic? */
-		s_retbool(Cisalpha(ivalue(car(sc->args))));
-	case OP_CHARNP:     /* char-numeric? */
-		s_retbool(Cisdigit(ivalue(car(sc->args))));
-	case OP_CHARWP:     /* char-whitespace? */
-		s_retbool(Cisspace(ivalue(car(sc->args))));
-	case OP_CHARUP:     /* char-upper-case? */
-		s_retbool(Cisupper(ivalue(car(sc->args))));
-	case OP_CHARLP:     /* char-lower-case? */
-		s_retbool(Cislower(ivalue(car(sc->args))));
-#endif
-	case OP_PORTP:     /* port? */
-		s_retbool(is_port(car(sc->args)));
-	case OP_INPORTP:     /* input-port? */
-		s_retbool(is_inport(car(sc->args)));
-	case OP_OUTPORTP:     /* output-port? */
-		s_retbool(is_outport(car(sc->args)));
-	case OP_PROCP:       /* procedure? */
-		/*--
-		  * continuation should be procedure by the example
-		  * (call-with-current-continuation procedure?) ==> #t
-		 * in R^3 report sec. 6.9
-		  */
-		s_retbool(is_proc(car(sc->args)) || is_closure(car(sc->args))
-		          || is_continuation(car(sc->args)) || is_foreign(car(sc->args)));
-	case OP_PAIRP:       /* pair? */
-		s_retbool(is_pair(car(sc->args)));
-	case OP_LISTP:       /* list? */
-		s_retbool(list_length(sc,car(sc->args)) >= 0);
-
-	case OP_ENVP:        /* environment? */
-		s_retbool(is_environment(car(sc->args)));
-	case OP_VECTORP:     /* vector? */
-		s_retbool(is_vector(car(sc->args)));
-	case OP_EQ:         /* eq? */
-		s_retbool(car(sc->args) == cadr(sc->args));
-	case OP_EQV:        /* eqv? */
-		s_retbool(eqv(car(sc->args), cadr(sc->args)));
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		error_0(sc,sc->strbuff);
-	}
-	return sc->T;
-}
 
 static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x, y;
@@ -2532,78 +2329,6 @@ static int syntaxnum(cell_ptr_t p) {
 	}
 }
 
-/* initialization of TinyScheme */
-#if USE_INTERFACE
-INTERFACE static cell_ptr_t s_cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	return cons(sc,a,b);
-}
-INTERFACE static cell_ptr_t s_immutable_cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	return immutable_cons(sc,a,b);
-}
-
-static struct scheme_interface vtbl = {
-	scheme_define,
-	s_cons,
-	s_immutable_cons,
-	reserve_cells,
-	mk_integer,
-	mk_real,
-	mk_symbol,
-	gensym,
-	mk_string,
-	mk_counted_string,
-	mk_character,
-	mk_vector,
-	mk_foreign_func,
-	putstr,
-	putcharacter,
-
-	is_string,
-	string_value,
-	is_number,
-	nvalue,
-	ivalue,
-	rvalue,
-	is_integer,
-	is_real,
-	is_character,
-	charvalue,
-	is_list,
-	is_vector,
-	list_length,
-	ivalue,
-	fill_vector,
-	vector_elem,
-	set_vector_elem,
-	is_port,
-	is_pair,
-	pair_car,
-	pair_cdr,
-	set_car,
-	set_cdr,
-
-	is_symbol,
-	symname,
-
-	is_syntax,
-	is_proc,
-	is_foreign,
-	syntaxname,
-	is_closure,
-	is_macro,
-	closure_code,
-	closure_env,
-
-	is_continuation,
-	is_promise,
-	is_environment,
-	is_immutable,
-	setimmutable,
-
-	scheme_load_file,
-	scheme_load_string
-};
-#endif
 
 scheme_t *scheme_init_new() {
 	scheme_t *sc=(scheme_t*)malloc(sizeof(scheme_t));
@@ -2639,9 +2364,6 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	__s_num_one.is_integer=1;
 	__s_num_one.value.ivalue=1;
 
-#if USE_INTERFACE
-	sc->vptr=&vtbl;
-#endif
 	sc->gensym_cnt=0;
 	sc->malloc=malloc;
 	sc->free=free;
@@ -2948,7 +2670,7 @@ int MacTS_main(int argc, char **argv) {
 int main(int argc, char **argv) {
 #endif
 	scheme_t sc;
-	FILE *fin;
+	FILE *fin = NULL;
 	char *file_name=InitFile;
 	int retcode;
 	int isfile=1;

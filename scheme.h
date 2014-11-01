@@ -51,11 +51,6 @@ extern "C" {
  */
 #define USE_SCHEME_STACK
 
-#if USE_DL
-# define USE_INTERFACE 1
-#endif
-
-
 #ifndef USE_MATH         /* If math support is needed */
 # define USE_MATH 1
 #endif
@@ -103,10 +98,6 @@ extern "C" {
 
 #ifndef INLINE
 # define INLINE
-#endif
-
-#ifndef USE_INTERFACE
-# define USE_INTERFACE 0
 #endif
 
 #ifndef SHOW_ERROR_LINE   /* Show error line in file */
@@ -163,71 +154,6 @@ void putstr(scheme_t *sc, const char *s);
 int list_length(scheme_t *sc, cell_ptr_t a);
 int eqv(cell_ptr_t a, cell_ptr_t b);
 
-
-#if USE_INTERFACE
-struct scheme_interface {
-	void (*scheme_define)(scheme_t *sc, cell_ptr_t env, cell_ptr_t symbol, cell_ptr_t value);
-	cell_ptr_t (*cons)(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-	cell_ptr_t (*immutable_cons)(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-	cell_ptr_t (*reserve_cells)(scheme_t *sc, int n);
-	cell_ptr_t (*mk_integer)(scheme_t *sc, long number_t);
-	cell_ptr_t (*mk_real)(scheme_t *sc, double number_t);
-	cell_ptr_t (*mk_symbol)(scheme_t *sc, const char *name);
-	cell_ptr_t (*gensym)(scheme_t *sc);
-	cell_ptr_t (*mk_string)(scheme_t *sc, const char *str);
-	cell_ptr_t (*mk_counted_string)(scheme_t *sc, const char *str, int len);
-	cell_ptr_t (*mk_character)(scheme_t *sc, int c);
-	cell_ptr_t (*mk_vector)(scheme_t *sc, int len);
-	cell_ptr_t (*mk_foreign_func)(scheme_t *sc, foreign_func f);
-	void (*putstr)(scheme_t *sc, const char *s);
-	void (*putcharacter)(scheme_t *sc, int c);
-
-	int (*is_string)(cell_ptr_t p);
-	char *(*string_value)(cell_ptr_t p);
-	int (*is_number)(cell_ptr_t p);
-	number_t (*nvalue)(cell_ptr_t p);
-	long (*ivalue)(cell_ptr_t p);
-	double (*rvalue)(cell_ptr_t p);
-	int (*is_integer)(cell_ptr_t p);
-	int (*is_real)(cell_ptr_t p);
-	int (*is_character)(cell_ptr_t p);
-	long (*charvalue)(cell_ptr_t p);
-	int (*is_list)(scheme_t *sc, cell_ptr_t p);
-	int (*is_vector)(cell_ptr_t p);
-	int (*list_length)(scheme_t *sc, cell_ptr_t vec);
-	long (*vector_length)(cell_ptr_t vec);
-	void (*fill_vector)(cell_ptr_t vec, cell_ptr_t elem);
-	cell_ptr_t (*vector_elem)(cell_ptr_t vec, int ielem);
-	cell_ptr_t (*set_vector_elem)(cell_ptr_t vec, int ielem, cell_ptr_t newel);
-	int (*is_port)(cell_ptr_t p);
-
-	int (*is_pair)(cell_ptr_t p);
-	cell_ptr_t (*pair_car)(cell_ptr_t p);
-	cell_ptr_t (*pair_cdr)(cell_ptr_t p);
-	cell_ptr_t (*set_car)(cell_ptr_t p, cell_ptr_t q);
-	cell_ptr_t (*set_cdr)(cell_ptr_t p, cell_ptr_t q);
-
-	int (*is_symbol)(cell_ptr_t p);
-	char *(*symname)(cell_ptr_t p);
-
-	int (*is_syntax)(cell_ptr_t p);
-	int (*is_proc)(cell_ptr_t p);
-	int (*is_foreign)(cell_ptr_t p);
-	char *(*syntaxname)(cell_ptr_t p);
-	int (*is_closure)(cell_ptr_t p);
-	int (*is_macro)(cell_ptr_t p);
-	cell_ptr_t (*closure_code)(cell_ptr_t p);
-	cell_ptr_t (*closure_env)(cell_ptr_t p);
-
-	int (*is_continuation)(cell_ptr_t p);
-	int (*is_promise)(cell_ptr_t p);
-	int (*is_environment)(cell_ptr_t p);
-	int (*is_immutable)(cell_ptr_t p);
-	void (*setimmutable)(cell_ptr_t p);
-	void (*load_file)(scheme_t *sc, FILE *fin);
-	void (*load_string)(scheme_t *sc, const char *input);
-};
-#endif
 
 #if !STANDALONE
 typedef struct scheme_registerable {
