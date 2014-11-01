@@ -153,16 +153,16 @@ X       T_LAST_SYSTEM_TYPE=14
 >          int len;
 >
 >          if(!isnumber(car(sc->args))) {
->               Error_1(sc,"make-block: not a number:",car(sc->args));
+>               error_1(sc,"make-block: not a number:",car(sc->args));
 >          }
 >          len=ivalue(car(sc->args));
 >          if(len<=0) {
->               Error_1(sc,"make-block: not positive:",car(sc->args));
+>               error_1(sc,"make-block: not positive:",car(sc->args));
 >          }
 >
 >          if(cdr(sc->args)!=sc->NIL) {
 >               if(!isnumber(cadr(sc->args)) || ivalue(cadr(sc->args))<0) {
->                    Error_1(sc,"make-block: not a positive number:",cadr(sc->args));
+>                    error_1(sc,"make-block: not a positive number:",cadr(sc->args));
 >               }
 >               fill=charvalue(cadr(sc->args))%255;
 >          }
@@ -171,7 +171,7 @@ X       T_LAST_SYSTEM_TYPE=14
 >
 >     case OP_BLOCKLEN:  /* block-length */
 >          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-length: not a memory block:",car(sc->args));
+>               error_1(sc,"block-length: not a memory block:",car(sc->args));
 >          }
 >          s_return(sc,mk_integer(sc,keynum(car(sc->args))));
 >
@@ -180,20 +180,20 @@ X       T_LAST_SYSTEM_TYPE=14
 >          int index;
 >
 >          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-ref: not a memory block:",car(sc->args));
+>               error_1(sc,"block-ref: not a memory block:",car(sc->args));
 >          }
 >          str=strvalue(car(sc->args));
 >
 >          if(cdr(sc->args)==sc->NIL) {
->               Error_0(sc,"block-ref: needs two arguments");
+>               error_0(sc,"block-ref: needs two arguments");
 >          }
 >          if(!isnumber(cadr(sc->args))) {
->               Error_1(sc,"block-ref: not a number:",cadr(sc->args));
+>               error_1(sc,"block-ref: not a number:",cadr(sc->args));
 >          }
 >          index=ivalue(cadr(sc->args));
 >
 >          if(index<0 || index>=keynum(car(sc->args))) {
->               Error_1(sc,"block-ref: out of bounds:",cadr(sc->args));
+>               error_1(sc,"block-ref: out of bounds:",cadr(sc->args));
 >          }
 >
 >          s_return(sc,mk_integer(sc,str[index]));
@@ -205,29 +205,29 @@ X       T_LAST_SYSTEM_TYPE=14
 >          int c;
 >
 >          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-set!: not a memory block:",car(sc->args));
+>               error_1(sc,"block-set!: not a memory block:",car(sc->args));
 >          }
 >          if(isimmutable(car(sc->args))) {
->               Error_1(sc,"block-set!: unable to alter immutable memory block:",car(sc->args));
+>               error_1(sc,"block-set!: unable to alter immutable memory block:",car(sc->args));
 >          }
 >          str=strvalue(car(sc->args));
 >
 >          if(cdr(sc->args)==sc->NIL) {
->               Error_0(sc,"block-set!: needs three arguments");
+>               error_0(sc,"block-set!: needs three arguments");
 >          }
 >          if(!isnumber(cadr(sc->args))) {
->               Error_1(sc,"block-set!: not a number:",cadr(sc->args));
+>               error_1(sc,"block-set!: not a number:",cadr(sc->args));
 >          }
 >          index=ivalue(cadr(sc->args));
 >          if(index<0 || index>=keynum(car(sc->args))) {
->               Error_1(sc,"block-set!: out of bounds:",cadr(sc->args));
+>               error_1(sc,"block-set!: out of bounds:",cadr(sc->args));
 >          }
 >
 >          if(cddr(sc->args)==sc->NIL) {
->               Error_0(sc,"block-set!: needs three arguments");
+>               error_0(sc,"block-set!: needs three arguments");
 >          }
 >          if(!isinteger(caddr(sc->args))) {
->               Error_1(sc,"block-set!: not an integer:",caddr(sc->args));
+>               error_1(sc,"block-set!: not an integer:",caddr(sc->args));
 >          }
 >          c=ivalue(caddr(sc->args))%255;
 >

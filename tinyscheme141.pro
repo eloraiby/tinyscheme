@@ -21,7 +21,11 @@ TEMPLATE = app
 SOURCES += \
     dynload.c \
     scheme.c \
-    number.c
+    number.c \
+    error.c \
+    frame.c \
+    atoms.c \
+    cell.c
 
 OTHER_FILES += \
     BUILDING \
@@ -38,5 +42,4 @@ HEADERS += \
     opdefines.h \
     scheme.h \
     scheme-private.h \
-    parser.h \
-    number.h
+    parser.h

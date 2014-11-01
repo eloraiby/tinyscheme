@@ -4,6 +4,36 @@
 #define _SCHEME_PRIVATE_H
 
 #include "scheme.h"
+
+#if USE_STRCASECMP
+#include <strings.h>
+# ifndef __APPLE__
+#  define stricmp strcasecmp
+# endif
+#endif
+
+#ifndef WIN32
+# include <unistd.h>
+#endif
+#ifdef WIN32
+#define snprintf _snprintf
+#endif
+#if USE_DL
+# include "dynload.h"
+#endif
+#if USE_MATH
+# include <math.h>
+#endif
+
+#include <limits.h>
+#include <float.h>
+#include <ctype.h>
+#include <string.h>
+#include <stdlib.h>
+
+/* Used for documentation purposes, to signal functions in 'interface' */
+#define INTERFACE
+
 /*------------------ Ugly internals -----------------------------------*/
 /*------------------ Of interest only to FFI users --------------------*/
 
@@ -145,6 +175,7 @@ struct scheme_t {
 	int dump_size;      /* number of frames allocated for dump stack */
 };
 
+
 /* operator code */
 enum scheme_opcodes {
 #define _OP_DEF(A,B,C,D,E,OP) OP,
@@ -152,7 +183,187 @@ enum scheme_opcodes {
     OP_MAXDEFINED
 };
 
+/*******************************************************************************
+ *
+ * General purpose helpers
+ *
+ ******************************************************************************/
+enum scheme_types {
+    T_STRING=1,
+    T_NUMBER=2,
+    T_SYMBOL=3,
+    T_PROC=4,
+    T_PAIR=5,
+    T_CLOSURE=6,
+    T_CONTINUATION=7,
+    T_FOREIGN=8,
+    T_CHARACTER=9,
+    T_PORT=10,
+    T_VECTOR=11,
+    T_MACRO=12,
+    T_PROMISE=13,
+    T_ENVIRONMENT=14,
+    T_LAST_SYSTEM_TYPE=14
+};
 
+/* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
+#define ADJ		32
+#define TYPE_BITS	 5
+#define T_MASKTYPE      31    /* 0000000000011111 */
+#define T_SYNTAX      4096    /* 0001000000000000 */
+#define T_IMMUTABLE   8192    /* 0010000000000000 */
+#define T_ATOM       16384    /* 0100000000000000 */   /* only for gc */
+#define CLRATOM      49151    /* 1011111111111111 */   /* only for gc */
+#define MARK         32768    /* 1000000000000000 */
+#define UNMARK       32767    /* 0111111111111111 */
+
+/* macros for cell operations */
+#define typeflag(p)      ((p)->_flag)
+#define type(p)          (typeflag(p)&T_MASKTYPE)
+
+#define strvalue(p)      ((p)->_object._string._svalue)
+#define strlength(p)     ((p)->_object._string._length)
+
+#define setenvironment(p)    typeflag(p) = T_ENVIRONMENT
+
+#define is_atom(p)       (typeflag(p)&T_ATOM)
+#define setatom(p)       typeflag(p) |= T_ATOM
+#define clratom(p)       typeflag(p) &= CLRATOM
+
+#define is_mark(p)       (typeflag(p)&MARK)
+#define setmark(p)       typeflag(p) |= MARK
+#define clrmark(p)       typeflag(p) &= UNMARK
+
+#if USE_CHAR_CLASSIFIERS
+#     define is_ascii(c)	(((c) & ~0x7f) == 0)	/* If C is a 7 bit value.  */
+
+#     define Cisalpha(c)	(is_ascii(c) && isalpha(c))
+#     define Cisdigit(c)	(is_ascii(c) && isdigit(c))
+#     define Cisspace(c)	(is_ascii(c) && isspace(c))
+#     define Cisupper(c)	(is_ascii(c) && isupper(c))
+#     define Cislower(c)	(is_ascii(c) && islower(c))
+#endif
+
+#if USE_ASCII_NAMES
+int is_ascii_name(const char *name, int *pc);
+#endif
+
+/* Too small to turn into function */
+# define  BEGIN     do {
+# define  END  } while (0)
+#define s_goto(sc,a) BEGIN                                  \
+	sc->op = (int)(a);                                      \
+	return sc->T; END
+
+extern cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
+#define s_return(sc,a) return _s_return(sc,a)
+
+/*******************************************************************************
+ *
+ * number.c
+ *
+ ******************************************************************************/
+extern number_t		__s_num_zero;
+extern number_t		__s_num_one;
+
+#define num_ivalue(n)       (n.is_integer?(n).value.ivalue:(long)(n).value.rvalue)
+#define num_rvalue(n)       (!n.is_integer?(n).value.rvalue:(double)(n).value.ivalue)
+
+long binary_decode(const char *s);
+
+#define num_is_integer(p) ((p)->_object._number.is_integer)
+
+#define ivalue_unchecked(p)       ((p)->_object._number.value.ivalue)
+#define rvalue_unchecked(p)       ((p)->_object._number.value.rvalue)
+#define set_num_integer(p)   (p)->_object._number.is_integer=1;
+#define set_num_real(p)      (p)->_object._number.is_integer=0;
+
+cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op);
+
+/*******************************************************************************
+ *
+ * atoms.c
+ *
+ ******************************************************************************/
+cell_ptr_t oblist_initial_value(scheme_t *sc);
+cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name);
+cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name);
+cell_ptr_t oblist_all_symbols(scheme_t *sc);
+cell_ptr_t mk_port(scheme_t *sc, port_t *p);
+cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f);
+cell_ptr_t mk_character(scheme_t *sc, int c);
+cell_ptr_t mk_integer(scheme_t *sc, long number_t);
+cell_ptr_t mk_real(scheme_t *sc, double n);
+char *store_string(scheme_t *sc, int len_str, const char *str, char fill);
+cell_ptr_t mk_string(scheme_t *sc, const char *str);
+cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len);
+cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill);
+cell_ptr_t mk_vector(scheme_t *sc, int len);
+void fill_vector(cell_ptr_t vec, cell_ptr_t obj);
+cell_ptr_t vector_elem(cell_ptr_t vec, int ielem);
+cell_ptr_t set_vector_elem(cell_ptr_t vec, int ielem, cell_ptr_t a);
+cell_ptr_t mk_symbol(scheme_t *sc, const char *name);
+cell_ptr_t gensym(scheme_t *sc);
+cell_ptr_t mk_atom(scheme_t *sc, char *q);
+cell_ptr_t mk_sharp_const(scheme_t *sc, char *name);
+
+
+/*******************************************************************************
+ *
+ * error.c
+ *
+ ******************************************************************************/
+#define error_1(sc, s, a) return _error_1(sc, s, a)
+#define error_0(sc, s)    return _error_1(sc, s, 0)
+
+cell_ptr_t _error_1(scheme_t *sc, const char *s, cell_ptr_t a);
+
+/*******************************************************************************
+ *
+ * frame.c
+ *
+ ******************************************************************************/
+#define new_slot_in_env(sc, variable, value)	new_slot_spec_in_env(sc, sc->envir, variable, value)
+#define set_slot_in_env(sc, slot, value)	cdr(slot) = value
+#define slot_value_in_env(slot)			(cdr(slot))
+
+#if !defined(USE_ALIST_ENV) || !defined(USE_OBJECT_LIST)
+int hash_fn(const char *key, int table_size);
+#endif
+
+void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env);
+cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t sym, int all);
+void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,	cell_ptr_t variable, cell_ptr_t value);
+cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all);
+
+/*******************************************************************************
+ *
+ * cell.c
+ *
+ ******************************************************************************/
+int alloc_cellseg(scheme_t *sc, int n);
+cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t reserve_cells(scheme_t *sc, int n);
+cell_ptr_t get_consecutive_cells(scheme_t *sc, int n);
+int count_consecutive_cells(cell_ptr_t x, int needed);
+cell_ptr_t find_consecutive_cells(scheme_t *sc, int n);
+void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra);
+cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init);
+
+/*******************************************************************************
+ *
+ * gc.c
+ *
+ ******************************************************************************/
+void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+
+/*******************************************************************************
+ *
+ *
+ *
+ ******************************************************************************/
 #define cons(sc,a,b) _cons(sc,a,b,0)
 #define immutable_cons(sc,a,b) _cons(sc,a,b,1)
 
@@ -196,6 +407,20 @@ int is_promise(cell_ptr_t p);
 int is_environment(cell_ptr_t p);
 int is_immutable(cell_ptr_t p);
 void setimmutable(cell_ptr_t p);
+
+#define car(p)           ((p)->_object._cons._car)
+#define cdr(p)           ((p)->_object._cons._cdr)
+
+#define caar(p)          car(car(p))
+#define cadr(p)          car(cdr(p))
+#define cdar(p)          cdr(car(p))
+#define cddr(p)          cdr(cdr(p))
+#define cadar(p)         car(cdr(car(p)))
+#define caddr(p)         car(cdr(cdr(p)))
+#define cdaar(p)         cdr(car(car(p)))
+#define cadaar(p)        car(cdr(car(car(p))))
+#define cadddr(p)        car(cdr(cdr(cdr(p))))
+#define cddddr(p)        cdr(cdr(cdr(cdr(p))))
 
 #ifdef __cplusplus
 }
