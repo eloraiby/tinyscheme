@@ -714,6 +714,38 @@ cell_ptr_t scheme_eval(scheme_t *sc, cell_ptr_t obj) {
 #endif
 
 /* ========== Main ========== */
+const char* types[16] = {
+	"NONE",
+	"T_STRING",
+	"T_NUMBER",
+	"T_SYMBOL",
+	"T_PROC",
+	"T_PAIR",
+	"T_CLOSURE",
+	"T_CONTINUATION",
+	"T_FOREIGN",
+	"T_CHARACTER",
+	"T_PORT",
+	"T_VECTOR",
+	"T_MACRO",
+	"T_PROMISE",
+	"T_ENVIRONMENT",
+	"T_LAST_SYSTEM_TYPE"
+};
+
+
+cell_ptr_t
+print_args(scheme_t* sc, cell_ptr_t args) {
+	cell_ptr_t	retval	= sc->T;
+	cell_ptr_t	c	= args;
+	int		i	= 0;
+	fprintf(stderr, "arg count: %d", list_length(sc, args));
+	for( ; c != sc->NIL; c = cdr(c) ) {
+		fprintf(stderr, "arg %d: %s\n", i, types[type(car(c))]);
+		++i;
+	}
+	return retval;
+}
 
 #if STANDALONE
 
@@ -739,6 +771,7 @@ int main(int argc, char **argv) {
 	if(argc==1) {
 		printf(banner);
 	}
+
 	if(argc==2 && strcmp(argv[1],"-?")==0) {
 		printf("Usage: tinyscheme -?\n");
 		printf("or:    tinyscheme [<file1> <file2> ...]\n");
@@ -749,6 +782,7 @@ int main(int argc, char **argv) {
 		printf("Use - as filename for stdin.\n");
 		return 1;
 	}
+
 	if(!scheme_init(sc)) {
 		fprintf(stderr,"Could not initialize!\n");
 		return 2;
@@ -757,6 +791,8 @@ int main(int argc, char **argv) {
 	scheme_set_output_port_file(sc, stdout);
 
 	fprintf(stderr, "cell size: %lu\n", sizeof(cell_t));
+
+	scheme_define(sc, sc->global_env, mk_symbol(sc, "print-args"), mk_foreign_func(sc, print_args));
 
 #if USE_DL
 	scheme_define(sc, sc->global_env, mk_symbol(sc, "load-extension"), mk_foreign_func(sc, scm_load_ext));
@@ -768,6 +804,7 @@ int main(int argc, char **argv) {
 			file_name=p;
 		}
 	}
+
 	do {
 		if(strcmp(file_name,"-")==0) {
 			fin=stdin;

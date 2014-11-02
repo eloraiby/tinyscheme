@@ -2,6 +2,23 @@
 
 #define cont_dump(p)     cdr(p)
 
+/* Eval should be a single function with jump table optimization, something like:
+	static const void*	jt[2]	= { &&l0, &&l1 };
+	srand(time(NULL));
+	int r = rand();
+	fprintf(stderr, "rand: %d\n", r);
+
+	goto *jt[r % 2];
+
+	l0:
+		fprintf(stderr, "l0\n");
+		goto l2;
+	l1:	fprintf(stderr, "l1\n");
+		goto l2;
+	l2:
+		fprintf(stderr, "l2\n");
+*/
+
 static int is_list(scheme_t *sc, cell_ptr_t a) {
 	return list_length(sc,a) >= 0;
 }

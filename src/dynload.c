@@ -107,7 +107,7 @@ cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args) {
 			module_init = (void(*)(scheme_t *))dl_proc(dll_handle, init_fn);
 			if (module_init != 0) {
 				(*module_init)(sc);
-				retval = sc -> T;
+				retval = sc->T;
 			} else {
 				retval = sc->F;
 			}
