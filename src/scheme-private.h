@@ -98,7 +98,7 @@ struct scheme_t {
 	int tracing;
 
 
-#define CELL_MAX_COUNT    128 * 1024  /* # of cells in the memory segment */
+#define CELL_MAX_COUNT    512 * 1024  /* # of cells in the memory segment */
 	cell_t	cell_seg[CELL_MAX_COUNT];
 
 	/* We use 4 registers. */
@@ -362,6 +362,11 @@ void check_range_alloced(cell_ptr_t p, int n, int expect_alloced);
 cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable);
 void finalize_cell(scheme_t *sc, cell_ptr_t a);
 
+cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d);
+cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a);
+cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list);
+cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+
 /*******************************************************************************
  *
  * stack.c
@@ -411,6 +416,20 @@ void putcharacter(scheme_t *sc, int c);
 int is_port(cell_ptr_t p);
 int is_inport(cell_ptr_t p);
 int is_outport(cell_ptr_t p);
+
+/*******************************************************************************
+ *
+ * parse.c
+ *
+ ******************************************************************************/
+cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op);
+
+/*******************************************************************************
+ *
+ * eval.c
+ *
+ ******************************************************************************/
+cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op);
 
 /*******************************************************************************
  *

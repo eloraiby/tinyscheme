@@ -191,6 +191,15 @@ cell_ptr_t op_predicate(scheme_t *sc, enum scheme_opcodes op) {
 		s_retbool(car(sc->args) == cadr(sc->args));
 	case OP_EQV:        /* eqv? */
 		s_retbool(eqv(car(sc->args), cadr(sc->args)));
+	case OP_CLOSUREP:        /* closure? */
+		/*
+		* Note, macro object is also a closure.
+		* Therefore, (closure? <#MACRO>) ==> #t
+		*/
+		s_retbool(is_closure(car(sc->args)));
+	case OP_MACROP:          /* macro? */
+		s_retbool(is_macro(car(sc->args)));
+
 	default:
 		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
 		error_0(sc,sc->strbuff);

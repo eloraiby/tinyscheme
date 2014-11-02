@@ -1,0 +1,44 @@
+/*
+ grammar parser: using Lemon, not YACC nor BISON
+*/
+%name parser
+
+%token_type	{ cell_t* }
+%extra_argument { scheme_t* sc }
+
+%include {
+#include <stdio.h>
+#include "../../src/scheme-private.h"
+}
+
+%type cell	{ cell_t* }
+%type program	{ cell_t* }
+%type cell_list	{ cell_t* }
+
+%start_symbol program
+
+/* a program is a cell */
+program		::= cell(B).				{ sc->op = B; }
+
+/* literals */
+cell(A)		::= CELL_SYMBOL(B).			{ A = B; }
+cell(A)		::= CELL_BOOL(B).			{ A = B; }
+cell(A)		::= CELL_CHAR(B).			{ A = B; }
+cell(A)		::= CELL_SINT64(B).			{ A = B; }
+cell(A)		::= CELL_REAL64(B).			{ A = B; }
+cell(A)		::= CELL_STRING(B).			{ A = B; }
+
+/* NEVER USED: these are a hack to have the token ids */
+cell		::= CELL_FREE.				/* a free cell */
+cell		::= CELL_CONS.				/* cons cell */
+cell		::= CELL_LAMBDA.			/* closure */
+cell		::= CELL_PROCEDURE.			/* foreign function interface */
+cell		::= CELL_IF.				/* if */
+
+/* ( ... ) */
+cell(A)		::= QUOTE LPAR RPAR.			{ A = cell_new_cons(NULL); }
+cell(A)		::= QUOTE cell(B).			{ A = cell_new_cons(B); }
+cell(A)		::= LPAR cell_list(B) RPAR.		{ A = B; }
+
+cell_list(A)	::= cell(B).				{ A = cell_new_cons(B); }
+cell_list(A)	::= cell_list(B) cell(C).		{ A = cell_cons(C, B); }

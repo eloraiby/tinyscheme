@@ -209,3 +209,62 @@ void finalize_cell(scheme_t *sc, cell_ptr_t a) {
 		sc->free(a->_object._port);
 	}
 }
+
+cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d) {
+	cell_ptr_t p, q;
+	if(cdr(d)==sc->NIL) {
+		return car(d);
+	}
+	p=cons(sc,car(d),cdr(d));
+	q=p;
+	while(cdr(cdr(p))!=sc->NIL) {
+		d=cons(sc,car(p),cdr(p));
+		if(cdr(cdr(p))!=sc->NIL) {
+			p=cdr(d);
+		}
+	}
+	cdr(p)=car(cdr(p));
+	return q;
+}
+
+/* reverse list -- produce new list */
+cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
+	/* a must be checked by gc */
+	cell_ptr_t p = sc->NIL;
+
+	for ( ; is_pair(a); a = cdr(a)) {
+		p = cons(sc, car(a), p);
+	}
+	return (p);
+}
+
+/* reverse list --- in-place */
+cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list) {
+	cell_ptr_t p = list, result = term, q;
+
+	while (p != sc->NIL) {
+		q = cdr(p);
+		cdr(p) = result;
+		result = p;
+		p = q;
+	}
+	return (result);
+}
+
+/* append list -- produce new list (in reverse order) */
+cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
+	cell_ptr_t result = a;
+	cell_ptr_t p = b;
+
+	while (is_pair(p)) {
+		result = cons(sc, car(p), result);
+		p = cdr(p);
+	}
+
+	if (p == sc->NIL) {
+		return result;
+	}
+
+	return sc->F;   /* signal an error */
+}
+

@@ -17,6 +17,17 @@ INCLUDEPATH += ./include
 
 TEMPLATE = app
 
+lexer.target = $$PWD/langs/r4rs/lexer.c
+lexer.commands = ragel -C -o $$PWD/langs/r4rs/lexer.c $$PWD/langs/r4rs/lexer.rl
+lexer.depends =
+
+parser.target = $$PWD/langs/r4rs/parser.c
+parser.commands = lemon -T$$PWD/langs/lempar.c_template $$PWD/langs/r4rs/parser.yl
+parser.depends =
+
+QMAKE_EXTRA_TARGETS	+= lexer parser
+
+PRE_TARGETDEPS	+= $$PWD/langs/r4rs/lexer.c $$PWD/langs/r4rs/parser.c
 
 SOURCES += \
     src/dynload.c \
@@ -29,7 +40,11 @@ SOURCES += \
     src/atom.c \
     src/stack.c \
     src/port.c \
-    src/predicate.c
+    src/predicate.c \
+#    langs/r4rs/parser.c \
+#    langs/r4rs/lexer.c \
+    src/parse.c \
+    src/eval.c
 
 OTHER_FILES += \
     CHANGES \
@@ -38,11 +53,17 @@ OTHER_FILES += \
     docs/hack.txt \
     scm/init.scm \
     docs/Manual.txt \
-    MiniSCHEMETribute.txt
+    MiniSCHEMETribute.txt \
+    scm/conform.scm \
+    langs/lempar.c_template \
+    langs/r4rs/lexer.rl \
+    langs/r4rs/parser.yl
+
 
 HEADERS += \
     include/dynload.h \
     src/opdefines.h \
     include/scheme.h \
     src/scheme-private.h \
-    src/parser.h
+    src/parser.h \
+    langs/r4rs/parser.h
