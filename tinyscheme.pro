@@ -44,7 +44,8 @@ SOURCES += \
 #    langs/r4rs/parser.c \
 #    langs/r4rs/lexer.c \
     src/parse.c \
-    src/eval.c
+    src/eval.c \
+    src/ioctl.c
 
 OTHER_FILES += \
     CHANGES \
