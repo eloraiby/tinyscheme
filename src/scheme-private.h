@@ -469,7 +469,6 @@ int is_symbol(cell_ptr_t p);
 char *symname(cell_ptr_t p);
 int hasprop(cell_ptr_t p);
 
-int is_syntax(cell_ptr_t p);
 int is_proc(cell_ptr_t p);
 int is_foreign(cell_ptr_t p);
 char *syntaxname(cell_ptr_t p);

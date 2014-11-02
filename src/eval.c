@@ -2,6 +2,9 @@
 
 #define cont_dump(p)     cdr(p)
 
+#define is_syntax(p)	(typeflag(p)&T_SYNTAX)
+
+
 /* Eval should be a single function with jump table optimization, something like:
 	static const void*	jt[2]	= { &&l0, &&l1 };
 	srand(time(NULL));
@@ -137,17 +140,17 @@ cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op) {
 		/* fall through */
 	case OP_REAL_EVAL:
 #endif
-		if (is_symbol(sc->code)) {    /* symbol */
+		if( is_symbol(sc->code) ) {    /* symbol */
 			x=find_slot_in_env(sc,sc->envir,sc->code,1);
 			if (x != sc->NIL) {
 				s_return(sc,slot_value_in_env(x));
 			} else {
-				error_1(sc,"eval: unbound variable:", sc->code);
+				error_1(sc, "eval: unbound variable:", sc->code);
 			}
-		} else if (is_pair(sc->code)) {
-			if (is_syntax(x = car(sc->code))) {     /* SYNTAX */
+		} else if( is_pair(sc->code) ) {
+			if( is_syntax(x = car(sc->code)) ) {     /* SYNTAX */
 				sc->code = cdr(sc->code);
-				s_goto(sc,syntaxnum(x));
+				s_goto(sc, syntaxnum(x));
 			} else { /* first, eval top element and eval arguments */
 				s_save(sc,OP_E0ARGS, sc->NIL, sc->code);
 				/* If no macros => s_save(sc,OP_E1ARGS, sc->NIL, cdr(sc->code));*/
@@ -290,17 +293,18 @@ cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op) {
 		s_return(sc,car(sc->code));
 
 	case OP_DEF0:  /* define */
-		if(is_immutable(car(sc->code)))
+		if( is_immutable(car(sc->code)) )
 			error_1(sc,"define: unable to alter immutable", car(sc->code));
 
-		if (is_pair(car(sc->code))) {
+		if( is_pair(car(sc->code)) ) {
 			x = caar(sc->code);
 			sc->code = cons(sc, sc->LAMBDA, cons(sc, cdar(sc->code), cdr(sc->code)));
 		} else {
 			x = car(sc->code);
 			sc->code = cadr(sc->code);
 		}
-		if (!is_symbol(x)) {
+
+		if( !is_symbol(x) ) {
 			error_0(sc,"variable is not a symbol");
 		}
 		s_save(sc,OP_DEF1, sc->NIL, x);

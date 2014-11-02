@@ -117,9 +117,6 @@ SCHEME_EXPORT INLINE int hasprop(cell_ptr_t p) {
 #define symprop(p)       cdr(p)
 #endif
 
-INTERFACE INLINE int is_syntax(cell_ptr_t p) {
-	return (typeflag(p)&T_SYNTAX);
-}
 INTERFACE INLINE int is_proc(cell_ptr_t p) {
 	return (type(p)==T_PROC);
 }
