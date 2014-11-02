@@ -1,4 +1,4 @@
-    _OP_DEF(op_eval, "gensym",                         0,  0,       0,                               OP_GENSYM           )
+    _OP_DEF(op_eval, "force",                          1,  1,       TST_ANY,                         OP_FORCE            )
     _OP_DEF(op_eval, 0,                                0,  0,       0,                               OP_VALUEPRINT       )
     _OP_DEF(op_eval, 0,                                0,  0,       0,                               OP_EVAL             )
 #if USE_TRACING
@@ -137,7 +137,7 @@
     _OP_DEF(op_predicate, "closure?",                  1,  1,       TST_NONE,                        OP_CLOSUREP         )
     _OP_DEF(op_predicate, "macro?",                    1,  1,       TST_NONE,                        OP_MACROP           )
 
-    _OP_DEF(opexe_4, "force",                          1,  1,       TST_ANY,                         OP_FORCE            )
+    _OP_DEF(opexe_4, "gensym",                         0,  0,       0,                               OP_GENSYM           )
     _OP_DEF(opexe_4, 0,                                0,  0,       0,                               OP_SAVE_FORCED      )
     _OP_DEF(opexe_4, "write",                          1,  2,       TST_ANY TST_OUTPORT,             OP_WRITE            )
     _OP_DEF(opexe_4, "write-char",                     1,  2,       TST_CHAR TST_OUTPORT,            OP_WRITE_CHAR       )

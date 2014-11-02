@@ -81,8 +81,16 @@ cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x, y;
 
 	switch (op) {
-	case OP_GENSYM:
-		s_return(sc, gensym(sc));
+	case OP_FORCE:      /* force */
+		sc->code = car(sc->args);
+		if (is_promise(sc->code)) {
+			/* Should change type to closure here */
+			s_save(sc, OP_SAVE_FORCED, sc->NIL, sc->code);
+			sc->args = sc->NIL;
+			s_goto(sc,OP_APPLY);
+		} else {
+			s_return(sc,sc->code);
+		}
 
 	case OP_VALUEPRINT: /* print evaluation result */
 		/* OP_VALUEPRINT is always pushed, because when changing from
