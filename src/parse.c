@@ -174,11 +174,6 @@ static int token(scheme_t *sc) {
 		while ((c=inchar(sc)) != '\n' && c!=EOF)
 			;
 
-#if SHOW_ERROR_LINE
-		if(c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
-			sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
-
 		if(c == EOF) {
 			return (TOK_EOF);
 		} else {
@@ -202,11 +197,6 @@ static int token(scheme_t *sc) {
 		} else if(c == '!') {
 			while ((c=inchar(sc)) != '\n' && c!=EOF)
 				;
-
-#if SHOW_ERROR_LINE
-			if(c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
-				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
 
 			if(c == EOF) {
 				return (TOK_EOF);
@@ -249,10 +239,6 @@ static INLINE int skipspace(scheme_t *sc) {
 	} while (isspace(c));
 
 	/* record it */
-#if SHOW_ERROR_LINE
-	if (sc->load_stack[sc->file_i].kind & port_file)
-		sc->load_stack[sc->file_i].rep.stdio.curr_line += curr_line;
-#endif
 
 	if(c!=EOF) {
 		backchar(sc,c);
@@ -274,16 +260,8 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 
 	switch (op) {
 	case OP_LOAD:       /* load */
-		if(file_interactive(sc)) {
-			fprintf(sc->outport->_object._port->rep.stdio.file,
-				"Loading %s\n", strvalue(car(sc->args)));
-		}
-		if (!file_push(sc,strvalue(car(sc->args)))) {
-			error_1(sc,"unable to open", car(sc->args));
-		} else {
-			sc->args = mk_integer(sc,sc->file_i);
-			s_goto(sc,OP_T0LVL);
-		}
+		sc->args = mk_integer(sc,sc->file_i);
+		s_goto(sc,OP_T0LVL);
 
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
@@ -291,19 +269,8 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			if(sc->file_i == 0) {
 				sc->args=sc->NIL;
 				s_goto(sc,OP_QUIT);
-			} else {
-				file_pop(sc);
-				s_return(sc,sc->value);
 			}
 			/* NOTREACHED */
-		}
-
-		/* If interactive, be nice to user. */
-		if(file_interactive(sc)) {
-			sc->envir = sc->global_env;
-			dump_stack_reset(sc);
-			putstr(sc,"\n");
-			putstr(sc,prompt);
 		}
 
 		/* Set up another iteration of REPL */
@@ -481,10 +448,7 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			int c = inchar(sc);
 			if (c != '\n')
 				backchar(sc,c);
-#if SHOW_ERROR_LINE
-			else if (sc->load_stack[sc->file_i].kind & port_file)
-				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
-#endif
+
 			sc->nesting_stack[sc->file_i]--;
 			s_return(sc,reverse_in_place(sc, sc->NIL, sc->args));
 		} else if (sc->tok == TOK_DOT) {

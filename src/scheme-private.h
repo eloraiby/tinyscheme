@@ -53,21 +53,11 @@ enum scheme_port_kind {
 
 typedef struct port_t {
 	unsigned char kind;
-	union {
-		struct {
-			FILE *file;
-			int closeit;
-#if SHOW_ERROR_LINE
-			int curr_line;
-			char *filename;
-#endif
-		} stdio;
-		struct {
-			char *start;
-			char *past_the_end;
-			char *curr;
-		} string;
-	} rep;
+	struct {
+		char *start;
+		char *past_the_end;
+		char *curr;
+	} string;
 } port_t;
 
 /* cell structure */

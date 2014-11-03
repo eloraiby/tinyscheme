@@ -169,11 +169,7 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		default:
 			break;
 		}
-		p=port_from_filename(sc,strvalue(car(sc->args)),prop);
-		if(p==sc->NIL) {
-			s_return(sc,sc->F);
-		}
-		s_return(sc,p);
+		s_return(sc,sc->F);
 	}
 
 #if USE_STRING_PORTS
@@ -222,12 +218,12 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 			size_t size;
 			char *str;
 
-			size=p->rep.string.curr-p->rep.string.start+1;
+			size=p->string.curr - p->string.start+1;
 			str=sc->malloc(size);
 			if(str != NULL) {
 				cell_ptr_t s;
 
-				memcpy(str,p->rep.string.start,size-1);
+				memcpy(str,p->string.start,size-1);
 				str[size-1]='\0';
 				s=mk_string(sc,str);
 				sc->free(str);

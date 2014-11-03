@@ -514,16 +514,8 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	return !sc->no_memory;
 }
 
-void scheme_set_input_port_file(scheme_t *sc, FILE *fin) {
-	sc->inport=port_from_file(sc,fin,port_input);
-}
-
 void scheme_set_input_port_string(scheme_t *sc, char *start, char *past_the_end) {
 	sc->inport=port_from_string(sc,start,past_the_end,port_input);
-}
-
-void scheme_set_output_port_file(scheme_t *sc, FILE *fout) {
-	sc->outport=port_from_file(sc,fout,port_output);
 }
 
 void scheme_set_output_port_string(scheme_t *sc, char *start, char *past_the_end) {
@@ -563,57 +555,17 @@ void scheme_deinit(scheme_t *sc) {
 	sc->loadport=sc->NIL;
 	sc->gc_verbose=0;
 	gc(sc,sc->NIL,sc->NIL);
-
-#if SHOW_ERROR_LINE
-	for(i=0; i<=sc->file_i; i++) {
-		if (sc->load_stack[i].kind & port_file) {
-			fname = sc->load_stack[i].rep.stdio.filename;
-			if(fname)
-				sc->free(fname);
-		}
-	}
-#endif
 }
 
-void scheme_load_file(scheme_t *sc, FILE *fin) {
-	scheme_load_named_file(sc,fin,0);
-}
-
-void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
-	dump_stack_reset(sc);
-	sc->envir = sc->global_env;
-	sc->file_i=0;
-	sc->load_stack[0].kind=port_input|port_file;
-	sc->load_stack[0].rep.stdio.file=fin;
-	sc->loadport=mk_port(sc,sc->load_stack);
-	sc->retcode=0;
-	if(fin==stdin) {
-		sc->interactive_repl=1;
-	}
-
-#if SHOW_ERROR_LINE
-	sc->load_stack[0].rep.stdio.curr_line = 0;
-	if(fin!=stdin && filename)
-		sc->load_stack[0].rep.stdio.filename = store_string(sc, strlen(filename), filename, 0);
-#endif
-
-	sc->inport=sc->loadport;
-	sc->args = mk_integer(sc,sc->file_i);
-	Eval_Cycle(sc, OP_T0LVL);
-	typeflag(sc->loadport)=T_ATOM;
-	if(sc->retcode==0) {
-		sc->retcode=sc->nesting!=0;
-	}
-}
 
 void scheme_load_string(scheme_t *sc, const char *cmd) {
 	dump_stack_reset(sc);
 	sc->envir	= sc->global_env;
 	sc->file_i	= 0;
 	sc->load_stack[0].kind	= port_input | port_string;
-	sc->load_stack[0].rep.string.start		= (char*)cmd; /* This func respects const */
-	sc->load_stack[0].rep.string.past_the_end	= (char*)cmd + strlen(cmd);
-	sc->load_stack[0].rep.string.curr		= (char*)cmd;
+	sc->load_stack[0].string.start		= (char*)cmd; /* This func respects const */
+	sc->load_stack[0].string.past_the_end	= (char*)cmd + strlen(cmd);
+	sc->load_stack[0].string.curr		= (char*)cmd;
 	sc->loadport	= mk_port(sc, sc->load_stack);
 	sc->retcode	= 0;
 	sc->interactive_repl	= 0;
@@ -784,8 +736,6 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"Could not initialize!\n");
 		return 2;
 	}
-	scheme_set_input_port_file(sc, stdin);
-	scheme_set_output_port_file(sc, stdout);
 
 	fprintf(stderr, "cell size: %lu\n", sizeof(cell_t));
 
@@ -827,11 +777,19 @@ int main(int argc, char **argv) {
 		if( isfile && fin == 0 ) {
 			fprintf(stderr, "Could not open file %s\n", file_name);
 		} else {
-			if( isfile ) {
-				scheme_load_named_file(sc, fin, file_name);
-			} else {
-				scheme_load_string(sc, file_name);
-			}
+			FILE *f = fopen(file_name, "rb");
+			fseek(f, 0, SEEK_END);
+			long fsize = ftell(f);
+			fseek(f, 0, SEEK_SET);
+
+			char *string = malloc(fsize + 1);
+			fread(string, fsize, 1, f);
+			fclose(f);
+
+			string[fsize] = 0;
+			scheme_load_string(sc, string);
+
+			free(string);
 			if( !isfile || fin!=stdin ) {
 				if(sc->retcode != 0) {
 					fprintf(stderr, "Errors encountered reading %s\n", file_name);
@@ -843,9 +801,7 @@ int main(int argc, char **argv) {
 		}
 		file_name	= *argv++;
 	} while( file_name != 0 );
-	if( argc == 1 ) {
-		scheme_load_named_file(sc, stdin,0);
-	}
+
 	retcode	= sc->retcode;
 	scheme_deinit(sc);
 	free(sc);

@@ -120,13 +120,7 @@ cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op) {
 		if(sc->tracing) {
 			putstr(sc,"\nGives: ");
 		}
-		if(file_interactive(sc)) {
-			sc->print_flag = 1;
-			sc->args = sc->value;
-			s_goto(sc,OP_P0LIST);
-		} else {
-			s_return(sc,sc->value);
-		}
+		s_return(sc,sc->value);
 
 	case OP_EVAL:       /* main part of evaluation */
 #if USE_TRACING
