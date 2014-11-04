@@ -201,8 +201,6 @@ cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable) {
 void finalize_cell(scheme_t *sc, cell_ptr_t a) {
 	if(is_string(a)) {
 		sc->free(strvalue(a));
-	} else if(is_port(a)) {
-		sc->free(a->_object._port);
 	}
 }
 

@@ -714,3 +714,4 @@
             (else (error "cond-expand : unknown operator" (car condition)))))))
 
 (gc-verbose #t)
+(begin (display "Done initializing init.scm\n"))

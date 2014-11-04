@@ -230,9 +230,9 @@ static struct {
 	{is_any, 0},
 	{is_string, "string"},
 	{is_symbol, "symbol"},
-	{is_port, "port"},
-	{is_inport,"input port"},
-	{is_outport,"output port"},
+//	{is_port, "port"},
+//	{is_inport,"input port"},
+//	{is_outport,"output port"},
 	{is_environment, "environment"},
 	{is_pair, "pair"},
 	{0, "pair or '()"},
@@ -420,6 +420,7 @@ int scheme_init(scheme_t *sc) {
 int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free) {
 	int i, n=sizeof(dispatch_table)/sizeof(dispatch_table[0]);
 	cell_ptr_t x;
+	memset(sc, 0, sizeof(*sc));
 
 	sc->num_zero.is_integer		= 1;
 	sc->num_zero.value.ivalue	= 0;
@@ -437,17 +438,13 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->free_cell = &sc->_NIL;
 	sc->fcells = 0;
 	sc->no_memory=0;
-	sc->inport=sc->NIL;
-	sc->outport=sc->NIL;
-	sc->save_inport=sc->NIL;
-	sc->loadport=sc->NIL;
-	sc->nesting=0;
 	sc->interactive_repl=0;
 
 	if( !alloc_cellseg(sc) ) {
 		sc->no_memory=1;
 		return 0;
 	}
+
 	sc->gc_verbose = 0;
 	dump_stack_initialize(sc);
 	sc->code = sc->NIL;
@@ -514,68 +511,32 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	return !sc->no_memory;
 }
 
-void scheme_set_input_port_string(scheme_t *sc, char *start, char *past_the_end) {
-	sc->inport=port_from_string(sc,start,past_the_end,port_input);
-}
-
-void scheme_set_output_port_string(scheme_t *sc, char *start, char *past_the_end) {
-	sc->outport=port_from_string(sc,start,past_the_end,port_output);
-}
-
 void scheme_set_external_data(scheme_t *sc, void *p) {
 	sc->ext_data=p;
 }
 
 void scheme_deinit(scheme_t *sc) {
-	int i;
 
-#if SHOW_ERROR_LINE
-	char *fname;
-#endif
-
-	sc->oblist=sc->NIL;
-	sc->global_env=sc->NIL;
+	sc->oblist	= sc->NIL;
+	sc->global_env	= sc->NIL;
 	dump_stack_free(sc);
-	sc->envir=sc->NIL;
-	sc->code=sc->NIL;
-	sc->args=sc->NIL;
-	sc->value=sc->NIL;
-	if(is_port(sc->inport)) {
-		typeflag(sc->inport) = T_ATOM;
-	}
-	sc->inport=sc->NIL;
-	sc->outport=sc->NIL;
-	if(is_port(sc->save_inport)) {
-		typeflag(sc->save_inport) = T_ATOM;
-	}
-	sc->save_inport=sc->NIL;
-	if(is_port(sc->loadport)) {
-		typeflag(sc->loadport) = T_ATOM;
-	}
-	sc->loadport=sc->NIL;
-	sc->gc_verbose=0;
+	sc->envir	= sc->NIL;
+	sc->code	= sc->NIL;
+	sc->args	= sc->NIL;
+	sc->value	= sc->NIL;
+
+	sc->gc_verbose	= 0;
 	gc(sc,sc->NIL,sc->NIL);
 }
 
 
 void scheme_load_string(scheme_t *sc, const char *cmd) {
 	dump_stack_reset(sc);
-	sc->envir	= sc->global_env;
-	sc->file_i	= 0;
-	sc->load_stack[0].kind	= port_input | port_string;
-	sc->load_stack[0].string.start		= (char*)cmd; /* This func respects const */
-	sc->load_stack[0].string.past_the_end	= (char*)cmd + strlen(cmd);
-	sc->load_stack[0].string.curr		= (char*)cmd;
-	sc->loadport	= mk_port(sc, sc->load_stack);
-	sc->retcode	= 0;
+	sc->envir		= sc->global_env;
+	sc->loaded_file		= cmd;
+	sc->file_position	= cmd;
 	sc->interactive_repl	= 0;
-	sc->inport	= sc->loadport;
-	sc->args	= mk_integer(sc, sc->file_i);
 	Eval_Cycle(sc, OP_T0LVL);
-	typeflag(sc->loadport)	= T_ATOM;
-	if( sc->retcode == 0 ) {
-		sc->retcode=sc->nesting!=0;
-	}
 }
 
 void scheme_define(scheme_t *sc, cell_ptr_t envir, cell_ptr_t symbol, cell_ptr_t value) {

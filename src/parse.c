@@ -18,6 +18,19 @@ static char   *readstr_upto(scheme_t *sc, char *delim);
 static cell_ptr_t readstrexp(scheme_t *sc);
 static INLINE int skipspace(scheme_t *sc);
 
+static int inchar(scheme_t* sc) {
+	int c = *sc->file_position;
+	fprintf(stderr, "%c", *sc->file_position);
+	++(sc->file_position);
+	if( !c ) {
+		c = EOF;
+	}
+	return c;
+}
+
+static void backchar(scheme_t* sc, char ch) {
+	--(sc->file_position);
+}
 
 /* read characters up to delimiter, but cater to character constants */
 static char *readstr_upto(scheme_t *sc, char *delim) {
@@ -29,7 +42,7 @@ static char *readstr_upto(scheme_t *sc, char *delim) {
 	if(p == sc->strbuff+2 && p[-2] == '\\') {
 		*p=0;
 	} else {
-		backchar(sc,p[-1]);
+		backchar(sc, p[-1]);
 		*--p = '\0';
 	}
 	return sc->strbuff;
@@ -248,35 +261,26 @@ static INLINE int skipspace(scheme_t *sc) {
 	}
 }
 
+void putstr(scheme_t *sc, const char *s) {
+	fprintf(stdout, "%s", s);
+}
+
 cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t x;
 
-	if(sc->nesting!=0) {
-		int n=sc->nesting;
-		sc->nesting=0;
-		sc->retcode=-1;
-		error_1(sc,"unmatched parentheses:",mk_integer(sc,n));
-	}
-
 	switch (op) {
 	case OP_LOAD:       /* load */
-		sc->args = mk_integer(sc,sc->file_i);
 		s_goto(sc,OP_T0LVL);
 
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
-		if(sc->loadport->_object._port->kind & port_saw_EOF) {
-			if(sc->file_i == 0) {
-				sc->args=sc->NIL;
-				s_goto(sc,OP_QUIT);
-			}
-			/* NOTREACHED */
+		if( !sc->loaded_file ) {
+			sc->args=sc->NIL;
+			s_goto(sc,OP_QUIT);
 		}
 
 		/* Set up another iteration of REPL */
-		sc->nesting=0;
-		sc->save_inport=sc->inport;
-		sc->inport = sc->loadport;
+		sc->file_position = sc->loaded_file;
 		s_save(sc,OP_T0LVL, sc->NIL, sc->NIL);
 		s_save(sc,OP_VALUEPRINT, sc->NIL, sc->NIL);
 		s_save(sc,OP_T1LVL, sc->NIL, sc->NIL);
@@ -284,12 +288,12 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_T1LVL: /* top level */
 		sc->code = sc->value;
-		sc->inport=sc->save_inport;
 		s_goto(sc,OP_EVAL);
 
 	case OP_READ_INTERNAL:       /* internal read */
 		sc->tok = token(sc);
 		if(sc->tok==TOK_EOF) {
+			sc->loaded_file	= NULL;
 			s_return(sc,sc->EOF_OBJ);
 		}
 		s_goto(sc,OP_RDSEXPR);
@@ -299,31 +303,15 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		if(!is_pair(sc->args)) {
 			s_goto(sc,OP_READ_INTERNAL);
 		}
-		if(!is_inport(car(sc->args))) {
-			error_1(sc,"read: not an input port:",car(sc->args));
-		}
-		if(car(sc->args)==sc->inport) {
-			s_goto(sc,OP_READ_INTERNAL);
-		}
-		x=sc->inport;
-		sc->inport=car(sc->args);
 		x=cons(sc,x,sc->NIL);
 		s_save(sc,OP_SET_INPORT, x, sc->NIL);
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_READ_CHAR: /* read-char */
 	case OP_PEEK_CHAR: { /* peek-char */
-		int c;
-		if(is_pair(sc->args)) {
-			if(car(sc->args)!=sc->inport) {
-				x=sc->inport;
-				x=cons(sc,x,sc->NIL);
-				s_save(sc,OP_SET_INPORT, x, sc->NIL);
-				sc->inport=car(sc->args);
-			}
-		}
-		c=inchar(sc);
-		if(c==EOF) {
+		int c = *(sc->file_position);
+		if( c == 0 ) {
+			sc->loaded_file	= NULL;
 			s_return(sc,sc->EOF_OBJ);
 		}
 		if(sc->op==OP_PEEK_CHAR) {
@@ -331,24 +319,6 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		}
 		s_return(sc,mk_character(sc,c));
 	}
-
-	case OP_CHAR_READY: { /* char-ready? */
-		cell_ptr_t p=sc->inport;
-		int res;
-		if(is_pair(sc->args)) {
-			p=car(sc->args);
-		}
-		res=p->_object._port->kind&port_string;
-		s_retbool(res);
-	}
-
-	case OP_SET_INPORT: /* set-input-port */
-		sc->inport=car(sc->args);
-		s_return(sc,sc->value);
-
-	case OP_SET_OUTPORT: /* set-output-port */
-		sc->outport=car(sc->args);
-		s_return(sc,sc->value);
 
 	case OP_RDSEXPR:
 		switch (sc->tok) {
@@ -376,7 +346,6 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			} else if (sc->tok == TOK_DOT) {
 				error_0(sc,"syntax error: illegal dot expression");
 			} else {
-				sc->nesting_stack[sc->file_i]++;
 				s_save(sc,OP_RDLIST, sc->NIL, sc->NIL);
 				s_goto(sc,OP_RDSEXPR);
 			}
@@ -449,7 +418,6 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			if (c != '\n')
 				backchar(sc,c);
 
-			sc->nesting_stack[sc->file_i]--;
 			s_return(sc,reverse_in_place(sc, sc->NIL, sc->args));
 		} else if (sc->tok == TOK_DOT) {
 			s_save(sc,OP_RDDOT, sc->args, sc->NIL);
@@ -465,7 +433,6 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		if (token(sc) != TOK_RPAREN) {
 			error_0(sc,"syntax error: illegal dot expression");
 		} else {
-			sc->nesting_stack[sc->file_i]--;
 			s_return(sc,reverse_in_place(sc, sc->value, sc->args));
 		}
 

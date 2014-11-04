@@ -40,7 +40,6 @@ SOURCES += \
     src/gc.c \
     src/atom.c \
     src/stack.c \
-    src/port.c \
     src/predicate.c \
 #    langs/r4rs/parser.c \
 #    langs/r4rs/lexer.c \

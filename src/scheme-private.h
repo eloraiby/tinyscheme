@@ -41,25 +41,6 @@
 extern "C" {
 #endif
 
-enum scheme_port_kind {
-	port_free=0,
-	port_file=1,
-	port_string=2,
-	port_srfi6=4,
-	port_input=16,
-	port_output=32,
-	port_saw_EOF=64
-};
-
-typedef struct port_t {
-	unsigned char kind;
-	struct {
-		char *start;
-		char *past_the_end;
-		char *curr;
-	} string;
-} port_t;
-
 /* cell structure */
 struct cell_t {
 	unsigned int _flag;
@@ -69,7 +50,6 @@ struct cell_t {
 			int   _length;
 		} _string;
 		number_t _number;
-		port_t *_port;
 		foreign_func _ff;
 		struct {
 			cell_t *_car;
@@ -126,20 +106,13 @@ struct scheme_t {
 	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
 	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
 
-	cell_ptr_t free_cell;       /* cell_ptr_t to top of free cells */
-	long    fcells;          /* # of free cells */
+	cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
+	long		fcells;          /* # of free cells */
 
-	cell_ptr_t inport;
-	cell_ptr_t outport;
-	cell_ptr_t save_inport;
-	cell_ptr_t loadport;
+	const char*	loaded_file;
+	const char*	file_position;
 
 #define MAXFIL 64
-	port_t load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
-	int nesting_stack[MAXFIL];
-	int file_i;
-	int nesting;
-
 	char    gc_verbose;      /* if gc_verbose is not zero, print gc status */
 	char    no_memory;       /* Whether mem. alloc. has failed */
 
@@ -189,12 +162,11 @@ enum scheme_types {
     T_CONTINUATION=7,
     T_FOREIGN=8,
     T_CHARACTER=9,
-    T_PORT=10,
-    T_VECTOR=11,
-    T_MACRO=12,
-    T_PROMISE=13,
-    T_ENVIRONMENT=14,
-    T_LAST_SYSTEM_TYPE=14
+    T_VECTOR=10,
+    T_MACRO=11,
+    T_PROMISE=12,
+    T_ENVIRONMENT=13,
+    T_LAST_SYSTEM_TYPE=13
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -280,7 +252,6 @@ cell_ptr_t oblist_initial_value(scheme_t *sc);
 cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name);
 cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name);
 cell_ptr_t oblist_all_symbols(scheme_t *sc);
-cell_ptr_t mk_port(scheme_t *sc, port_t *p);
 cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f);
 cell_ptr_t mk_character(scheme_t *sc, int c);
 cell_ptr_t mk_integer(scheme_t *sc, long number_t);
@@ -376,36 +347,6 @@ void dump_stack_mark(scheme_t *sc);
  ******************************************************************************/
 void mark(cell_ptr_t a);
 void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-
-
-/*******************************************************************************
- *
- * port.c
- *
- ******************************************************************************/
-
-int file_push(scheme_t *sc, const char *fname);
-void file_pop(scheme_t *sc);
-int file_interactive(scheme_t *sc);
-port_t *port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
-cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop);
-port_t *port_rep_from_file(scheme_t *sc, FILE *f, int prop);
-cell_ptr_t port_from_file(scheme_t *sc, FILE *f, int prop);
-port_t *port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
-cell_ptr_t port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
-port_t *port_rep_from_scratch(scheme_t *sc);
-cell_ptr_t port_from_scratch(scheme_t *sc);
-void port_close(scheme_t *sc, cell_ptr_t p, int flag);
-int inchar(scheme_t *sc);
-int basic_inchar(port_t *pt);
-void backchar(scheme_t *sc, int c);
-int realloc_port_string(scheme_t *sc, port_t *p);
-void putstr(scheme_t *sc, const char *s);
-void putchars(scheme_t *sc, const char *s, int len);
-void putcharacter(scheme_t *sc, int c);
-int is_port(cell_ptr_t p);
-int is_inport(cell_ptr_t p);
-int is_outport(cell_ptr_t p);
 
 /*******************************************************************************
  *

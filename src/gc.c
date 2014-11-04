@@ -64,7 +64,7 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	cell_ptr_t p;
 
 	if(sc->gc_verbose) {
-		putstr(sc, "gc...");
+		fprintf(stdout, "gc...");
 	}
 
 	/* mark system globals */
@@ -77,10 +77,6 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	mark(sc->code);
 	dump_stack_mark(sc);
 	mark(sc->value);
-	mark(sc->inport);
-	mark(sc->save_inport);
-	mark(sc->outport);
-	mark(sc->loadport);
 
 	/* Mark recent objects the interpreter doesn't know about yet. */
 	mark(car(sc->sink));
@@ -120,6 +116,6 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	if (sc->gc_verbose) {
 		char msg[80];
 		snprintf(msg,80,"done: %ld cells were recovered.\n", sc->fcells);
-		putstr(sc,msg);
+		fprintf(stdout, "%s", msg);
 	}
 }

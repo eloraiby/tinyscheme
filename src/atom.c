@@ -153,14 +153,6 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 
 #endif
 
-cell_ptr_t mk_port(scheme_t *sc, port_t *p) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
-
-	typeflag(x) = T_PORT|T_ATOM;
-	x->_object._port=p;
-	return (x);
-}
-
 cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
 	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
 
@@ -424,51 +416,56 @@ cell_ptr_t mk_sharp_const(scheme_t *sc, char *name) {
 		return (sc->NIL);
 }
 
+static void
+putcharacter(char ch) {
+	fprintf(stdout, "%c", ch);
+}
+
 static void printslashstring(scheme_t *sc, char *p, int len) {
 	int i;
 	unsigned char *s=(unsigned char*)p;
-	putcharacter(sc,'"');
+	putcharacter('"');
 	for ( i=0; i<len; i++) {
 		if(*s==0xff || *s=='"' || *s<' ' || *s=='\\') {
-			putcharacter(sc,'\\');
+			putcharacter('\\');
 			switch(*s) {
 			case '"':
-				putcharacter(sc,'"');
+				putcharacter('"');
 				break;
 			case '\n':
-				putcharacter(sc,'n');
+				putcharacter('n');
 				break;
 			case '\t':
-				putcharacter(sc,'t');
+				putcharacter('t');
 				break;
 			case '\r':
-				putcharacter(sc,'r');
+				putcharacter('r');
 				break;
 			case '\\':
-				putcharacter(sc,'\\');
+				putcharacter('\\');
 				break;
 			default: {
 				int d=*s/16;
-				putcharacter(sc,'x');
+				putcharacter('x');
 				if(d<10) {
-					putcharacter(sc,d+'0');
+					putcharacter(d+'0');
 				} else {
-					putcharacter(sc,d-10+'A');
+					putcharacter(d-10+'A');
 				}
 				d=*s%16;
 				if(d<10) {
-					putcharacter(sc,d+'0');
+					putcharacter(d+'0');
 				} else {
-					putcharacter(sc,d-10+'A');
+					putcharacter(d-10+'A');
 				}
 			}
 			}
 		} else {
-			putcharacter(sc,*s);
+			putcharacter(*s);
 		}
 		s++;
 	}
-	putcharacter(sc,'"');
+	putcharacter('"');
 }
 
 
@@ -477,7 +474,9 @@ void printatom(scheme_t *sc, cell_ptr_t l, int f) {
 	char *p;
 	int len;
 	atom2str(sc,l,f,&p,&len);
-	putchars(sc,p,len);
+	for( int i = 0; i < len; ++i ) {
+		fprintf(stdout, "%c", p[i]);
+	}
 }
 
 
@@ -493,9 +492,6 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 		p = "#f";
 	} else if (l == sc->EOF_OBJ) {
 		p = "#<EOF>";
-	} else if (is_port(l)) {
-		p = sc->strbuff;
-		snprintf(p, STRBUFFSIZE, "#<PORT>");
 	} else if (is_number(l)) {
 		p = sc->strbuff;
 		if (f <= 1 || f == 10) { /* f is the base for numbers if > 1 */
