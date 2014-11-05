@@ -221,6 +221,10 @@ static int is_nonneg(cell_ptr_t p) {
 	return ivalue(p)>=0 && is_integer(p);
 }
 
+static int is_port(cell_ptr_t c) { return 0; }
+static int is_inport(cell_ptr_t c) { return 0; }
+static int is_outport(cell_ptr_t c) { return 0; }
+
 /* Correspond carefully with following defines! */
 static struct {
 	test_predicate fct;
@@ -230,9 +234,9 @@ static struct {
 	{is_any, 0},
 	{is_string, "string"},
 	{is_symbol, "symbol"},
-//	{is_port, "port"},
-//	{is_inport,"input port"},
-//	{is_outport,"output port"},
+	{is_port, "port"},
+	{is_inport,"input port"},
+	{is_outport,"output port"},
 	{is_environment, "environment"},
 	{is_pair, "pair"},
 	{0, "pair or '()"},
@@ -352,6 +356,7 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 
 		ok_to_freely_gc(sc);
 
+//		fprintf(stderr, "op: %s\n", pcd->name);
 		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL ) {
 			return;
 		}

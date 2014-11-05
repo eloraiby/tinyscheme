@@ -7,7 +7,7 @@ solution "tinyscheme"
       language "C"
       includedirs { "./include" }
       links { "m", "dl" }
-      files { "include/**.h", "src/**.h", "src/**.c" }
+      files { "include/**.h", "src/**.h", "src/**.c", "langs/r4rs/**.c" }
  
       configuration "Debug"
          defines { "DEBUG" }

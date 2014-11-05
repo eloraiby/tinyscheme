@@ -20,11 +20,12 @@ static INLINE int skipspace(scheme_t *sc);
 
 static int inchar(scheme_t* sc) {
 	int c = *sc->file_position;
-	fprintf(stderr, "%c", *sc->file_position);
-	++(sc->file_position);
 	if( !c ) {
 		c = EOF;
+	} else {
+		++(sc->file_position);
 	}
+
 	return c;
 }
 
@@ -274,13 +275,11 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
-		if( !sc->loaded_file ) {
+		if( !sc->file_position ) {
 			sc->args=sc->NIL;
 			s_goto(sc,OP_QUIT);
 		}
 
-		/* Set up another iteration of REPL */
-		sc->file_position = sc->loaded_file;
 		s_save(sc,OP_T0LVL, sc->NIL, sc->NIL);
 		s_save(sc,OP_VALUEPRINT, sc->NIL, sc->NIL);
 		s_save(sc,OP_T1LVL, sc->NIL, sc->NIL);
@@ -293,7 +292,7 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_READ_INTERNAL:       /* internal read */
 		sc->tok = token(sc);
 		if(sc->tok==TOK_EOF) {
-			sc->loaded_file	= NULL;
+			sc->file_position	= NULL;
 			s_return(sc,sc->EOF_OBJ);
 		}
 		s_goto(sc,OP_RDSEXPR);
@@ -301,21 +300,21 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		/* ========== reading part ========== */
 	case OP_READ:
 		if(!is_pair(sc->args)) {
-			s_goto(sc,OP_READ_INTERNAL);
+			s_goto(sc, OP_READ_INTERNAL);
 		}
-		x=cons(sc,x,sc->NIL);
-		s_save(sc,OP_SET_INPORT, x, sc->NIL);
-		s_goto(sc,OP_READ_INTERNAL);
+		x=cons(sc, x, sc->NIL);
+		s_save(sc, OP_SET_INPORT, x, sc->NIL);
+		s_goto(sc, OP_READ_INTERNAL);
 
 	case OP_READ_CHAR: /* read-char */
 	case OP_PEEK_CHAR: { /* peek-char */
-		int c = *(sc->file_position);
-		if( c == 0 ) {
-			sc->loaded_file	= NULL;
+		int c = inchar(sc);
+		if( c == EOF ) {
+			sc->file_position	= NULL;
 			s_return(sc,sc->EOF_OBJ);
 		}
-		if(sc->op==OP_PEEK_CHAR) {
-			backchar(sc,c);
+		if( sc->op == OP_PEEK_CHAR ) {
+			backchar(sc, c);
 		}
 		s_return(sc,mk_character(sc,c));
 	}
