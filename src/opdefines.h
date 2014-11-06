@@ -140,12 +140,6 @@
     _OP_DEF(op_predicate, "closure?",                  1,  1,       TST_NONE,                        OP_CLOSUREP         )
     _OP_DEF(op_predicate, "macro?",                    1,  1,       TST_NONE,                        OP_MACROP           )
 
-    _OP_DEF(op_parse, "read",                          0,  1,       TST_INPORT,                      OP_READ             )
-    _OP_DEF(op_parse, "read-char",                     0,  1,       TST_INPORT,                      OP_READ_CHAR        )
-    _OP_DEF(op_parse, "peek-char",                     0,  1,       TST_INPORT,                      OP_PEEK_CHAR        )
-    _OP_DEF(op_parse, "char-ready?",                   0,  1,       TST_INPORT,                      OP_CHAR_READY       )
-    _OP_DEF(op_parse, "set-input-port",                1,  1,       TST_INPORT,                      OP_SET_INPORT       )
-    _OP_DEF(op_parse, "set-output-port",               1,  1,       TST_OUTPORT,                     OP_SET_OUTPORT      )
     _OP_DEF(op_parse, 0,                               0,  0,       0,                               OP_RDSEXPR          )
     _OP_DEF(op_parse, 0,                               0,  0,       0,                               OP_RDLIST           )
     _OP_DEF(op_parse, 0,                               0,  0,       0,                               OP_RDDOT            )
@@ -165,10 +159,6 @@
 
     _OP_DEF(op_ioctl, "gensym",                         0,  0,       0,                               OP_GENSYM           )
     _OP_DEF(op_ioctl, 0,                                0,  0,       0,                               OP_SAVE_FORCED      )
-    _OP_DEF(op_ioctl, "write",                          1,  2,       TST_ANY TST_OUTPORT,             OP_WRITE            )
-    _OP_DEF(op_ioctl, "write-char",                     1,  2,       TST_CHAR TST_OUTPORT,            OP_WRITE_CHAR       )
-    _OP_DEF(op_ioctl, "display",                        1,  2,       TST_ANY TST_OUTPORT,             OP_DISPLAY          )
-    _OP_DEF(op_ioctl, "newline",                        0,  1,       TST_OUTPORT,                     OP_NEWLINE          )
     _OP_DEF(op_ioctl, "error",                          1,  INF_ARG, TST_NONE,                        OP_ERR0             )
     _OP_DEF(op_ioctl, 0,                                0,  0,       0,                               OP_ERR1             )
     _OP_DEF(op_ioctl, "reverse",                        1,  1,       TST_LIST,                        OP_REVERSE          )
@@ -191,10 +181,7 @@
     _OP_DEF(op_ioctl, "open-input-string",              1,  1,       TST_STRING,                      OP_OPEN_INSTRING    )
     _OP_DEF(op_ioctl, "open-input-output-string",       1,  1,       TST_STRING,                      OP_OPEN_INOUTSTRING )
     _OP_DEF(op_ioctl, "open-output-string",             0,  1,       TST_STRING,                      OP_OPEN_OUTSTRING   )
-    _OP_DEF(op_ioctl, "get-output-string",              1,  1,       TST_OUTPORT,                     OP_GET_OUTSTRING    )
 #endif
-    _OP_DEF(op_ioctl, "close-input-port",               1,  1,       TST_INPORT,                      OP_CLOSE_INPORT     )
-    _OP_DEF(op_ioctl, "close-output-port",              1,  1,       TST_OUTPORT,                     OP_CLOSE_OUTPORT    )
     _OP_DEF(op_ioctl, "interaction-environment",        0,  0,       0,                               OP_INT_ENV          )
     _OP_DEF(op_ioctl, "current-environment",            0,  0,       0,                               OP_CURR_ENV         )
 #undef _OP_DEF

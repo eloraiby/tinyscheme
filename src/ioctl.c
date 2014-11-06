@@ -11,21 +11,21 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		memcpy(sc->code,sc->value,sizeof(cell_t));
 		s_return(sc,sc->value);
 
-	case OP_WRITE:      /* write */
-	case OP_DISPLAY:    /* display */
-	case OP_WRITE_CHAR: /* write-char */
+//	case OP_WRITE:      /* write */
+//	case OP_DISPLAY:    /* display */
+//	case OP_WRITE_CHAR: /* write-char */
 
-		sc->args = car(sc->args);
-		if(op==OP_WRITE) {
-			sc->print_flag = 1;
-		} else {
-			sc->print_flag = 0;
-		}
-		s_goto(sc,OP_P0LIST);
+//		sc->args = car(sc->args);
+//		if(op==OP_WRITE) {
+//			sc->print_flag = 1;
+//		} else {
+//			sc->print_flag = 0;
+//		}
+//		s_goto(sc,OP_P0LIST);
 
-	case OP_NEWLINE:    /* newline */
-		fprintf(stdout, "\n");
-		s_return(sc,sc->T);
+//	case OP_NEWLINE:    /* newline */
+//		fprintf(stdout, "\n");
+//		s_return(sc,sc->T);
 
 	case OP_ERR0:  /* error */
 		sc->retcode=-1;

@@ -221,10 +221,6 @@ static int is_nonneg(cell_ptr_t p) {
 	return ivalue(p)>=0 && is_integer(p);
 }
 
-static int is_port(cell_ptr_t c) { return 0; }
-static int is_inport(cell_ptr_t c) { return 0; }
-static int is_outport(cell_ptr_t c) { return 0; }
-
 /* Correspond carefully with following defines! */
 static struct {
 	test_predicate fct;
@@ -234,9 +230,6 @@ static struct {
 	{is_any, 0},
 	{is_string, "string"},
 	{is_symbol, "symbol"},
-	{is_port, "port"},
-	{is_inport,"input port"},
-	{is_outport,"output port"},
 	{is_environment, "environment"},
 	{is_pair, "pair"},
 	{0, "pair or '()"},
@@ -251,17 +244,14 @@ static struct {
 #define TST_ANY "\001"
 #define TST_STRING "\002"
 #define TST_SYMBOL "\003"
-#define TST_PORT "\004"
-#define TST_INPORT "\005"
-#define TST_OUTPORT "\006"
-#define TST_ENVIRONMENT "\007"
-#define TST_PAIR "\010"
-#define TST_LIST "\011"
-#define TST_CHAR "\012"
-#define TST_VECTOR "\013"
-#define TST_NUMBER "\014"
-#define TST_INTEGER "\015"
-#define TST_NATURAL "\016"
+#define TST_ENVIRONMENT "\004"
+#define TST_PAIR "\005"
+#define TST_LIST "\006"
+#define TST_CHAR "\007"
+#define TST_VECTOR "\010"
+#define TST_NUMBER "\011"
+#define TST_INTEGER "\012"
+#define TST_NATURAL "\013"
 
 typedef struct {
 	dispatch_func func;

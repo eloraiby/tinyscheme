@@ -43,11 +43,11 @@ extern "C" {
 
 /* cell structure */
 struct cell_t {
-	unsigned int _flag;
+	unsigned short _flag;
 	union {
 		struct {
-			char   *_svalue;
-			int   _length;
+			unsigned int	_length;
+			char*		_svalue;
 		} _string;
 		number_t _number;
 		foreign_func _ff;
