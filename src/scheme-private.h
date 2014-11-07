@@ -52,9 +52,9 @@ struct cell_t {
 		number_t number;
 		foreign_func ff;
 		struct {
-			cell_t* car;
-			cell_t* cdr;
-		} cons;
+			cell_t* pcar;
+			cell_t* pcdr;
+		} ocons;
 	} object;
 };
 
@@ -415,8 +415,8 @@ int is_environment(cell_ptr_t p);
 int is_immutable(cell_ptr_t p);
 void setimmutable(cell_ptr_t p);
 
-#define car(p)           ((p)->object.cons.car)
-#define cdr(p)           ((p)->object.cons.cdr)
+#define car(p)           ((p)->object.ocons.pcar)
+#define cdr(p)           ((p)->object.ocons.pcdr)
 
 #define caar(p)          car(car(p))
 #define cadr(p)          car(cdr(p))
