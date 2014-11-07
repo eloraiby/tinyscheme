@@ -159,12 +159,6 @@ cell_ptr_t op_predicate(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_CHARLP:     /* char-lower-case? */
 		s_retbool(Cislower(ivalue(car(sc->args))));
 #endif
-//	case OP_PORTP:     /* port? */
-//		s_retbool(is_port(car(sc->args)));
-//	case OP_INPORTP:     /* input-port? */
-//		s_retbool(is_inport(car(sc->args)));
-//	case OP_OUTPORTP:     /* output-port? */
-//		s_retbool(is_outport(car(sc->args)));
 	case OP_PROCP:       /* procedure? */
 		/*--
 		  * continuation should be procedure by the example

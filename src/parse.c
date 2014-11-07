@@ -297,27 +297,6 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		}
 		s_goto(sc,OP_RDSEXPR);
 
-		/* ========== reading part ========== */
-//	case OP_READ:
-//		if(!is_pair(sc->args)) {
-//			s_goto(sc, OP_READ_INTERNAL);
-//		}
-//		x=cons(sc, x, sc->NIL);
-//		s_save(sc, OP_SET_INPORT, x, sc->NIL);
-//		s_goto(sc, OP_READ_INTERNAL);
-
-//	case OP_READ_CHAR: /* read-char */
-//	case OP_PEEK_CHAR: { /* peek-char */
-//		int c = inchar(sc);
-//		if( c == EOF ) {
-//			sc->file_position	= NULL;
-//			s_return(sc,sc->EOF_OBJ);
-//		}
-//		if( sc->op == OP_PEEK_CHAR ) {
-//			backchar(sc, c);
-//		}
-//		s_return(sc,mk_character(sc,c));
-//	}
 
 	case OP_RDSEXPR:
 		switch (sc->tok) {
