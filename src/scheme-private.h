@@ -43,19 +43,19 @@ extern "C" {
 
 /* cell structure */
 struct cell_t {
-	unsigned short _flag;
+	unsigned short flag;
 	union {
 		struct {
-			unsigned int	_length;
-			char*		_svalue;
-		} _string;
-		number_t _number;
-		foreign_func _ff;
+			unsigned int	length;
+			char*		svalue;
+		} string;
+		number_t number;
+		foreign_func ff;
 		struct {
-			cell_t *_car;
-			cell_t *_cdr;
-		} _cons;
-	} _object;
+			cell_t* car;
+			cell_t* cdr;
+		} cons;
+	} object;
 };
 
 struct scheme_t {
@@ -181,11 +181,11 @@ enum scheme_types {
 #define UNMARK       32767    /* 0111111111111111 */
 
 /* macros for cell operations */
-#define typeflag(p)      ((p)->_flag)
+#define typeflag(p)      ((p)->flag)
 #define type(p)          (typeflag(p)&T_MASKTYPE)
 
-#define strvalue(p)      ((p)->_object._string._svalue)
-#define strlength(p)     ((p)->_object._string._length)
+#define strvalue(p)      ((p)->object.string.svalue)
+#define strlength(p)     ((p)->object.string.length)
 
 #define setenvironment(p)    typeflag(p) = T_ENVIRONMENT
 
@@ -227,12 +227,12 @@ const char *procname(cell_ptr_t x);
 
 long binary_decode(const char *s);
 
-#define num_is_integer(p) ((p)->_object._number.is_integer)
+#define num_is_integer(p) ((p)->object.number.is_integer)
 
-#define ivalue_unchecked(p)       ((p)->_object._number.value.ivalue)
-#define rvalue_unchecked(p)       ((p)->_object._number.value.rvalue)
-#define set_num_integer(p)   (p)->_object._number.is_integer=1;
-#define set_num_real(p)      (p)->_object._number.is_integer=0;
+#define ivalue_unchecked(p)       ((p)->object.number.value.ivalue)
+#define rvalue_unchecked(p)       ((p)->object.number.value.rvalue)
+#define set_num_integer(p)   (p)->object.number.is_integer=1;
+#define set_num_real(p)      (p)->object.number.is_integer=0;
 
 cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op);
 /*******************************************************************************
@@ -415,8 +415,8 @@ int is_environment(cell_ptr_t p);
 int is_immutable(cell_ptr_t p);
 void setimmutable(cell_ptr_t p);
 
-#define car(p)           ((p)->_object._cons._car)
-#define cdr(p)           ((p)->_object._cons._cdr)
+#define car(p)           ((p)->object.cons.car)
+#define cdr(p)           ((p)->object.cons.cdr)
 
 #define caar(p)          car(car(p))
 #define cadr(p)          car(cdr(p))

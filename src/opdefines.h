@@ -172,16 +172,6 @@
     _OP_DEF(op_ioctl, "gc",                             0,  0,       0,                               OP_GC               )
     _OP_DEF(op_ioctl, "gc-verbose",                     0,  1,       TST_NONE,                        OP_GCVERB           )
     _OP_DEF(op_ioctl, "oblist",                         0,  0,       0,                               OP_OBLIST           )
-    _OP_DEF(op_ioctl, "current-input-port",             0,  0,       0,                               OP_CURR_INPORT      )
-    _OP_DEF(op_ioctl, "current-output-port",            0,  0,       0,                               OP_CURR_OUTPORT     )
-    _OP_DEF(op_ioctl, "open-input-file",                1,  1,       TST_STRING,                      OP_OPEN_INFILE      )
-    _OP_DEF(op_ioctl, "open-output-file",               1,  1,       TST_STRING,                      OP_OPEN_OUTFILE     )
-    _OP_DEF(op_ioctl, "open-input-output-file",         1,  1,       TST_STRING,                      OP_OPEN_INOUTFILE   )
-#if USE_STRING_PORTS
-    _OP_DEF(op_ioctl, "open-input-string",              1,  1,       TST_STRING,                      OP_OPEN_INSTRING    )
-    _OP_DEF(op_ioctl, "open-input-output-string",       1,  1,       TST_STRING,                      OP_OPEN_INOUTSTRING )
-    _OP_DEF(op_ioctl, "open-output-string",             0,  1,       TST_STRING,                      OP_OPEN_OUTSTRING   )
-#endif
     _OP_DEF(op_ioctl, "interaction-environment",        0,  0,       0,                               OP_INT_ENV          )
     _OP_DEF(op_ioctl, "current-environment",            0,  0,       0,                               OP_CURR_ENV         )
 #undef _OP_DEF

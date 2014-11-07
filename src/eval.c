@@ -205,7 +205,7 @@ cell_ptr_t op_eval(scheme_t *sc, enum scheme_opcodes op) {
 		} else if (is_foreign(sc->code)) {
 			/* Keep nested calls from GC'ing the arglist */
 			push_recent_alloc(sc,sc->args,sc->NIL);
-			x=sc->code->_object._ff(sc,sc->args);
+			x=sc->code->object.ff(sc,sc->args);
 			s_return(sc,x);
 		} else if (is_closure(sc->code) || is_macro(sc->code)
 			   || is_promise(sc->code)) { /* CLOSURE */

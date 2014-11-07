@@ -157,7 +157,7 @@ cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
 	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
 
 	typeflag(x) = (T_FOREIGN | T_ATOM);
-	x->_object._ff=f;
+	x->object.ff=f;
 	return (x);
 }
 

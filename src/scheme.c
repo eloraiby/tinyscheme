@@ -66,7 +66,7 @@ INTERFACE INLINE int is_integer(cell_ptr_t p) {
 }
 
 INTERFACE INLINE int is_real(cell_ptr_t p) {
-	return is_number(p) && (!(p)->_object._number.is_integer);
+	return is_number(p) && (!(p)->object.number.is_integer);
 }
 
 INTERFACE INLINE int is_character(cell_ptr_t p) {
@@ -76,13 +76,13 @@ INTERFACE INLINE char *string_value(cell_ptr_t p) {
 	return strvalue(p);
 }
 INLINE number_t nvalue(cell_ptr_t p) {
-	return ((p)->_object._number);
+	return ((p)->object.number);
 }
 INTERFACE long ivalue(cell_ptr_t p) {
-	return (num_is_integer(p)?(p)->_object._number.value.ivalue:(long)(p)->_object._number.value.rvalue);
+	return (num_is_integer(p)?(p)->object.number.value.ivalue:(long)(p)->object.number.value.rvalue);
 }
 INTERFACE double rvalue(cell_ptr_t p) {
-	return (!num_is_integer(p)?(p)->_object._number.value.rvalue:(double)(p)->_object._number.value.ivalue);
+	return (!num_is_integer(p)?(p)->object.number.value.rvalue:(double)(p)->object.number.value.ivalue);
 }
 INTERFACE  long charvalue(cell_ptr_t p) {
 	return ivalue_unchecked(p);

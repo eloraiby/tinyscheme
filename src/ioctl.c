@@ -11,22 +11,6 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		memcpy(sc->code,sc->value,sizeof(cell_t));
 		s_return(sc,sc->value);
 
-//	case OP_WRITE:      /* write */
-//	case OP_DISPLAY:    /* display */
-//	case OP_WRITE_CHAR: /* write-char */
-
-//		sc->args = car(sc->args);
-//		if(op==OP_WRITE) {
-//			sc->print_flag = 1;
-//		} else {
-//			sc->print_flag = 0;
-//		}
-//		s_goto(sc,OP_P0LIST);
-
-//	case OP_NEWLINE:    /* newline */
-//		fprintf(stdout, "\n");
-//		s_return(sc,sc->T);
-
 	case OP_ERR0:  /* error */
 		sc->retcode=-1;
 		if (!is_string(car(sc->args))) {
@@ -130,103 +114,6 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_OBLIST: /* oblist */
 		s_return(sc, oblist_all_symbols(sc));
-
-//	case OP_CURR_INPORT: /* current-input-port */
-//		s_return(sc,sc->inport);
-
-//	case OP_CURR_OUTPORT: /* current-output-port */
-//		s_return(sc,sc->outport);
-
-//	case OP_OPEN_INFILE: /* open-input-file */
-//	case OP_OPEN_OUTFILE: /* open-output-file */
-//	case OP_OPEN_INOUTFILE: { /* open-input-output-file */
-//		int prop=0;
-//		cell_ptr_t p;
-//		switch(op) {
-//		case OP_OPEN_INFILE:
-//			prop=port_input;
-//			break;
-//		case OP_OPEN_OUTFILE:
-//			prop=port_output;
-//			break;
-//		case OP_OPEN_INOUTFILE:
-//			prop=port_input|port_output;
-//			break;
-//		default:
-//			break;
-//		}
-//		s_return(sc,sc->F);
-//	}
-
-//#if USE_STRING_PORTS
-//	case OP_OPEN_INSTRING: /* open-input-string */
-//	case OP_OPEN_INOUTSTRING: { /* open-input-output-string */
-//		int prop=0;
-//		cell_ptr_t p;
-//		switch(op) {
-//		case OP_OPEN_INSTRING:
-//			prop=port_input;
-//			break;
-//		case OP_OPEN_INOUTSTRING:
-//			prop=port_input|port_output;
-//			break;
-//		default:
-//			break;
-//		}
-//		p=port_from_string(sc, strvalue(car(sc->args)),
-//				   strvalue(car(sc->args))+strlength(car(sc->args)), prop);
-//		if(p==sc->NIL) {
-//			s_return(sc,sc->F);
-//		}
-//		s_return(sc,p);
-//	}
-//	case OP_OPEN_OUTSTRING: { /* open-output-string */
-//		cell_ptr_t p;
-//		if(car(sc->args)==sc->NIL) {
-//			p=port_from_scratch(sc);
-//			if(p==sc->NIL) {
-//				s_return(sc,sc->F);
-//			}
-//		} else {
-//			p=port_from_string(sc, strvalue(car(sc->args)),
-//					   strvalue(car(sc->args))+strlength(car(sc->args)),
-//					   port_output);
-//			if(p==sc->NIL) {
-//				s_return(sc,sc->F);
-//			}
-//		}
-//		s_return(sc,p);
-//	}
-//	case OP_GET_OUTSTRING: { /* get-output-string */
-//		port_t *p;
-
-//		if ((p=car(sc->args)->_object._port)->kind & port_string) {
-//			size_t size;
-//			char *str;
-
-//			size=p->string.curr - p->string.start+1;
-//			str=sc->malloc(size);
-//			if(str != NULL) {
-//				cell_ptr_t s;
-
-//				memcpy(str,p->string.start,size-1);
-//				str[size-1]='\0';
-//				s=mk_string(sc,str);
-//				sc->free(str);
-//				s_return(sc,s);
-//			}
-//		}
-//		s_return(sc,sc->F);
-//	}
-//#endif
-
-//	case OP_CLOSE_INPORT: /* close-input-port */
-//		port_close(sc,car(sc->args),port_input);
-//		s_return(sc,sc->T);
-
-//	case OP_CLOSE_OUTPORT: /* close-output-port */
-//		port_close(sc,car(sc->args),port_output);
-//		s_return(sc,sc->T);
 
 	case OP_INT_ENV: /* interaction-environment */
 		s_return(sc,sc->global_env);
