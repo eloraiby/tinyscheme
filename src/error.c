@@ -4,32 +4,32 @@ cell_ptr_t _error_1(scheme_t *sc, const char *s, cell_ptr_t a) {
 	const char *str = s;
 #if USE_ERROR_HOOK
 	cell_ptr_t x;
-	cell_ptr_t hdl=sc->ERROR_HOOK;
+	cell_ptr_t hdl=cell_ptr(SPCELL_ERROR_HOOK);
 #endif
 
 #if USE_ERROR_HOOK
-	x=find_slot_in_env(sc,sc->envir,hdl,1);
-	if (x != sc->NIL) {
-		if(a!=0) {
-			sc->code = cons(sc, cons(sc, sc->QUOTE, cons(sc,(a), sc->NIL)), sc->NIL);
+	x = find_slot_in_env(sc,sc->envir, hdl, 1);
+	if( !is_nil(x) ) {
+		if( !is_nil(a) ) {
+			sc->code = cons(sc, cons(sc, cell_ptr(SPCELL_QUOTE), cons(sc,(a), cell_ptr(SPCELL_NIL))), cell_ptr(SPCELL_NIL));
 		} else {
-			sc->code = sc->NIL;
+			sc->code = cell_ptr(SPCELL_NIL);
 		}
 		sc->code = cons(sc, mk_string(sc, str), sc->code);
-		setimmutable(car(sc->code));
-		sc->code = cons(sc, slot_value_in_env(x), sc->code);
+		setimmutable(sc, car(sc, sc->code));
+		sc->code = cons(sc, slot_value_in_env(sc, x), sc->code);
 		sc->op = (int)OP_EVAL;
-		return sc->T;
+		return cell_ptr(SPCELL_TRUE);
 	}
 #endif
 
-	if(a!=0) {
-		sc->args = cons(sc, (a), sc->NIL);
+	if( !is_nil(a) ) {
+		sc->args = cons(sc, (a), cell_ptr(SPCELL_NIL));
 	} else {
-		sc->args = sc->NIL;
+		sc->args = cell_ptr(SPCELL_NIL);
 	}
 	sc->args = cons(sc, mk_string(sc, str), sc->args);
-	setimmutable(car(sc->args));
+	setimmutable(sc, car(sc, sc->args));
 	sc->op = (int)OP_ERR0;
-	return sc->T;
+	return cell_ptr(SPCELL_TRUE);
 }
