@@ -2,27 +2,25 @@
 
 /* allocate new cell segment */
 int alloc_cellseg(scheme_t *sc) {
-	cell_ptr_t last;
 	cell_ptr_t p;
 
 
 	/* insert new segment in address order */
 	sc->fcells += CELL_MAX_COUNT;
-	last = sc->cell_seg + CELL_MAX_COUNT - 1;
 
-	for (p = sc->cell_seg; p <= last; p++) {
-		typeflag(p) = 0;
-		cdr(p) = p + 1;
-		car(p) = sc->NIL;
+	for( p.index = SPCELL_LAST + 1; p.index < CELL_MAX_COUNT; p.index++) {
+		ptr_typeflag(sc, p) = 0;
+		cdr(sc, p) = cell_ptr(p.index + 1);
+		car(sc, p) = cell_ptr(SPCELL_NIL);
 	}
-	sc->free_cell = sc->cell_seg;
+	sc->free_cell = cell_ptr(SPCELL_LAST + 1);
 	return 1;
 }
 
 cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	if (sc->free_cell != sc->NIL) {
+	if( !is_nil(sc->free_cell) ) {
 		cell_ptr_t x = sc->free_cell;
-		sc->free_cell = cdr(x);
+		sc->free_cell = cdr(sc, x);
 		--sc->fcells;
 		return (x);
 	}
@@ -38,37 +36,37 @@ cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 		return sc->sink;
 	}
 
-	if (sc->free_cell == sc->NIL) {
+	if( is_nil(sc->free_cell) ) {
 		const int min_to_be_recovered = 8;
-		gc(sc,a, b);
-		if (sc->fcells < min_to_be_recovered || sc->free_cell == sc->NIL) {
-			sc->no_memory=1;
+		gc(sc, a, b);
+		if( sc->fcells < min_to_be_recovered || is_nil(sc->free_cell) ) {
+			sc->no_memory	= true;
 			return sc->sink;
 		}
 	}
 	x = sc->free_cell;
-	sc->free_cell = cdr(x);
+	sc->free_cell = cdr(sc, x);
 	--sc->fcells;
 	return (x);
 }
 
 /* make sure that there is a given number of cells free */
 cell_ptr_t reserve_cells(scheme_t *sc, int n) {
-	if(sc->no_memory) {
-		return sc->NIL;
+	if( sc->no_memory ) {
+		return cell_ptr(SPCELL_NIL);
 	}
 
 	/* Are there enough cells available? */
-	if (sc->fcells < n) {
+	if( sc->fcells < n ) {
 		/* If not, try gc'ing some */
-		gc(sc, sc->NIL, sc->NIL);
+		gc(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 		if (sc->fcells < n) {
 			/* If all fail, report failure */
-			sc->no_memory=1;
-			return sc->NIL;
+			sc->no_memory	= true;
+			return cell_ptr(SPCELL_NIL);
 		}
 	}
-	return (sc->T);
+	return cell_ptr(SPCELL_TRUE);
 }
 
 cell_ptr_t get_consecutive_cells(scheme_t *sc, int n) {
@@ -79,28 +77,28 @@ cell_ptr_t get_consecutive_cells(scheme_t *sc, int n) {
 	}
 
 	/* Are there any cells available? */
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) {
+	x = find_consecutive_cells(sc,n) ;
+	if( !is_nil(x) ) {
 		return x;
 	}
 
 	/* If not, try gc'ing some */
-	gc(sc, sc->NIL, sc->NIL);
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) {
+	gc(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
+	x = find_consecutive_cells(sc, n);
+	if( !is_nil(x) ) {
 		return x;
 	} else {
-		sc->no_memory=1;
+		sc->no_memory	= true;
 		return sc->sink;
 	}
 }
 
-int count_consecutive_cells(cell_ptr_t x, int needed) {
-	int n=1;
-	while(cdr(x)==x+1) {
-		x=cdr(x);
+int count_consecutive_cells(scheme_t *sc, cell_ptr_t x, int needed) {
+	int n = 1;
+	while( cdr(sc, x).index == x.index + 1 ) {
+		x = cdr(sc, x);
 		n++;
-		if(n>needed) return n;
+		if( n > needed) return n;
 	}
 	return n;
 }

@@ -305,16 +305,16 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
  * cell.c
  *
  ******************************************************************************/
-int alloc_cellseg(scheme_t *sc);
-cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-cell_ptr_t reserve_cells(scheme_t *sc, int n);
-cell_ptr_t get_consecutive_cells(scheme_t *sc, int n);
-int count_consecutive_cells(cell_ptr_t x, int needed);
-cell_ptr_t find_consecutive_cells(scheme_t *sc, int n);
-void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra);
-cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init);
+int			alloc_cellseg(scheme_t *sc);
+cell_ptr_t		get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t		_get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t		reserve_cells(scheme_t *sc, int n);
+cell_ptr_t		get_consecutive_cells(scheme_t *sc, int n);
+int			count_consecutive_cells(scheme_t* sc, cell_ptr_t x, int needed);
+cell_ptr_t		find_consecutive_cells(scheme_t *sc, int n);
+void			push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra);
+cell_ptr_t		get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t		get_vector_object(scheme_t *sc, int len, cell_ptr_t init);
 
 #if defined TSGRIND
 void check_cell_alloced(cell_ptr_t p, int expect_alloced);
