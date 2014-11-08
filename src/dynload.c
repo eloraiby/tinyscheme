@@ -96,8 +96,8 @@ cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args) {
 	HMODULE dll_handle;
 	void (*module_init)(scheme_t *sc);
 
-	if ((args != sc->NIL) && is_string((first_arg = pair_car(args)))) {
-		name = string_value(first_arg);
+	if ((!is_nil(args)) && is_string(sc, (first_arg = pair_car(sc, args)))) {
+		name = string_value(sc, first_arg);
 		make_filename(name,filename);
 		make_init_fn(name,init_fn);
 		dll_handle = dl_attach(filename);

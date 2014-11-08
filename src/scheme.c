@@ -47,37 +47,56 @@ static int stricmp(const char *s1, const char *s2) {
 #endif
 
 
-INTERFACE INLINE int is_string(cell_ptr_t p) {
-	return (type(p)==T_STRING);
+INTERFACE INLINE bool
+is_string(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_STRING);
 }
 
-INTERFACE INLINE int is_vector(cell_ptr_t p) {
-	return (type(p)==T_VECTOR);
-}
-INTERFACE INLINE int is_number(cell_ptr_t p) {
-	return (type(p)==T_NUMBER);
-}
-INTERFACE INLINE int is_integer(cell_ptr_t p) {
-	if (!is_number(p))
-		return 0;
-	if (num_is_integer(p) || (double)ivalue(p) == rvalue(p))
-		return 1;
-	return 0;
+INTERFACE INLINE bool
+is_vector(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_VECTOR);
 }
 
-INTERFACE INLINE int is_real(cell_ptr_t p) {
-	return is_number(p) && (!(p)->object.number.is_integer);
+INTERFACE INLINE bool
+is_number(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_NUMBER);
 }
 
-INTERFACE INLINE int is_character(cell_ptr_t p) {
-	return (type(p)==T_CHARACTER);
+INTERFACE INLINE bool
+is_integer(scheme_t* sc,
+	   cell_ptr_t p)
+{
+	if( !is_number(sc, p) )
+		return false;
+	if( num_is_integer(sc, p) || (double)ivalue(sc, p) == rvalue(sc, p) )
+		return true;
+	return false;
 }
-INTERFACE INLINE char *string_value(cell_ptr_t p) {
-	return strvalue(p);
+
+INTERFACE INLINE bool
+is_real(scheme_t* sc, cell_ptr_t p) {
+	return is_number(sc, p) && !is_integer(sc, p);
 }
-INLINE number_t nvalue(cell_ptr_t p) {
-	return ((p)->object.number);
+
+INTERFACE INLINE bool
+is_character(scheme_t* sc, cell_ptr_t p) {
+	return (ptr_type(sc, p) == T_CHARACTER);
 }
+INTERFACE INLINE char*
+string_value(scheme_t* sc, cell_ptr_t p) {
+	return strvalue(sc, p);
+}
+INLINE number_t
+nvalue(scheme_t* sc, cell_ptr_t p) {
+	return (cell_ptr_to_cell(sc, p)->object.number);
+}
+
 INTERFACE long ivalue(cell_ptr_t p) {
 	return (num_is_integer(p)?(p)->object.number.value.ivalue:(long)(p)->object.number.value.rvalue);
 }

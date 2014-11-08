@@ -41,6 +41,8 @@
 extern "C" {
 #endif
 
+
+
 /* cell structure */
 struct cell_t {
 	unsigned short flag;
@@ -181,11 +183,11 @@ enum scheme_types {
 #define UNMARK       32767    /* 0111111111111111 */
 
 /* macros for cell operations */
-#define typeflag(p)      ((p)->flag)
-#define type(p)          (typeflag(p)&T_MASKTYPE)
+#define ptr_typeflag(sc, p)	(cell_ptr_to_cell(sc, p)->flag)
+#define ptr_type(sc, p)		(ptr_typeflag(sc, p) & T_MASKTYPE)
 
-#define strvalue(p)      ((p)->object.string.svalue)
-#define strlength(p)     ((p)->object.string.length)
+#define strvalue(sc, p)		(cell_ptr_to_cell(sc, p)->object.string.svalue)
+#define strlength(sc, p)	(cell_ptr_to_cell(sc, p)->object.string.length)
 
 #define setenvironment(p)    typeflag(p) = T_ENVIRONMENT
 
@@ -227,7 +229,7 @@ const char *procname(cell_ptr_t x);
 
 long binary_decode(const char *s);
 
-#define num_is_integer(p) ((p)->object.number.is_integer)
+#define num_is_integer(sc, p) (cell_ptr_to_cell(sc, p)->object.number.is_integer)
 
 #define ivalue_unchecked(p)       ((p)->object.number.value.ivalue)
 #define rvalue_unchecked(p)       ((p)->object.number.value.rvalue)
@@ -378,42 +380,41 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op);
 #define cons(sc,a,b) _cons(sc,a,b,0)
 #define immutable_cons(sc,a,b) _cons(sc,a,b,1)
 
-int is_string(cell_ptr_t p);
-char *string_value(cell_ptr_t p);
-int is_number(cell_ptr_t p);
-number_t nvalue(cell_ptr_t p);
-long ivalue(cell_ptr_t p);
-double rvalue(cell_ptr_t p);
-int is_integer(cell_ptr_t p);
-int is_real(cell_ptr_t p);
-int is_character(cell_ptr_t p);
-long charvalue(cell_ptr_t p);
-int is_vector(cell_ptr_t p);
+bool		is_string(scheme_t* sc, cell_ptr_t p);
+char*		string_value(scheme_t* sc, cell_ptr_t p);
+bool		is_number(scheme_t* sc, cell_ptr_t p);
+number_t	nvalue(scheme_t* sc, cell_ptr_t p);
+long		ivalue(scheme_t* sc, cell_ptr_t p);
+double		rvalue(scheme_t* sc, cell_ptr_t p);
+bool		is_integer(scheme_t* sc, cell_ptr_t p);
+bool		is_real(scheme_t* sc, cell_ptr_t p);
+bool		is_character(scheme_t* sc, cell_ptr_t p);
+long		charvalue(scheme_t* sc, cell_ptr_t p);
+bool		is_vector(scheme_t* sc, cell_ptr_t p);
+bool		is_pair(scheme_t* sc, cell_ptr_t p);
+cell_ptr_t	pair_car(scheme_t* sc, cell_ptr_t p);
+cell_ptr_t	pair_cdr(scheme_t* sc, cell_ptr_t p);
+cell_ptr_t	set_car(scheme_t* sc, cell_ptr_t p, cell_ptr_t q);
+cell_ptr_t	set_cdr(scheme_t* sc, cell_ptr_t p, cell_ptr_t q);
 
-int is_pair(cell_ptr_t p);
-cell_ptr_t pair_car(cell_ptr_t p);
-cell_ptr_t pair_cdr(cell_ptr_t p);
-cell_ptr_t set_car(cell_ptr_t p, cell_ptr_t q);
-cell_ptr_t set_cdr(cell_ptr_t p, cell_ptr_t q);
+bool		is_symbol(scheme_t* sc, cell_ptr_t p);
+char*		symname(scheme_t* sc, cell_ptr_t p);
+bool		hasprop(scheme_t* sc, cell_ptr_t p);
 
-int is_symbol(cell_ptr_t p);
-char *symname(cell_ptr_t p);
-int hasprop(cell_ptr_t p);
+bool		is_proc(scheme_t* sc, cell_ptr_t p);
+bool		is_foreign(scheme_t* sc, cell_ptr_t p);
+char*		syntaxname(scheme_t* sc, cell_ptr_t p);
+bool		is_closure(scheme_t* sc, cell_ptr_t p);
+bool		is_macro(scheme_t* sc, cell_ptr_t p);
 
-int is_proc(cell_ptr_t p);
-int is_foreign(cell_ptr_t p);
-char *syntaxname(cell_ptr_t p);
-int is_closure(cell_ptr_t p);
-int is_macro(cell_ptr_t p);
+cell_ptr_t	closure_code(scheme_t* sc, cell_ptr_t p);
+cell_ptr_t	closure_env(scheme_t* sc, cell_ptr_t p);
 
-cell_ptr_t closure_code(cell_ptr_t p);
-cell_ptr_t closure_env(cell_ptr_t p);
-
-int is_continuation(cell_ptr_t p);
-int is_promise(cell_ptr_t p);
-int is_environment(cell_ptr_t p);
-int is_immutable(cell_ptr_t p);
-void setimmutable(cell_ptr_t p);
+bool		is_continuation(scheme_t* sc, cell_ptr_t p);
+bool		is_promise(scheme_t* sc, cell_ptr_t p);
+bool		is_environment(scheme_t* sc, cell_ptr_t p);
+bool		is_immutable(scheme_t* sc, cell_ptr_t p);
+void		setimmutable(scheme_t* sc, cell_ptr_t p);
 
 #define car(p)           ((p)->object.ocons.pcar)
 #define cdr(p)           ((p)->object.ocons.pcdr)

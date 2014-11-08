@@ -129,7 +129,12 @@ typedef double		real64;
 
 typedef struct scheme_t scheme_t;
 typedef struct cell_t cell_t;
-typedef struct cell_t* cell_ptr_t;
+
+typedef struct cell_ptr_t {	/* C does not have a unit of measure */
+	unsigned int	index;
+} cell_ptr_t;
+
+#define	is_nil(C)	(C.index == 0)
 
 typedef void * (*func_alloc)(size_t);
 typedef void (*func_dealloc)(void *);
@@ -143,8 +148,11 @@ typedef struct number_t {
 	} value;
 } number_t;
 
-SCHEME_EXPORT scheme_t *scheme_init_new();
-SCHEME_EXPORT scheme_t *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free);
+SCHEME_EXPORT cell_t*		cell_ptr_to_cell(scheme_t* sc, cell_ptr_t cell);
+SCHEME_EXPORT cell_ptr_t	cell_to_cell_ptr(scheme_t* sc, cell_t* cell);
+
+SCHEME_EXPORT scheme_t*		scheme_init_new();
+SCHEME_EXPORT scheme_t*		scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free);
 SCHEME_EXPORT int scheme_init(scheme_t *sc);
 SCHEME_EXPORT int scheme_init_custom_alloc(scheme_t *sc, func_alloc, func_dealloc);
 SCHEME_EXPORT void scheme_deinit(scheme_t *sc);
