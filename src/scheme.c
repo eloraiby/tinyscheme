@@ -85,99 +85,189 @@ is_real(scheme_t* sc, cell_ptr_t p) {
 }
 
 INTERFACE INLINE bool
-is_character(scheme_t* sc, cell_ptr_t p) {
+is_character(scheme_t* sc,
+	     cell_ptr_t p)
+{
 	return (ptr_type(sc, p) == T_CHARACTER);
 }
+
 INTERFACE INLINE char*
-string_value(scheme_t* sc, cell_ptr_t p) {
+string_value(scheme_t* sc,
+	     cell_ptr_t p)
+{
 	return strvalue(sc, p);
 }
+
 INLINE number_t
-nvalue(scheme_t* sc, cell_ptr_t p) {
+nvalue(scheme_t* sc,
+       cell_ptr_t p)
+{
 	return (cell_ptr_to_cell(sc, p)->object.number);
 }
 
-INTERFACE long ivalue(cell_ptr_t p) {
-	return (num_is_integer(p)?(p)->object.number.value.ivalue:(long)(p)->object.number.value.rvalue);
-}
-INTERFACE double rvalue(cell_ptr_t p) {
-	return (!num_is_integer(p)?(p)->object.number.value.rvalue:(double)(p)->object.number.value.ivalue);
-}
-INTERFACE  long charvalue(cell_ptr_t p) {
-	return ivalue_unchecked(p);
+INTERFACE long
+ivalue(scheme_t* sc,
+       cell_ptr_t p)
+{
+	return (num_is_integer(sc, p) ? cell_ptr_to_cell(sc, p)->object.number.value.ivalue : (long)cell_ptr_to_cell(sc, p)->object.number.value.rvalue);
 }
 
-INTERFACE INLINE int is_pair(cell_ptr_t p) {
-	return (type(p)==T_PAIR);
-}
-INTERFACE cell_ptr_t pair_car(cell_ptr_t p) {
-	return car(p);
-}
-INTERFACE cell_ptr_t pair_cdr(cell_ptr_t p) {
-	return cdr(p);
-}
-INTERFACE cell_ptr_t set_car(cell_ptr_t p, cell_ptr_t q) {
-	return car(p)=q;
-}
-INTERFACE cell_ptr_t set_cdr(cell_ptr_t p, cell_ptr_t q) {
-	return cdr(p)=q;
+INTERFACE double
+rvalue(scheme_t* sc,
+       cell_ptr_t p)
+{
+	return (!num_is_integer(sc, p) ? cell_ptr_to_cell(sc, p)->object.number.value.rvalue : (double)cell_ptr_to_cell(sc, p)->object.number.value.ivalue);
 }
 
-INTERFACE INLINE int is_symbol(cell_ptr_t p) {
-	return (type(p)==T_SYMBOL);
+INTERFACE long
+charvalue(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return ivalue_unchecked(sc, p);
 }
-INTERFACE INLINE char *symname(cell_ptr_t p) {
-	return strvalue(car(p));
+
+INTERFACE INLINE bool
+is_pair(scheme_t* sc,
+	cell_ptr_t p)
+{
+	return (ptr_type(sc, p)==T_PAIR);
 }
+
+INTERFACE cell_ptr_t
+pair_car(scheme_t* sc,
+	 cell_ptr_t p)
+{
+	return car(sc, p);
+}
+
+INTERFACE cell_ptr_t
+pair_cdr(scheme_t* sc,
+	 cell_ptr_t p)
+{
+	return cdr(sc, p);
+}
+
+INTERFACE cell_ptr_t
+set_car(scheme_t* sc,
+	cell_ptr_t p,
+	cell_ptr_t q)
+{
+	return car(sc, p) = q;
+}
+
+INTERFACE cell_ptr_t
+set_cdr(scheme_t* sc,
+	cell_ptr_t p,
+	cell_ptr_t q)
+{
+	return cdr(sc, p) = q;
+}
+
+INTERFACE INLINE bool
+is_symbol(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_SYMBOL);
+}
+
+INTERFACE INLINE char*
+symname(scheme_t* sc,
+	cell_ptr_t p)
+{
+	return strvalue(sc, car(sc, p));
+}
+
 #if USE_PLIST
-SCHEME_EXPORT INLINE int hasprop(cell_ptr_t p) {
-	return (typeflag(p)&T_SYMBOL);
+SCHEME_EXPORT INLINE int hasprop(scheme_t* sc, cell_ptr_t p) {
+	return (ptr_typeflag(p) & T_SYMBOL);
 }
-#define symprop(p)       cdr(p)
+#define symprop(sc, p)       cdr(sc, p)
 #endif
 
-INTERFACE INLINE int is_proc(cell_ptr_t p) {
-	return (type(p)==T_PROC);
-}
-INTERFACE INLINE int is_foreign(cell_ptr_t p) {
-	return (type(p)==T_FOREIGN);
-}
-INTERFACE INLINE char *syntaxname(cell_ptr_t p) {
-	return strvalue(car(p));
+INTERFACE INLINE bool
+is_proc(scheme_t* sc,
+	cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_PROC);
 }
 
-INTERFACE INLINE int is_closure(cell_ptr_t p) {
-	return (type(p)==T_CLOSURE);
-}
-INTERFACE INLINE int is_macro(cell_ptr_t p) {
-	return (type(p)==T_MACRO);
-}
-INTERFACE INLINE cell_ptr_t closure_code(cell_ptr_t p) {
-	return car(p);
-}
-INTERFACE INLINE cell_ptr_t closure_env(cell_ptr_t p) {
-	return cdr(p);
+INTERFACE INLINE bool
+is_foreign(scheme_t* sc,
+	   cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_FOREIGN);
 }
 
-INTERFACE INLINE int is_continuation(cell_ptr_t p) {
-	return (type(p)==T_CONTINUATION);
+INTERFACE INLINE char*
+syntaxname(scheme_t* sc,
+	   cell_ptr_t p)
+{
+	return strvalue(sc, car(sc, p));
+}
+
+INTERFACE INLINE bool
+is_closure(scheme_t* sc,
+	   cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_CLOSURE);
+}
+
+INTERFACE INLINE bool
+is_macro(scheme_t* sc,
+	 cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_MACRO);
+}
+
+INTERFACE INLINE cell_ptr_t
+closure_code(scheme_t* sc,
+	     cell_ptr_t p)
+{
+	return car(sc, p);
+}
+
+INTERFACE INLINE cell_ptr_t
+closure_env(scheme_t* sc,
+	    cell_ptr_t p)
+{
+	return cdr(sc, p);
+}
+
+INTERFACE INLINE bool
+is_continuation(scheme_t* sc,
+		cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_CONTINUATION);
 }
 
 /* To do: promise should be forced ONCE only */
-INTERFACE INLINE int is_promise(cell_ptr_t p) {
-	return (type(p)==T_PROMISE);
+INTERFACE INLINE bool
+is_promise(scheme_t* sc,
+	   cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_PROMISE);
 }
 
-INTERFACE INLINE int is_environment(cell_ptr_t p) {
-	return (type(p)==T_ENVIRONMENT);
+INTERFACE INLINE bool
+is_environment(scheme_t* sc,
+	       cell_ptr_t p)
+{
+	return (ptr_type(sc, p) == T_ENVIRONMENT);
 }
 
-INTERFACE INLINE int is_immutable(cell_ptr_t p) {
-	return (typeflag(p)&T_IMMUTABLE);
+INTERFACE INLINE bool
+is_immutable(scheme_t* sc,
+	     cell_ptr_t p)
+{
+	return (ptr_typeflag(sc, p) & T_IMMUTABLE);
 }
+
 /*#define setimmutable(p)  typeflag(p) |= T_IMMUTABLE*/
-INTERFACE INLINE void setimmutable(cell_ptr_t p) {
-	typeflag(p) |= T_IMMUTABLE;
+INTERFACE INLINE void
+setimmutable(scheme_t* sc,
+	     cell_ptr_t p)
+{
+	ptr_typeflag(sc, p) |= T_IMMUTABLE;
 }
 
 static cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op);
@@ -186,7 +276,7 @@ static void assign_syntax(scheme_t *sc, char *name);
 static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
 static INLINE void ok_to_freely_gc(scheme_t *sc) {
-	car(sc->sink) = sc->NIL;
+	car(sc, sc->sink) = cell_ptr(SPCELL_NIL);
 }
 
 /* Result is:
@@ -201,23 +291,23 @@ int list_length(scheme_t *sc, cell_ptr_t a) {
 
 	slow = fast = a;
 	while (1) {
-		if (fast == sc->NIL)
+		if( is_nil(fast) )
 			return i;
-		if (!is_pair(fast))
+		if( !is_pair(sc, fast) )
 			return -2 - i;
-		fast = cdr(fast);
+		fast = cdr(sc, fast);
 		++i;
-		if (fast == sc->NIL)
+		if( is_nil(fast) )
 			return i;
-		if (!is_pair(fast))
+		if( !is_pair(sc, fast) )
 			return -2 - i;
 		++i;
-		fast = cdr(fast);
+		fast = cdr(sc, fast);
 
 		/* Safe because we would have already returned if `fast'
 		encountered a non-pair. */
-		slow = cdr(slow);
-		if (fast == slow) {
+		slow = cdr(sc, slow);
+		if (fast.index == slow.index ) {
 			/* the fast cell_ptr_t has looped back around and caught up
 			with the slow cell_ptr_t, hence the structure is circular,
 			not of finite length, and therefore not a list */
@@ -229,15 +319,18 @@ int list_length(scheme_t *sc, cell_ptr_t a) {
 
 
 
-typedef cell_ptr_t (*dispatch_func)(scheme_t *, enum scheme_opcodes);
+typedef cell_ptr_t (*dispatch_func)(scheme_t*, enum scheme_opcodes);
 
-typedef int (*test_predicate)(cell_ptr_t);
-static int is_any(cell_ptr_t p) {
-	return 1;
+typedef bool (*test_predicate)(scheme_t*, cell_ptr_t);
+static bool is_any(scheme_t* sc, cell_ptr_t p) {
+	return true;
 }
 
-static int is_nonneg(cell_ptr_t p) {
-	return ivalue(p)>=0 && is_integer(p);
+static bool
+is_nonneg(scheme_t* sc,
+	  cell_ptr_t p)
+{
+	return ivalue(sc, p) >= 0 && is_integer(sc, p);
 }
 
 /* Correspond carefully with following defines! */
@@ -288,8 +381,11 @@ static op_code_info dispatch_table[]= {
 	{ 0, 0, 0, 0, 0 }
 };
 
-const char *procname(cell_ptr_t x) {
-	int n=procnum(x);
+const char*
+procname(scheme_t* sc,
+	 cell_ptr_t x)
+{
+	int n	= procnum(sc, x);
 	const char *name=dispatch_table[n].name;
 	if(name==0) {
 		name="ILLEGAL!";
@@ -298,7 +394,10 @@ const char *procname(cell_ptr_t x) {
 }
 
 /* kernel of this interpreter */
-static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
+static void
+eval_cycle(scheme_t *sc,
+	   enum scheme_opcodes op)
+{
 	sc->op = op;
 	for( ; ; ) {
 		op_code_info*	pcd	= dispatch_table + sc->op;
@@ -312,7 +411,7 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 				ok	= 0;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 				         pcd->name,
-				         pcd->min_arity==pcd->max_arity?"":" at least",
+					 pcd->min_arity == pcd->max_arity ? "" : " at least",
 				         pcd->min_arity);
 			}
 
@@ -320,7 +419,7 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 				ok=0;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 				         pcd->name,
-				         pcd->min_arity==pcd->max_arity?"":" at most",
+					 pcd->min_arity == pcd->max_arity ? "" : " at most",
 				         pcd->max_arity);
 			}
 
@@ -331,18 +430,18 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 					const char*	t = pcd->arg_tests_encoding;
 					cell_ptr_t	arglist	= sc->args;
 					do {
-						cell_ptr_t	arg = car(arglist);
+						cell_ptr_t	arg = car(sc, arglist);
 						j	= (int)t[0];
 						if( j == TST_LIST[0] ) {
-							if( arg != sc->NIL && !is_pair(arg) ) break;
+							if( !is_nil(arg) && !is_pair(sc, arg) ) break;
 						} else {
-							if( !tests[j].fct(arg) ) break;
+							if( !tests[j].fct(sc, arg) ) break;
 						}
 
 						if( t[1] != 0 ) { /* last test is replicated as necessary */
 							t++;
 						}
-						arglist	= cdr(arglist);
+						arglist	= cdr(sc, arglist);
 						i++;
 					} while( i < n );
 					if( i < n ) {
@@ -356,7 +455,7 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 			}
 
 			if( !ok ) {
-				if( _error_1(sc,msg,0) == sc->NIL ) {
+				if( is_nil(_error_1(sc, msg, cell_ptr(0))) ) {
 					return;
 				}
 				pcd	= dispatch_table + sc->op;
@@ -366,7 +465,7 @@ static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
 		ok_to_freely_gc(sc);
 
 //		fprintf(stderr, "op: %s\n", pcd->name);
-		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL ) {
+		if( is_nil(pcd->func(sc, (enum scheme_opcodes)sc->op)) ) {
 			return;
 		}
 
@@ -383,7 +482,7 @@ static void assign_syntax(scheme_t *sc, char *name) {
 	cell_ptr_t x;
 
 	x = oblist_add_by_name(sc, name);
-	typeflag(x) |= T_SYNTAX;
+	ptr_typeflag(sc, x) |= T_SYNTAX;
 }
 
 static void assign_proc(scheme_t *sc, enum scheme_opcodes op, char *name) {
@@ -397,10 +496,10 @@ static void assign_proc(scheme_t *sc, enum scheme_opcodes op, char *name) {
 static cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t y;
 
-	y = get_cell(sc, sc->NIL, sc->NIL);
-	typeflag(y) = (T_PROC | T_ATOM);
-	ivalue_unchecked(y) = (long) op;
-	set_num_integer(y);
+	y = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
+	ptr_typeflag(sc, y) = (T_PROC | T_ATOM);
+	ivalue_unchecked(sc, y) = (long) op;
+	set_num_integer(sc, y);
 	return y;
 }
 

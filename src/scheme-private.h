@@ -41,8 +41,6 @@
 extern "C" {
 #endif
 
-
-
 /* cell structure */
 struct cell_t {
 	unsigned short flag;
@@ -54,91 +52,89 @@ struct cell_t {
 		number_t number;
 		foreign_func ff;
 		struct {
-			cell_t* pcar;
-			cell_t* pcdr;
+			cell_ptr_t	pcar;
+			cell_ptr_t	pcdr;
 		} ocons;
 	} object;
 };
 
+/* predefined/special cell positions */
+typedef enum SEPCIAL_CELL {
+	SPCELL_NIL		= 0,		/* special cell representing empty cell */
+	SPCELL_TRUE		= 1,		/* special cell representing #t */
+	SPCELL_FALSE		= 2,		/* special cell representing #f */
+	SPCELL_EOF_OBJ		= 3,		/* special cell representing end-of-file object */
+
+	/* global pointers to special symbols */
+	SPCELL_LAMBDA		= 4,		/* cell_ptr_t to syntax lambda */
+	SPCELL_QUOTE		= 5,		/* cell_ptr_t to syntax quote */
+	SPCELL_QQUOTE		= 6,		/* cell_ptr_t to symbol quasiquote */
+	SPCELL_UNQUOTE		= 7,		/* cell_ptr_t to symbol unquote */
+	SPCELL_UNQUOTESP	= 8,		/* cell_ptr_t to symbol unquote-splicing */
+	SPCELL_FEED_TO		= 9,		/* => */
+	SPCELL_COLON_HOOK	= 10,		/* *colon-hook* */
+	SPCELL_ERROR_HOOK	= 11,		/* *error-hook* */
+	SPCELL_SHARP_HOOK	= 12,		/* *sharp-hook* */
+	SPCELL_COMPILE_HOOK	= 13,		/* *compile-hook* */
+
+	SPCELL_LAST		= 13		/* last special cell */
+} SPECIAL_CELL;
+
 struct scheme_t {
 	/* arrays for segments */
-	func_alloc malloc;
-	func_dealloc free;
+	func_alloc		malloc;
+	func_dealloc		free;
 
 	/* return code */
-	int retcode;
-	int tracing;
+	int			retcode;
+	int			tracing;
 
 
 #define CELL_MAX_COUNT    512 * 1024  /* # of cells in the memory segment */
-	cell_t	cell_seg[CELL_MAX_COUNT];
+	cell_t			cell_seg[CELL_MAX_COUNT];
 
 	/* We use 4 registers. */
-	cell_ptr_t args;            /* register for arguments of function */
-	cell_ptr_t envir;           /* stack register for current environment */
-	cell_ptr_t code;            /* register for current code */
-	cell_ptr_t dump;            /* stack register for next evaluation */
+	cell_ptr_t		args;		/* register for arguments of function */
+	cell_ptr_t		envir;		/* stack register for current environment */
+	cell_ptr_t		code;		/* register for current code */
+	cell_ptr_t		dump;		/* stack register for next evaluation */
 
-	int interactive_repl;    /* are we in an interactive REPL? */
+	cell_ptr_t		sink;		/* when mem. alloc. fails */
+	cell_ptr_t		oblist;		/* cell_ptr_t to symbol table */
+	cell_ptr_t		global_env;	/* cell_ptr_t to global environment */
+	cell_ptr_t		c_nest;          /* stack for nested calls from C */
 
-	cell_t _sink;
-	cell_ptr_t sink;            /* when mem. alloc. fails */
-	cell_t _NIL;
-	cell_ptr_t NIL;             /* special cell representing empty cell */
-	cell_t _HASHT;
-	cell_ptr_t T;               /* special cell representing #t */
-	cell_t _HASHF;
-	cell_ptr_t F;               /* special cell representing #f */
-	cell_t _EOF_OBJ;
-	cell_ptr_t EOF_OBJ;         /* special cell representing end-of-file object */
-	cell_ptr_t oblist;          /* cell_ptr_t to symbol table */
-	cell_ptr_t global_env;      /* cell_ptr_t to global environment */
-	cell_ptr_t c_nest;          /* stack for nested calls from C */
 
-	/* global pointers to special symbols */
-	cell_ptr_t LAMBDA;               /* cell_ptr_t to syntax lambda */
-	cell_ptr_t QUOTE;           /* cell_ptr_t to syntax quote */
+	cell_ptr_t		free_cell;       /* cell_ptr_t to top of free cells */
+	uint32			fcells;          /* # of free cells */
 
-	cell_ptr_t QQUOTE;               /* cell_ptr_t to symbol quasiquote */
-	cell_ptr_t UNQUOTE;         /* cell_ptr_t to symbol unquote */
-	cell_ptr_t UNQUOTESP;       /* cell_ptr_t to symbol unquote-splicing */
-	cell_ptr_t FEED_TO;         /* => */
-	cell_ptr_t COLON_HOOK;      /* *colon-hook* */
-	cell_ptr_t ERROR_HOOK;      /* *error-hook* */
-	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
-	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
-
-	cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
-	long		fcells;          /* # of free cells */
-
-	const char*	loaded_file;
-	const char*	file_position;
+	const char*		loaded_file;
+	const char*		file_position;
 
 #define MAXFIL 64
-	char    gc_verbose;      /* if gc_verbose is not zero, print gc status */
-	char    no_memory;       /* Whether mem. alloc. has failed */
+	bool			gc_verbose;      /* if gc_verbose is not zero, print gc status */
+	bool			no_memory;       /* Whether mem. alloc. has failed */
 
 #define LINESIZE 1024
-	char    linebuff[LINESIZE];
+	char			linebuff[LINESIZE];
 #define STRBUFFSIZE 256
-	char    strbuff[STRBUFFSIZE];
+	char			strbuff[STRBUFFSIZE];
 
-	number_t	num_zero;
-	number_t	num_one;
+	number_t		num_zero;
+	number_t		num_one;
 
 
-	FILE *tmpfp;
-	int tok;
-	int print_flag;
-	cell_ptr_t value;
-	int op;
+	FILE*			tmpfp;
+	int			tok;
+	int			print_flag;
+	cell_ptr_t		value;
+	int			op;
 
-	void *ext_data;     /* For the benefit of foreign functions */
-	long gensym_cnt;
+	void*			ext_data;     /* For the benefit of foreign functions */
+	long			gensym_cnt;
 
-	struct scheme_interface *vptr;
-	void *dump_base;    /* cell_ptr_t to base of allocated dump stack */
-	int dump_size;      /* number of frames allocated for dump stack */
+	void*			dump_base;    /* cell_ptr_t to base of allocated dump stack */
+	int			dump_size;      /* number of frames allocated for dump stack */
 };
 
 
@@ -211,30 +207,30 @@ enum scheme_types {
 	sc->op = (int)(a);                                  \
 	return sc->T; END
 
-cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
-#define s_return(sc,a) return _s_return(sc,a)
+cell_ptr_t			_s_return(scheme_t *sc, cell_ptr_t a);
+#define s_return(sc,a)		return _s_return(sc,a)
 
-#define s_retbool(tf)    s_return(sc,(tf) ? sc->T : sc->F)
+#define s_retbool(tf)		s_return(sc,(tf) ? sc->T : sc->F)
 
-#define procnum(p)       ivalue(p)
-const char *procname(cell_ptr_t x);
+#define procnum(sc, p)		ivalue(sc, p)
+const char*			procname(scheme_t* sc, cell_ptr_t x);
 
 /*******************************************************************************
  *
  * number.c
  *
  ******************************************************************************/
-#define num_ivalue(n)       (n.is_integer?(n).value.ivalue:(long)(n).value.rvalue)
-#define num_rvalue(n)       (!n.is_integer?(n).value.rvalue:(double)(n).value.ivalue)
+#define num_ivalue(n)		(n.is_integer ? (n).value.ivalue : (long)(n).value.rvalue)
+#define num_rvalue(n)		(!n.is_integer ? (n).value.rvalue : (double)(n).value.ivalue)
 
 long binary_decode(const char *s);
 
-#define num_is_integer(sc, p) (cell_ptr_to_cell(sc, p)->object.number.is_integer)
+#define num_is_integer(sc, p)	(cell_ptr_to_cell(sc, p)->object.number.is_integer)
 
-#define ivalue_unchecked(p)       ((p)->object.number.value.ivalue)
-#define rvalue_unchecked(p)       ((p)->object.number.value.rvalue)
-#define set_num_integer(p)   (p)->object.number.is_integer=1;
-#define set_num_real(p)      (p)->object.number.is_integer=0;
+#define ivalue_unchecked(sc, p)	(cell_ptr_to_cell(sc, p)->object.number.value.ivalue)
+#define rvalue_unchecked(sc, p)	(cell_ptr_to_cell(sc, p)->object.number.value.rvalue)
+#define set_num_integer(sc, p)	cell_ptr_to_cell(sc, p)->object.number.is_integer	= 1;
+#define set_num_real(sc, p)	cell_ptr_to_cell(sc, p)->object.number.is_integer	= 0;
 
 cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op);
 /*******************************************************************************
@@ -377,8 +373,8 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op);
  *
  *
  ******************************************************************************/
-#define cons(sc,a,b) _cons(sc,a,b,0)
-#define immutable_cons(sc,a,b) _cons(sc,a,b,1)
+#define cons(sc, a, b) _cons(sc, a, b, 0)
+#define immutable_cons(sc, a, b) _cons(sc, a, b, 1)
 
 bool		is_string(scheme_t* sc, cell_ptr_t p);
 char*		string_value(scheme_t* sc, cell_ptr_t p);
@@ -416,19 +412,19 @@ bool		is_environment(scheme_t* sc, cell_ptr_t p);
 bool		is_immutable(scheme_t* sc, cell_ptr_t p);
 void		setimmutable(scheme_t* sc, cell_ptr_t p);
 
-#define car(p)           ((p)->object.ocons.pcar)
-#define cdr(p)           ((p)->object.ocons.pcdr)
+#define car(sc, p)	(cell_ptr_to_cell(sc, p)->object.ocons.pcar)
+#define cdr(sc, p)	(cell_ptr_to_cell(sc, p)->object.ocons.pcdr)
 
-#define caar(p)          car(car(p))
-#define cadr(p)          car(cdr(p))
-#define cdar(p)          cdr(car(p))
-#define cddr(p)          cdr(cdr(p))
-#define cadar(p)         car(cdr(car(p)))
-#define caddr(p)         car(cdr(cdr(p)))
-#define cdaar(p)         cdr(car(car(p)))
-#define cadaar(p)        car(cdr(car(car(p))))
-#define cadddr(p)        car(cdr(cdr(cdr(p))))
-#define cddddr(p)        cdr(cdr(cdr(cdr(p))))
+#define caar(sc, p)	car(sc, car(sc, p))
+#define cadr(sc, p)	car(sc, cdr(sc, p))
+#define cdar(sc, p)	cdr(sc, car(sc, p))
+#define cddr(sc, p)	cdr(sc, cdr(sc, p))
+#define cadar(sc, p)	car(sc, cdr(sc, car(sc, p)))
+#define caddr(sc, p)	car(sc, cdr(sc, cdr(sc, p)))
+#define cdaar(sc, p)	cdr(sc, car(sc, car(sc, p)))
+#define cadaar(sc, p)	car(sc, cdr(sc, car(sc, car(sc, p))))
+#define cadddr(sc, p)	car(sc, cdr(sc, cdr(sc, cdr(sc, p))))
+#define cddddr(sc, p)	cdr(sc, cdr(sc, cdr(sc, cdr(sc, p))))
 
 #ifdef __cplusplus
 }

@@ -131,8 +131,10 @@ typedef struct scheme_t scheme_t;
 typedef struct cell_t cell_t;
 
 typedef struct cell_ptr_t {	/* C does not have a unit of measure */
-	unsigned int	index;
+	uint32	index;
 } cell_ptr_t;
+
+static INLINE cell_ptr_t	cell_ptr(uint32 index) { cell_ptr_t ret = { index }; return ret; }
 
 #define	is_nil(C)	(C.index == 0)
 

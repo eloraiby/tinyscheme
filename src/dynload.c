@@ -102,18 +102,18 @@ cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args) {
 		make_init_fn(name,init_fn);
 		dll_handle = dl_attach(filename);
 		if (dll_handle == 0) {
-			retval = sc -> F;
+			retval = cell_ptr(SPCELL_FALSE);
 		} else {
 			module_init = (void(*)(scheme_t *))dl_proc(dll_handle, init_fn);
 			if (module_init != 0) {
 				(*module_init)(sc);
-				retval = sc->T;
+				retval = cell_ptr(SPCELL_TRUE);
 			} else {
-				retval = sc->F;
+				retval = cell_ptr(SPCELL_FALSE);
 			}
 		}
 	} else {
-		retval = sc -> F;
+		retval = cell_ptr(SPCELL_FALSE);
 	}
 
 	return(retval);
