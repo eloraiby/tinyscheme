@@ -49,8 +49,8 @@ void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
 	if( is_vector(sc, car(sc, env)) ) {
 		int location = hash_fn(symname(sc, variable), ivalue_unchecked(sc, car(sc, env)));
 
-		set_vector_elem(car(sc, env), location,
-				immutable_cons(sc, slot, vector_elem(car(sc, env), location)));
+		set_vector_elem(sc, car(sc, env), location,
+				immutable_cons(sc, slot, vector_elem(sc, car(sc, env), location)));
 	} else {
 		car(sc, env) = immutable_cons(sc, slot, car(sc, env));
 	}
@@ -63,7 +63,7 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
 	for( x = env; x.index != SPCELL_NIL; x = cdr(sc, x)) {
 		if( is_vector(sc, car(sc, x)) ) {
 			location = hash_fn(symname(sc, hdl), ivalue_unchecked(sc, car(sc, x)));
-			y = vector_elem(car(sc, x), location);
+			y = vector_elem(sc, car(sc, x), location);
 		} else {
 			y = car(sc, x);
 		}

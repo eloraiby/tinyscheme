@@ -82,8 +82,8 @@ cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name) {
 	setimmutable(sc, car(sc, x));
 
 	location = hash_fn(name, ivalue_unchecked(sc, sc->oblist));
-	set_vector_elem(sc->oblist, location,
-			immutable_cons(sc, x, vector_elem(sc->oblist, location)));
+	set_vector_elem(sc, sc->oblist, location,
+			immutable_cons(sc, x, vector_elem(sc, sc->oblist, location)));
 	return x;
 }
 
@@ -92,12 +92,12 @@ cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name) {
 	cell_ptr_t x;
 	char *s;
 
-	location = hash_fn(name, ivalue_unchecked(sc->oblist));
-	for (x = vector_elem(sc->oblist, location); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
-		s = symname(car(x));
+	location = hash_fn(name, ivalue_unchecked(sc, sc->oblist));
+	for (x = vector_elem(sc, sc->oblist, location); !is_nil(x); x = cdr(sc, x)) {
+		s = symname(sc, car(sc, x));
 		/* case-insensitive, per R5RS section 2. */
 		if(stricmp(name, s) == 0) {
-			return car(x);
+			return car(sc, x);
 		}
 	}
 	return cell_ptr(SPCELL_NIL);
@@ -108,8 +108,8 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 	cell_ptr_t x;
 	cell_ptr_t ob_list = cell_ptr(SPCELL_NIL);
 
-	for (i = 0; i < ivalue_unchecked(sc->oblist); i++) {
-		for (x  = vector_elem(sc->oblist, i); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
+	for (i = 0; i < ivalue_unchecked(sc, sc->oblist); i++) {
+		for (x  = vector_elem(sc, sc->oblist, i); !is_nil(x); x = cdr(sc, x)) {
 			ob_list = cons(sc, x, ob_list);
 		}
 	}
@@ -156,17 +156,17 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
 	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
-	typeflag(x) = (T_FOREIGN | T_ATOM);
-	x->object.ff=f;
+	ptr_typeflag(sc, x) = (T_FOREIGN | T_ATOM);
+	cell_ptr_to_cell(sc, x)->object.ff=f;
 	return (x);
 }
 
 cell_ptr_t mk_character(scheme_t *sc, int c) {
 	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
-	typeflag(x) = (T_CHARACTER | T_ATOM);
-	ivalue_unchecked(x)= c;
-	set_num_integer(x);
+	ptr_typeflag(sc, x) = (T_CHARACTER | T_ATOM);
+	ivalue_unchecked(sc, x)= c;
+	set_num_integer(sc, x);
 	return (x);
 }
 
@@ -174,18 +174,18 @@ cell_ptr_t mk_character(scheme_t *sc, int c) {
 cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
 	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
-	typeflag(x) = (T_NUMBER | T_ATOM);
-	ivalue_unchecked(x)= number_t;
-	set_num_integer(x);
+	ptr_typeflag(sc, x) = (T_NUMBER | T_ATOM);
+	ivalue_unchecked(sc, x) = number_t;
+	set_num_integer(sc, x);
 	return (x);
 }
 
 cell_ptr_t mk_real(scheme_t *sc, double n) {
 	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
-	typeflag(x) = (T_NUMBER | T_ATOM);
-	rvalue_unchecked(x)= n;
-	set_num_real(x);
+	ptr_typeflag(sc, x) = (T_NUMBER | T_ATOM);
+	rvalue_unchecked(sc, x) = n;
+	set_num_real(sc, x);
 	return (x);
 }
 
@@ -215,17 +215,17 @@ cell_ptr_t mk_string(scheme_t *sc, const char *str) {
 
 cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len) {
 	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
-	typeflag(x) = (T_STRING | T_ATOM);
-	strvalue(x) = store_string(sc,len,str,0);
-	strlength(x) = len;
+	ptr_typeflag(sc, x) = (T_STRING | T_ATOM);
+	strvalue(sc, x) = store_string(sc,len,str,0);
+	strlength(sc, x) = len;
 	return (x);
 }
 
 cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill) {
 	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
-	typeflag(x) = (T_STRING | T_ATOM);
-	strvalue(x) = store_string(sc,len,0,fill);
-	strlength(x) = len;
+	ptr_typeflag(sc, x) = (T_STRING | T_ATOM);
+	strvalue(sc, x) = store_string(sc,len,0,fill);
+	strlength(sc, x) = len;
 	return (x);
 }
 
@@ -233,14 +233,14 @@ cell_ptr_t mk_vector(scheme_t *sc, int len) {
 	return get_vector_object(sc,len,cell_ptr(SPCELL_NIL));
 }
 
-void fill_vector(cell_ptr_t vec, cell_ptr_t obj) {
+void fill_vector(scheme_t* sc, cell_ptr_t vec, cell_ptr_t obj) {
 	int i;
-	int number_t=ivalue(vec)/2+ivalue(vec)%2;
+	int number_t = ivalue(sc, vec) / 2 + ivalue(sc, vec) % 2;
 	for(i=0; i<number_t; i++) {
-		typeflag(vec+1+i) = T_PAIR;
-		setimmutable(vec+1+i);
-		car(vec+1+i)=obj;
-		cdr(vec+1+i)=obj;
+		ptr_typeflag(sc, cell_ptr(vec.index + 1 + i)) = T_PAIR;
+		setimmutable(sc, cell_ptr(vec.index + 1 + i));
+		car(sc, cell_ptr(vec.index + 1 + i)) = obj;
+		cdr(sc, cell_ptr(vec.index + 1 + i)) = obj;
 	}
 }
 

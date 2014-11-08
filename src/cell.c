@@ -155,7 +155,7 @@ cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init) {
 	ptr_typeflag(sc, cells) = (T_VECTOR | T_ATOM);
 	ivalue_unchecked(sc, cells)=len;
 	set_num_integer(sc, cells);
-	fill_vector(cells, init);
+	fill_vector(sc, cells, init);
 	push_recent_alloc(sc, cells, cell_ptr(SPCELL_NIL));
 	return cells;
 }
