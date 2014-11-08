@@ -160,78 +160,79 @@ cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op) {
 	switch (op) {
 #if USE_MATH
 	case OP_INEX2EX:    /* inexact->exact */
-		x=car(sc->args);
-		if(num_is_integer(x)) {
-			s_return(sc,x);
-		} else if(modf(rvalue_unchecked(x),&dd)==0.0) {
-			s_return(sc,mk_integer(sc,ivalue(x)));
+		x	= car(sc, sc->args);
+		if(num_is_integer(sc, x)) {
+			s_return(sc, x);
+		} else if(modf(rvalue_unchecked(sc, x), &dd)==0.0) {
+			s_return(sc, mk_integer(sc, ivalue(sc, x)));
 		} else {
 			error_1(sc,"inexact->exact: not integral:",x);
 		}
 
 	case OP_EXP:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, exp(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, exp(rvalue(sc, x))));
 
 	case OP_LOG:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, log(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, log(rvalue(sc, x))));
 
 	case OP_SIN:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, sin(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, sin(rvalue(sc, x))));
 
 	case OP_COS:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, cos(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, cos(rvalue(sc, x))));
 
 	case OP_TAN:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, tan(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, tan(rvalue(sc, x))));
 
 	case OP_ASIN:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, asin(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, asin(rvalue(sc, x))));
 
 	case OP_ACOS:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, acos(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, acos(rvalue(sc, x))));
 
 	case OP_ATAN:
-		x=car(sc->args);
-		if(cdr(sc->args)==sc->NIL) {
-			s_return(sc, mk_real(sc, atan(rvalue(x))));
+		x	= car(sc, sc->args);
+		if( is_nil(cdr(sc, sc->args)) ) {
+			s_return(sc, mk_real(sc, atan(rvalue(sc, x))));
 		} else {
-			cell_ptr_t y=cadr(sc->args);
-			s_return(sc, mk_real(sc, atan2(rvalue(x),rvalue(y))));
+			cell_ptr_t y	= cadr(sc, sc->args);
+			s_return(sc, mk_real(sc, atan2(rvalue(sc, x), rvalue(sc, y))));
 		}
 
 	case OP_SQRT:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, sqrt(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, sqrt(rvalue(sc, x))));
 
 	case OP_EXPT: {
 		double result;
 		int real_result=1;
-		cell_ptr_t y=cadr(sc->args);
-		x=car(sc->args);
-		if (num_is_integer(x) && num_is_integer(y))
+		cell_ptr_t y	= cadr(sc, sc->args);
+		x	= car(sc, sc->args);
+		if( num_is_integer(sc, x) && num_is_integer(sc, y) )
 			real_result=0;
 		/* This 'if' is an R5RS compatibility fix. */
 		/* NOTE: Remove this 'if' fix for R6RS.    */
-		if (rvalue(x) == 0 && rvalue(y) < 0) {
+		if( rvalue(sc, x) == 0 && rvalue(sc, y) < 0 ) {
 			result = 0.0;
 		} else {
-			result = pow(rvalue(x),rvalue(y));
+			result = pow(rvalue(sc, x), rvalue(sc, y));
 		}
 		/* Before returning integer result make sure we can. */
 		/* If the test fails, result is too big for integer. */
-		if (!real_result) {
+		if( !real_result ) {
 			long result_as_long = (long)result;
 			if (result != (double)result_as_long)
 				real_result = 1;
 		}
-		if (real_result) {
+
+		if( real_result ) {
 			s_return(sc, mk_real(sc, result));
 		} else {
 			s_return(sc, mk_integer(sc, result));
@@ -239,18 +240,18 @@ cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op) {
 	}
 
 	case OP_FLOOR:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, floor(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, floor(rvalue(sc, x))));
 
 	case OP_CEILING:
-		x=car(sc->args);
-		s_return(sc, mk_real(sc, ceil(rvalue(x))));
+		x	= car(sc, sc->args);
+		s_return(sc, mk_real(sc, ceil(rvalue(sc, x))));
 
 	case OP_TRUNCATE : {
 		double rvalue_of_x ;
-		x=car(sc->args);
-		rvalue_of_x = rvalue(x) ;
-		if (rvalue_of_x > 0) {
+		x	= car(sc, sc->args);
+		rvalue_of_x = rvalue(sc, x) ;
+		if( rvalue_of_x > 0 ) {
 			s_return(sc, mk_real(sc, floor(rvalue_of_x)));
 		} else {
 			s_return(sc, mk_real(sc, ceil(rvalue_of_x)));
@@ -258,95 +259,96 @@ cell_ptr_t op_number(scheme_t *sc, enum scheme_opcodes op) {
 	}
 
 	case OP_ROUND:
-		x=car(sc->args);
-		if (num_is_integer(x))
+		x	= car(sc, sc->args);
+		if( num_is_integer(sc, x) )
 			s_return(sc, x);
-		s_return(sc, mk_real(sc, round_per_R5RS(rvalue(x))));
+		s_return(sc, mk_real(sc, round_per_R5RS(rvalue(sc, x))));
 #endif
 
 	case OP_ADD:        /* + */
 		v = sc->num_zero;
-		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v = num_add(v, nvalue(car(x)));
+		for( x = sc->args; x.index != SPCELL_NIL; x = cdr(sc, x) ) {
+			v = num_add(v, nvalue(sc, car(sc, x)));
 		}
 		s_return(sc,mk_number(sc, v));
 
 	case OP_MUL:        /* * */
 		v = sc->num_one;
-		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v = num_mul(v,nvalue(car(x)));
+		for( x = sc->args; x.index != SPCELL_NIL; x = cdr(sc, x) ) {
+			v = num_mul(v, nvalue(sc, car(sc, x)));
 		}
 		s_return(sc, mk_number(sc, v));
 
 	case OP_SUB:        /* - */
-		if(cdr(sc->args) == sc->NIL) {
+		if( is_nil(cdr(sc, sc->args)) ) {
 			x	= sc->args;
 			v	= sc->num_zero;
 		} else {
-			x	= cdr(sc->args);
-			v	= nvalue(car(sc->args));
+			x	= cdr(sc, sc->args);
+			v	= nvalue(sc, car(sc, sc->args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
-			v = num_sub(v,nvalue(car(x)));
+
+		for ( ; x.index != SPCELL_NIL; x = cdr(sc, x)) {
+			v = num_sub(v, nvalue(sc, car(sc, x)));
 		}
 		s_return(sc,mk_number(sc, v));
 
 	case OP_DIV:        /* / */
-		if(cdr(sc->args)==sc->NIL) {
+		if( is_nil(cdr(sc, sc->args)) ) {
 			x	= sc->args;
 			v	= sc->num_one;
 		} else {
-			x = cdr(sc->args);
-			v = nvalue(car(sc->args));
+			x = cdr(sc, sc->args);
+			v = nvalue(sc, car(sc, sc->args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
-			if (!is_zero_double(rvalue(car(x))))
-				v=num_div(v,nvalue(car(x)));
+		for (; x.index != SPCELL_NIL; x = cdr(sc, x)) {
+			if (!is_zero_double(rvalue(sc, car(sc, x))))
+				v = num_div(v, nvalue(sc, car(sc, x)));
 			else {
-				error_0(sc,"/: division by zero");
+				error_0(sc, "/: division by zero");
 			}
 		}
 		s_return(sc,mk_number(sc, v));
 
 	case OP_INTDIV:        /* quotient */
-		if(cdr(sc->args)==sc->NIL) {
+		if( is_nil(cdr(sc, sc->args)) ) {
 			x	= sc->args;
 			v	= sc->num_one;
 		} else {
-			x = cdr(sc->args);
-			v = nvalue(car(sc->args));
+			x = cdr(sc, sc->args);
+			v = nvalue(sc, car(sc, sc->args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
-			if (ivalue(car(x)) != 0)
-				v=num_intdiv(v,nvalue(car(x)));
+		for( ; x.index != SPCELL_NIL; x = cdr(sc, x) ) {
+			if( ivalue(sc, car(sc, x)) != 0 )
+				v = num_intdiv(v, nvalue(sc, car(sc, x)));
 			else {
 				error_0(sc,"quotient: division by zero");
 			}
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, v));
 
 	case OP_REM:        /* remainder */
-		v = nvalue(car(sc->args));
-		if (ivalue(cadr(sc->args)) != 0)
-			v=num_rem(v,nvalue(cadr(sc->args)));
+		v = nvalue(sc, car(sc, sc->args));
+		if( ivalue(sc, cadr(sc, sc->args)) != 0 )
+			v = num_rem(v, nvalue(sc, cadr(sc, sc->args)));
 		else {
-			error_0(sc,"remainder: division by zero");
+			error_0(sc, "remainder: division by zero");
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, v));
 
 	case OP_MOD:        /* modulo */
-		v = nvalue(car(sc->args));
-		if (ivalue(cadr(sc->args)) != 0)
-			v=num_mod(v,nvalue(cadr(sc->args)));
+		v = nvalue(sc, car(sc, sc->args));
+		if( ivalue(sc, cadr(sc, sc->args)) != 0 )
+			v = num_mod(v, nvalue(sc, cadr(sc, sc->args)));
 		else {
-			error_0(sc,"modulo: division by zero");
+			error_0(sc, "modulo: division by zero");
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, v));
 
 	default:
 		break;
 	}
 
-	return sc->T;
+	return cell_ptr(SPCELL_TRUE);
 }
 

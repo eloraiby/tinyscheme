@@ -77,7 +77,9 @@ typedef enum SEPCIAL_CELL {
 	SPCELL_SHARP_HOOK	= 12,		/* *sharp-hook* */
 	SPCELL_COMPILE_HOOK	= 13,		/* *compile-hook* */
 
-	SPCELL_LAST		= 13		/* last special cell */
+	SPCELL_SINK		= 14,
+
+	SPCELL_LAST		= 14		/* last special cell */
 } SPECIAL_CELL;
 
 struct scheme_t {
@@ -276,7 +278,7 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op);
  *
  ******************************************************************************/
 #define error_1(sc, s, a) return _error_1(sc, s, a)
-#define error_0(sc, s)    return _error_1(sc, s, 0)
+#define error_0(sc, s)    return _error_1(sc, s, cell_ptr(0))
 
 cell_ptr_t _error_1(scheme_t *sc, const char *s, cell_ptr_t a);
 
@@ -286,8 +288,8 @@ cell_ptr_t _error_1(scheme_t *sc, const char *s, cell_ptr_t a);
  *
  ******************************************************************************/
 #define new_slot_in_env(sc, variable, value)	new_slot_spec_in_env(sc, sc->envir, variable, value)
-#define set_slot_in_env(sc, slot, value)	cdr(slot) = value
-#define slot_value_in_env(slot)			(cdr(slot))
+#define set_slot_in_env(sc, slot, value)	cdr(sc, slot) = value
+#define slot_value_in_env(sc, slot)		(cdr(sc, slot))
 
 #if !defined(USE_ALIST_ENV) || !defined(USE_OBJECT_LIST)
 int hash_fn(const char *key, int table_size);

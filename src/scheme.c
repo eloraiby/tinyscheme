@@ -540,51 +540,45 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->num_one.is_integer		= 1;
 	sc->num_one.value.ivalue	= 1;
 
-	sc->gensym_cnt=0;
-	sc->malloc=malloc;
-	sc->free=free;
-	sc->sink = &sc->_sink;
-	sc->NIL = &sc->_NIL;
-	sc->T = &sc->_HASHT;
-	sc->F = &sc->_HASHF;
-	sc->EOF_OBJ=&sc->_EOF_OBJ;
-	sc->free_cell = &sc->_NIL;
-	sc->fcells = 0;
-	sc->no_memory=0;
-	sc->interactive_repl=0;
+	sc->gensym_cnt	= 0;
+	sc->malloc	= malloc;
+	sc->free	= free;
+	sc->sink	= cell_ptr(SPCELL_SINK);
+	sc->fcells	= 0;
+	sc->no_memory	= false;
 
 	if( !alloc_cellseg(sc) ) {
 		sc->no_memory=1;
 		return 0;
 	}
 
-	sc->gc_verbose = 0;
+	sc->gc_verbose	= false;
 	dump_stack_initialize(sc);
-	sc->code = sc->NIL;
-	sc->tracing=0;
+	sc->code	= cell_ptr(SPCELL_NIL);
+	sc->tracing	= false;
 
-	/* init sc->NIL */
-	typeflag(sc->NIL) = (T_ATOM | MARK);
-	car(sc->NIL) = cdr(sc->NIL) = sc->NIL;
-	/* init T */
-	typeflag(sc->T) = (T_ATOM | MARK);
-	car(sc->T) = cdr(sc->T) = sc->T;
-	/* init F */
-	typeflag(sc->F) = (T_ATOM | MARK);
-	car(sc->F) = cdr(sc->F) = sc->F;
+	/* init NIL */
+	for( sint32 i = SPCELL_NIL; i <= SPCELL_EOF_OBJ; ++i ) {
+		ptr_typeflag(sc, cell_ptr(i)) = (T_ATOM | MARK);
+		car(sc, cell_ptr(i)) = cdr(sc, cell_ptr(i)) = cell_ptr(SPCELL_NIL);
+	}
+
 	/* init sink */
-	typeflag(sc->sink) = (T_PAIR | MARK);
-	car(sc->sink) = sc->NIL;
-	/* init c_nest */
-	sc->c_nest = sc->NIL;
+	ptr_typeflag(sc, sc->sink) = (T_PAIR | MARK);
+	car(sc, sc->sink)	= cell_ptr(SPCELL_NIL);
 
-	sc->oblist = oblist_initial_value(sc);
+	/* init c_nest */
+	sc->c_nest		= cell_ptr(SPCELL_NIL);
+
+	sc->oblist		= oblist_initial_value(sc);
+
 	/* init global_env */
-	new_frame_in_env(sc, sc->NIL);
-	sc->global_env = sc->envir;
+	new_frame_in_env(sc, cell_ptr(SPCELL_NIL));
+	sc->global_env		= sc->envir;
+
 	/* init else */
 	x = mk_symbol(sc,"else");
-	new_slot_in_env(sc, x, sc->T);
+	new_slot_in_env(sc, x, cell_ptr(SPCELL_TRUE));
 
 	assign_syntax(sc, "lambda");
 	assign_syntax(sc, "quote");
@@ -610,16 +604,16 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	}
 
 	/* initialization of global pointers to special symbols */
-	sc->LAMBDA	= mk_symbol(sc, "lambda");
-	sc->QUOTE	= mk_symbol(sc, "quote");
-	sc->QQUOTE	= mk_symbol(sc, "quasiquote");
-	sc->UNQUOTE	= mk_symbol(sc, "unquote");
-	sc->UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
-	sc->FEED_TO	= mk_symbol(sc, "=>");
-	sc->COLON_HOOK	= mk_symbol(sc, "*colon-hook*");
-	sc->ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
-	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
-	sc->COMPILE_HOOK = mk_symbol(sc, "*compile-hook*");
+//	sc->LAMBDA	= mk_symbol(sc, "lambda");
+//	sc->QUOTE	= mk_symbol(sc, "quote");
+//	sc->QQUOTE	= mk_symbol(sc, "quasiquote");
+//	sc->UNQUOTE	= mk_symbol(sc, "unquote");
+//	sc->UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
+//	sc->FEED_TO	= mk_symbol(sc, "=>");
+//	sc->COLON_HOOK	= mk_symbol(sc, "*colon-hook*");
+//	sc->ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
+//	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
+//	sc->COMPILE_HOOK = mk_symbol(sc, "*compile-hook*");
 
 	return !sc->no_memory;
 }
@@ -630,16 +624,16 @@ void scheme_set_external_data(scheme_t *sc, void *p) {
 
 void scheme_deinit(scheme_t *sc) {
 
-	sc->oblist	= sc->NIL;
-	sc->global_env	= sc->NIL;
+	sc->oblist	= cell_ptr(SPCELL_NIL);
+	sc->global_env	= cell_ptr(SPCELL_NIL);
 	dump_stack_free(sc);
-	sc->envir	= sc->NIL;
-	sc->code	= sc->NIL;
-	sc->args	= sc->NIL;
-	sc->value	= sc->NIL;
+	sc->envir	= cell_ptr(SPCELL_NIL);
+	sc->code	= cell_ptr(SPCELL_NIL);
+	sc->args	= cell_ptr(SPCELL_NIL);
+	sc->value	= cell_ptr(SPCELL_NIL);
 
 	sc->gc_verbose	= 0;
-	gc(sc,sc->NIL,sc->NIL);
+	gc(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 }
 
 
@@ -648,15 +642,14 @@ void scheme_load_string(scheme_t *sc, const char *cmd) {
 	sc->envir		= sc->global_env;
 	sc->loaded_file		= cmd;
 	sc->file_position	= cmd;
-	sc->interactive_repl	= 0;
 	Eval_Cycle(sc, OP_T0LVL);
 }
 
 void scheme_define(scheme_t *sc, cell_ptr_t envir, cell_ptr_t symbol, cell_ptr_t value) {
 	cell_ptr_t x;
 
-	x=find_slot_in_env(sc,envir,symbol,0);
-	if (x != sc->NIL) {
+	x	= find_slot_in_env(sc, envir, symbol, 0);
+	if( !is_nil(x) ) {
 		set_slot_in_env(sc, x, value);
 	} else {
 		new_slot_spec_in_env(sc, envir, symbol, value);
@@ -759,12 +752,12 @@ const char* types[16] = {
 
 cell_ptr_t
 print_args(scheme_t* sc, cell_ptr_t args) {
-	cell_ptr_t	retval	= sc->T;
+	cell_ptr_t	retval	= cell_ptr(SPCELL_TRUE);;
 	cell_ptr_t	c	= args;
 	int		i	= 0;
 	fprintf(stderr, "arg count: %d", list_length(sc, args));
-	for( ; c != sc->NIL; c = cdr(c) ) {
-		fprintf(stderr, "arg %d: %s\n", i, types[type(car(c))]);
+	for( ; c.index != SPCELL_NIL; c = cdr(sc, c) ) {
+		fprintf(stderr, "arg %d: %s\n", i, types[ptr_type(sc, car(sc, c))]);
 		++i;
 	}
 	return retval;
@@ -830,7 +823,7 @@ int main(int argc, char **argv) {
 		if(strcmp(file_name,"-")==0) {
 			fin=stdin;
 		} else if( strcmp(file_name, "-1")==0 || strcmp(file_name, "-c") == 0 ) {
-			cell_ptr_t args	= sc->NIL;
+			cell_ptr_t args	= cell_ptr(SPCELL_NIL);
 			isfile		= file_name[1] == '1';
 			file_name	= *argv++;
 			if( strcmp(file_name, "-") == 0 ) {
@@ -842,7 +835,7 @@ int main(int argc, char **argv) {
 				cell_ptr_t value	= mk_string(sc, *argv);
 				args	= cons(sc, value, args);
 			}
-			args	= reverse_in_place(sc, sc->NIL, args);
+			args	= reverse_in_place(sc, cell_ptr(SPCELL_NIL), args);
 			scheme_define(sc, sc->global_env, mk_symbol(sc, "*args*"), args);
 
 		} else {
