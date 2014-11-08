@@ -92,7 +92,7 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
 #else /* USE_ALIST_ENV */
 
 void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env) {
-	sc->envir = immutable_cons(sc, sc->NIL, old_env);
+	sc->envir = immutable_cons(sc, cell_ptr(SPCELL_NIL), old_env);
 	setenvironment(sc->envir);
 }
 
@@ -103,23 +103,23 @@ void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
 
 cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all) {
 	cell_ptr_t x,y;
-	for (x = env; x != sc->NIL; x = cdr(x)) {
-		for (y = car(x); y != sc->NIL; y = cdr(y)) {
+	for (x = env; x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
+		for (y = car(x); y != cell_ptr(SPCELL_NIL); y = cdr(y)) {
 			if (caar(y) == hdl) {
 				break;
 			}
 		}
-		if (y != sc->NIL) {
+		if (y != cell_ptr(SPCELL_NIL)) {
 			break;
 		}
 		if(!all) {
-			return sc->NIL;
+			return cell_ptr(SPCELL_NIL);
 		}
 	}
-	if (x != sc->NIL) {
+	if (x != cell_ptr(SPCELL_NIL)) {
 		return car(y);
 	}
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 #endif /* USE_ALIST_ENV else */

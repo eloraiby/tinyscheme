@@ -99,7 +99,7 @@ cell_ptr_t op_predicate(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_EOFOBJP:       /* boolean? */
 		s_retbool(car(sc->args) == sc->EOF_OBJ);
 	case OP_NULLP:       /* null? */
-		s_retbool(car(sc->args) == sc->NIL);
+		s_retbool(car(sc->args) == cell_ptr(SPCELL_NIL));
 	case OP_NUMEQ:      /* = */
 	case OP_LESS:       /* < */
 	case OP_GRE:        /* > */
@@ -128,7 +128,7 @@ cell_ptr_t op_predicate(scheme_t *sc, enum scheme_opcodes op) {
 		v=nvalue(car(x));
 		x=cdr(x);
 
-		for (; x != sc->NIL; x = cdr(x)) {
+		for (; x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 			if(!comp_func(v,nvalue(car(x)))) {
 				s_retbool(0);
 			}

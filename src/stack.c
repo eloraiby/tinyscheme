@@ -1,7 +1,7 @@
 #include "scheme-private.h"
 
 void dump_stack_reset(scheme_t *sc) {
-	sc->dump = sc->NIL;
+	sc->dump = cell_ptr(SPCELL_NIL);
 }
 
 void dump_stack_initialize(scheme_t *sc) {
@@ -9,12 +9,12 @@ void dump_stack_initialize(scheme_t *sc) {
 }
 
 void dump_stack_free(scheme_t *sc) {
-	sc->dump = sc->NIL;
+	sc->dump = cell_ptr(SPCELL_NIL);
 }
 
 cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a) {
 	sc->value	= (a);
-	if( sc->dump == sc->NIL ) return sc->NIL;
+	if( sc->dump == cell_ptr(SPCELL_NIL) ) return cell_ptr(SPCELL_NIL);
 	sc->op		= ivalue(car(sc->dump));
 	sc->args	= cadr(sc->dump);
 	sc->envir	= caddr(sc->dump);

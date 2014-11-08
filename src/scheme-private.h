@@ -189,13 +189,13 @@ enum scheme_types {
 
 #define setenvironment(sc, p)	ptr_typeflag(sc, p) = T_ENVIRONMENT
 
-#define is_atom(p)       (typeflag(p)&T_ATOM)
-#define setatom(p)       typeflag(p) |= T_ATOM
-#define clratom(p)       typeflag(p) &= CLRATOM
+#define is_atom(sc, p)		(ptr_typeflag(sc, p) & T_ATOM)
+#define setatom(sc, p)		ptr_typeflag(sc, p) |= T_ATOM
+#define clratom(sc, p)		ptr_typeflag(sc, p) &= CLRATOM
 
-#define is_mark(p)       (typeflag(p)&MARK)
-#define setmark(p)       typeflag(p) |= MARK
-#define clrmark(p)       typeflag(p) &= UNMARK
+#define is_mark(sc, p)		(ptr_typeflag(sc, p) & MARK)
+#define setmark(sc, p)		ptr_typeflag(sc, p) |= MARK
+#define clrmark(sc, p)		ptr_typeflag(sc, p) &= UNMARK
 
 /* true or false value macro */
 /* () is #t in R5RS */
@@ -345,7 +345,7 @@ void dump_stack_mark(scheme_t *sc);
  * gc.c
  *
  ******************************************************************************/
-void mark(cell_ptr_t a);
+void mark(scheme_t *sc, cell_ptr_t a);
 void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 
 /*******************************************************************************

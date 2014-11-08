@@ -674,7 +674,7 @@ void scheme_register_foreign_func_list(scheme_t * sc,
 }
 
 cell_ptr_t scheme_apply0(scheme_t *sc, const char *procname) {
-	return scheme_eval(sc, cons(sc,mk_symbol(sc,procname),sc->NIL));
+	return scheme_eval(sc, cons(sc,mk_symbol(sc,procname),cell_ptr(SPCELL_NIL)));
 }
 
 void save_from_C_call(scheme_t *sc) {
@@ -717,7 +717,7 @@ cell_ptr_t scheme_eval(scheme_t *sc, cell_ptr_t obj) {
 	int old_repl = sc->interactive_repl;
 	sc->interactive_repl = 0;
 	save_from_C_call(sc);
-	sc->args = sc->NIL;
+	sc->args = cell_ptr(SPCELL_NIL);
 	sc->code = obj;
 	sc->retcode = 0;
 	Eval_Cycle(sc, OP_EVAL);

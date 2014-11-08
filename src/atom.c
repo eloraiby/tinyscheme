@@ -77,11 +77,11 @@ cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name) {
 	cell_ptr_t x;
 	int location;
 
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
-	typeflag(x) = T_SYMBOL;
-	setimmutable(car(x));
+	x = immutable_cons(sc, mk_string(sc, name), cell_ptr(SPCELL_NIL));
+	ptr_typeflag(sc, x) = T_SYMBOL;
+	setimmutable(sc, car(sc, x));
 
-	location = hash_fn(name, ivalue_unchecked(sc->oblist));
+	location = hash_fn(name, ivalue_unchecked(sc, sc->oblist));
 	set_vector_elem(sc->oblist, location,
 			immutable_cons(sc, x, vector_elem(sc->oblist, location)));
 	return x;
@@ -93,23 +93,23 @@ cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name) {
 	char *s;
 
 	location = hash_fn(name, ivalue_unchecked(sc->oblist));
-	for (x = vector_elem(sc->oblist, location); x != sc->NIL; x = cdr(x)) {
+	for (x = vector_elem(sc->oblist, location); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 		s = symname(car(x));
 		/* case-insensitive, per R5RS section 2. */
 		if(stricmp(name, s) == 0) {
 			return car(x);
 		}
 	}
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 	int i;
 	cell_ptr_t x;
-	cell_ptr_t ob_list = sc->NIL;
+	cell_ptr_t ob_list = cell_ptr(SPCELL_NIL);
 
 	for (i = 0; i < ivalue_unchecked(sc->oblist); i++) {
-		for (x  = vector_elem(sc->oblist, i); x != sc->NIL; x = cdr(x)) {
+		for (x  = vector_elem(sc->oblist, i); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 			ob_list = cons(sc, x, ob_list);
 		}
 	}
@@ -119,28 +119,28 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 #else
 
 cell_ptr_t oblist_initial_value(scheme_t *sc) {
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name) {
 	cell_ptr_t x;
 	char    *s;
 
-	for (x = sc->oblist; x != sc->NIL; x = cdr(x)) {
+	for (x = sc->oblist; x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 		s = symname(car(x));
 		/* case-insensitive, per R5RS section 2. */
 		if(stricmp(name, s) == 0) {
 			return car(x);
 		}
 	}
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 /* returns the new symbol */
 cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name) {
 	cell_ptr_t x;
 
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
+	x = immutable_cons(sc, mk_string(sc, name), cell_ptr(SPCELL_NIL));
 	typeflag(x) = T_SYMBOL;
 	setimmutable(car(x));
 	sc->oblist = immutable_cons(sc, x, sc->oblist);
@@ -154,7 +154,7 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc) {
 #endif
 
 cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
 	typeflag(x) = (T_FOREIGN | T_ATOM);
 	x->object.ff=f;
@@ -162,7 +162,7 @@ cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
 }
 
 cell_ptr_t mk_character(scheme_t *sc, int c) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
 	typeflag(x) = (T_CHARACTER | T_ATOM);
 	ivalue_unchecked(x)= c;
@@ -172,7 +172,7 @@ cell_ptr_t mk_character(scheme_t *sc, int c) {
 
 /* get number atom (integer) */
 cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
 	typeflag(x) = (T_NUMBER | T_ATOM);
 	ivalue_unchecked(x)= number_t;
@@ -181,7 +181,7 @@ cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
 }
 
 cell_ptr_t mk_real(scheme_t *sc, double n) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc,cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 
 	typeflag(x) = (T_NUMBER | T_ATOM);
 	rvalue_unchecked(x)= n;
@@ -214,7 +214,7 @@ cell_ptr_t mk_string(scheme_t *sc, const char *str) {
 }
 
 cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 	typeflag(x) = (T_STRING | T_ATOM);
 	strvalue(x) = store_string(sc,len,str,0);
 	strlength(x) = len;
@@ -222,7 +222,7 @@ cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len) {
 }
 
 cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 	typeflag(x) = (T_STRING | T_ATOM);
 	strvalue(x) = store_string(sc,len,0,fill);
 	strlength(x) = len;
@@ -230,7 +230,7 @@ cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill) {
 }
 
 cell_ptr_t mk_vector(scheme_t *sc, int len) {
-	return get_vector_object(sc,len,sc->NIL);
+	return get_vector_object(sc,len,cell_ptr(SPCELL_NIL));
 }
 
 void fill_vector(cell_ptr_t vec, cell_ptr_t obj) {
@@ -268,7 +268,7 @@ cell_ptr_t mk_symbol(scheme_t *sc, const char *name) {
 
 	/* first check oblist */
 	x = oblist_find_by_name(sc, name);
-	if (x != sc->NIL) {
+	if (x != cell_ptr(SPCELL_NIL)) {
 		return (x);
 	} else {
 		x = oblist_add_by_name(sc, name);
@@ -286,7 +286,7 @@ cell_ptr_t gensym(scheme_t *sc) {
 		/* first check oblist */
 		x = oblist_find_by_name(sc, name);
 
-		if (x != sc->NIL) {
+		if (x != cell_ptr(SPCELL_NIL)) {
 			continue;
 		} else {
 			x = oblist_add_by_name(sc, name);
@@ -294,7 +294,7 @@ cell_ptr_t gensym(scheme_t *sc) {
 		}
 	}
 
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 /* make symbol or number atom from string */
@@ -310,8 +310,8 @@ cell_ptr_t mk_atom(scheme_t *sc, char *q) {
 			    cons(sc,
 				 cons(sc,
 				      sc->QUOTE,
-				      cons(sc, mk_atom(sc,p+2), sc->NIL)),
-				 cons(sc, mk_symbol(sc,strlwr(q)), sc->NIL)));
+				      cons(sc, mk_atom(sc,p+2), cell_ptr(SPCELL_NIL))),
+				 cons(sc, mk_symbol(sc,strlwr(q)), cell_ptr(SPCELL_NIL))));
 	}
 #endif
 
@@ -400,7 +400,7 @@ cell_ptr_t mk_sharp_const(scheme_t *sc, char *name) {
 			if(sscanf(name+2,"%x",(unsigned int *)&c1)==1 && c1 < UCHAR_MAX) {
 				c=c1;
 			} else {
-				return sc->NIL;
+				return cell_ptr(SPCELL_NIL);
 			}
 #if USE_ASCII_NAMES
 		} else if(is_ascii_name(name+1,&c)) {
@@ -409,11 +409,11 @@ cell_ptr_t mk_sharp_const(scheme_t *sc, char *name) {
 		} else if(name[2]==0) {
 			c=name[1];
 		} else {
-			return sc->NIL;
+			return cell_ptr(SPCELL_NIL);
 		}
 		return mk_character(sc,c);
 	} else
-		return (sc->NIL);
+		return (cell_ptr(SPCELL_NIL));
 }
 
 static void
@@ -484,7 +484,7 @@ void printatom(scheme_t *sc, cell_ptr_t l, int f) {
 void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	char *p;
 
-	if (l == sc->NIL) {
+	if (l == cell_ptr(SPCELL_NIL)) {
 		p = "()";
 	} else if (l == sc->T) {
 		p = "#t";
@@ -665,7 +665,7 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_STR2ATOM: { /* string->atom */
 		char *s=strvalue(car(sc->args));
 		long pf = 0;
-		if(cdr(sc->args)!=sc->NIL) {
+		if(cdr(sc->args)!=cell_ptr(SPCELL_NIL)) {
 			/* we know cadr(sc->args) is a natural number */
 			/* see if it is 2, 8, 10, or 16, or error */
 			pf = ivalue_unchecked(cadr(sc->args));
@@ -702,7 +702,7 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_ATOM2STR: { /* atom->string */
 		long pf = 0;
 		x=car(sc->args);
-		if(cdr(sc->args)!=sc->NIL) {
+		if(cdr(sc->args)!=cell_ptr(SPCELL_NIL)) {
 			/* we know cadr(sc->args) is a natural number */
 			/* see if it is 2, 8, 10, or 16, or error */
 			pf = ivalue_unchecked(cadr(sc->args));
@@ -730,7 +730,7 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 
 		len=ivalue(car(sc->args));
 
-		if(cdr(sc->args)!=sc->NIL) {
+		if(cdr(sc->args)!=cell_ptr(SPCELL_NIL)) {
 			fill=charvalue(cadr(sc->args));
 		}
 		s_return(sc,mk_empty_string(sc,len,(char)fill));
@@ -782,12 +782,12 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 		char *pos;
 
 		/* compute needed length for new string */
-		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
+		for (x = sc->args; x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 			len += strlength(car(x));
 		}
 		newstr = mk_empty_string(sc, len, ' ');
 		/* store the contents of the argument strings into the new string */
-		for (pos = strvalue(newstr), x = sc->args; x != sc->NIL;
+		for (pos = strvalue(newstr), x = sc->args; x != cell_ptr(SPCELL_NIL);
 			pos += strlength(car(x)), x = cdr(x)) {
 			memcpy(pos, strvalue(car(x)), strlength(car(x)));
 		}
@@ -808,7 +808,7 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 			error_1(sc,"substring: start out of bounds:",cadr(sc->args));
 		}
 
-		if(cddr(sc->args)!=sc->NIL) {
+		if(cddr(sc->args)!=cell_ptr(SPCELL_NIL)) {
 			index1=ivalue(caddr(sc->args));
 			if(index1>strlength(car(sc->args)) || index1<index0) {
 				error_1(sc,"substring: end out of bounds:",caddr(sc->args));
@@ -843,20 +843,20 @@ cell_ptr_t op_atom(scheme_t *sc, enum scheme_opcodes op) {
 	}
 
 	case OP_MKVECTOR: { /* make-vector */
-		cell_ptr_t fill=sc->NIL;
+		cell_ptr_t fill=cell_ptr(SPCELL_NIL);
 		int len;
 		cell_ptr_t vec;
 
 		len=ivalue(car(sc->args));
 
-		if(cdr(sc->args)!=sc->NIL) {
+		if(cdr(sc->args)!=cell_ptr(SPCELL_NIL)) {
 			fill=cadr(sc->args);
 		}
 		vec=mk_vector(sc,len);
 		if(sc->no_memory) {
 			s_return(sc, sc->sink);
 		}
-		if(fill!=sc->NIL) {
+		if(fill!=cell_ptr(SPCELL_NIL)) {
 			fill_vector(vec,fill);
 		}
 		s_return(sc,vec);

@@ -303,13 +303,13 @@ Please read accompanying file COPYING.
      that squares its argument:
 
           pointer square(scheme *sc, pointer args) {
-           if(args!=sc->NIL) {
+           if(args!=cell_ptr(SPCELL_NIL)) {
                if(sc->isnumber(sc->pair_car(args))) {
                     double v=sc->rvalue(sc->pair_car(args));
                     return sc->mk_real(sc,v*v);
                }
            }
-           return sc->NIL;
+           return cell_ptr(SPCELL_NIL);
           }
 
    Foreign functions are now defined as closures:

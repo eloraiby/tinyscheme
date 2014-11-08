@@ -24,8 +24,8 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_ERR1:  /* error */
 		fprintf(stderr, " ");
-		if (sc->args != sc->NIL) {
-			s_save(sc,OP_ERR1, cdr(sc->args), sc->NIL);
+		if (sc->args != cell_ptr(SPCELL_NIL)) {
+			s_save(sc,OP_ERR1, cdr(sc->args), cell_ptr(SPCELL_NIL));
 			sc->args = car(sc->args);
 			sc->print_flag = 1;
 			s_goto(sc,OP_P0LIST);
@@ -34,7 +34,7 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 			if(sc->interactive_repl) {
 				s_goto(sc,OP_T0LVL);
 			} else {
-				return sc->NIL;
+				return cell_ptr(SPCELL_NIL);
 			}
 		}
 
@@ -45,7 +45,7 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		s_return(sc,list_star(sc,sc->args));
 
 	case OP_APPEND:    /* append */
-		x = sc->NIL;
+		x = cell_ptr(SPCELL_NIL);
 		y = sc->args;
 		if (y == x) {
 			s_return(sc, x);
@@ -53,7 +53,7 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 
 		/* cdr() in the while condition is not a typo. If car() */
 		/* is used (append '() 'a) will return the wrong result.*/
-		while (cdr(y) != sc->NIL) {
+		while (cdr(y) != cell_ptr(SPCELL_NIL)) {
 			x = revappend(sc, x, car(y));
 			y = cdr(y);
 			if (x == sc->F) {
@@ -68,12 +68,12 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		if (!hasprop(car(sc->args)) || !hasprop(cadr(sc->args))) {
 			error_0(sc,"illegal use of put");
 		}
-		for (x = symprop(car(sc->args)), y = cadr(sc->args); x != sc->NIL; x = cdr(x)) {
+		for (x = symprop(car(sc->args)), y = cadr(sc->args); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 			if (caar(x) == y) {
 				break;
 			}
 		}
-		if (x != sc->NIL)
+		if (x != cell_ptr(SPCELL_NIL))
 			cdar(x) = caddr(sc->args);
 		else
 			symprop(car(sc->args)) = cons(sc, cons(sc, y, caddr(sc->args)),
@@ -84,25 +84,25 @@ cell_ptr_t op_ioctl(scheme_t *sc, enum scheme_opcodes op) {
 		if (!hasprop(car(sc->args)) || !hasprop(cadr(sc->args))) {
 			error_0(sc,"illegal use of get");
 		}
-		for (x = symprop(car(sc->args)), y = cadr(sc->args); x != sc->NIL; x = cdr(x)) {
+		for (x = symprop(car(sc->args)), y = cadr(sc->args); x != cell_ptr(SPCELL_NIL); x = cdr(x)) {
 			if (caar(x) == y) {
 				break;
 			}
 		}
-		if (x != sc->NIL) {
+		if (x != cell_ptr(SPCELL_NIL)) {
 			s_return(sc,cdar(x));
 		} else {
-			s_return(sc,sc->NIL);
+			s_return(sc,cell_ptr(SPCELL_NIL));
 		}
 #endif /* USE_PLIST */
 	case OP_QUIT:       /* quit */
 		if(is_pair(sc->args)) {
 			sc->retcode=ivalue(car(sc->args));
 		}
-		return (sc->NIL);
+		return (cell_ptr(SPCELL_NIL));
 
 	case OP_GC:         /* gc */
-		gc(sc, sc->NIL, sc->NIL);
+		gc(sc, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 		s_return(sc,sc->T);
 
 	case OP_GCVERB: {        /* gc-verbose */

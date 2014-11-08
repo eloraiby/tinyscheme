@@ -7,53 +7,54 @@
  *  sec. 2.3.5), the Schorr-Deutsch-Waite link-inversion algorithm,
  *  for marking.
  */
-void mark(cell_ptr_t a) {
+void mark(scheme_t* sc, cell_ptr_t a) {
 	cell_ptr_t t, q, p;
 
-	t = (cell_ptr_t) 0;
+	t = cell_ptr(SPCELL_NIL);
 	p = a;
 E2:
-	setmark(p);
-	if(is_vector(p)) {
+	setmark(sc, p);
+	if(is_vector(sc, p)) {
 		int i;
-		int number_t=ivalue_unchecked(p)/2+ivalue_unchecked(p)%2;
+		int number_t = ivalue_unchecked(sc, p) / 2 + ivalue_unchecked(sc, p) % 2;
 		for(i=0; i<number_t; i++) {
 			/* Vector cells will be treated like ordinary cells */
-			mark(p+1+i);
+			mark(sc, cell_ptr(p.index + 1 + i));
 		}
 	}
-	if (is_atom(p))
+
+	if( is_atom(sc, p) )
 		goto E6;
 	/* E4: down car */
-	q = car(p);
-	if (q && !is_mark(q)) {
-		setatom(p);  /* a note that we have moved car */
-		car(p) = t;
+	q = car(sc, p);
+	if( !is_nil(q) && !is_mark(sc, q) ) {
+		setatom(sc, p);  /* a note that we have moved car */
+		car(sc, p) = t;
 		t = p;
 		p = q;
 		goto E2;
 	}
 E5:
-	q = cdr(p); /* down cdr */
-	if (q && !is_mark(q)) {
-		cdr(p) = t;
+	q = cdr(sc, p); /* down cdr */
+	if( !is_nil(q) && !is_mark(sc, q) ) {
+		cdr(sc, p) = t;
 		t = p;
 		p = q;
 		goto E2;
 	}
 E6:   /* up.  Undo the link switching from steps E4 and E5. */
-	if (!t)
+	if( is_nil(t) )
 		return;
 	q = t;
-	if (is_atom(q)) {
-		clratom(q);
-		t = car(q);
-		car(q) = p;
+	if( is_atom(sc, q) ) {
+		clratom(sc, q);
+		t = car(sc, q);
+		car(sc, q) = p;
 		p = q;
 		goto E5;
 	} else {
-		t = cdr(q);
-		cdr(q) = p;
+		t = cdr(sc, q);
+		cdr(sc, q) = p;
 		p = q;
 		goto E6;
 	}
@@ -68,47 +69,47 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	}
 
 	/* mark system globals */
-	mark(sc->oblist);
-	mark(sc->global_env);
+	mark(sc, sc->oblist);
+	mark(sc, sc->global_env);
 
 	/* mark current registers */
-	mark(sc->args);
-	mark(sc->envir);
-	mark(sc->code);
+	mark(sc, sc->args);
+	mark(sc, sc->envir);
+	mark(sc, sc->code);
 	dump_stack_mark(sc);
-	mark(sc->value);
+	mark(sc, sc->value);
 
 	/* Mark recent objects the interpreter doesn't know about yet. */
-	mark(car(sc->sink));
+	mark(sc, car(sc, sc->sink));
 	/* Mark any older stuff above nested C calls */
-	mark(sc->c_nest);
+	mark(sc, sc->c_nest);
 
 	/* mark variables a, b */
-	mark(a);
-	mark(b);
+	mark(sc, a);
+	mark(sc, b);
 
 	/* garbage collect */
-	clrmark(sc->NIL);
+	clrmark(sc, cell_ptr(SPCELL_NIL));
 	sc->fcells = 0;
-	sc->free_cell = sc->NIL;
+	sc->free_cell = cell_ptr(SPCELL_NIL);
 	/* free-list is kept sorted by address so as to maintain consecutive
 	 ranges, if possible, for use with vectors. Here we scan the cells
 	 (which are also kept sorted by address) downwards to build the
 	 free-list in sorted order.
 	*/
-	p = sc->cell_seg + CELL_MAX_COUNT;
-	while (--p >= sc->cell_seg) {
-		if (is_mark(p)) {
-			clrmark(p);
+	p = cell_ptr(CELL_MAX_COUNT);
+	while( --p.index ) {
+		if (is_mark(sc, p)) {
+			clrmark(sc, p);
 		} else {
 			/* reclaim cell */
-			if (typeflag(p) != 0) {
+			if( ptr_typeflag(sc, p) != 0 ) {
 				finalize_cell(sc, p);
-				typeflag(p) = 0;
-				car(p) = sc->NIL;
+				ptr_typeflag(sc, p) = 0;
+				car(sc, p) = cell_ptr(SPCELL_NIL);
 			}
 			++sc->fcells;
-			cdr(p) = sc->free_cell;
+			cdr(sc, p) = sc->free_cell;
 			sc->free_cell = p;
 		}
 	}

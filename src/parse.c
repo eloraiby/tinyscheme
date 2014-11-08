@@ -10,7 +10,7 @@
 #define DELIMITERS  "()\";\f\t\v\n\r "
 
 /* ========== Routines for Printing ========== */
-#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == sc->NIL)
+#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == cell_ptr(SPCELL_NIL))
 
 /* ========== Routines for Reading ========== */
 static INLINE int is_one_of(char *s, int c);
@@ -276,13 +276,13 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
 		if( !sc->file_position ) {
-			sc->args=sc->NIL;
+			sc->args=cell_ptr(SPCELL_NIL);
 			s_goto(sc,OP_QUIT);
 		}
 
-		s_save(sc,OP_T0LVL, sc->NIL, sc->NIL);
-		s_save(sc,OP_VALUEPRINT, sc->NIL, sc->NIL);
-		s_save(sc,OP_T1LVL, sc->NIL, sc->NIL);
+		s_save(sc,OP_T0LVL, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
+		s_save(sc,OP_VALUEPRINT, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
+		s_save(sc,OP_T1LVL, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_T1LVL: /* top level */
@@ -315,38 +315,38 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			}
 			*/
 		case TOK_VEC:
-			s_save(sc,OP_RDVEC,sc->NIL,sc->NIL);
+			s_save(sc,OP_RDVEC,cell_ptr(SPCELL_NIL),cell_ptr(SPCELL_NIL));
 			/* fall through */
 		case TOK_LPAREN:
 			sc->tok = token(sc);
 			if (sc->tok == TOK_RPAREN) {
-				s_return(sc,sc->NIL);
+				s_return(sc,cell_ptr(SPCELL_NIL));
 			} else if (sc->tok == TOK_DOT) {
 				error_0(sc,"syntax error: illegal dot expression");
 			} else {
-				s_save(sc,OP_RDLIST, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDLIST, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 				s_goto(sc,OP_RDSEXPR);
 			}
 		case TOK_QUOTE:
-			s_save(sc,OP_RDQUOTE, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDQUOTE, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_BQUOTE:
 			sc->tok = token(sc);
 			if(sc->tok==TOK_VEC) {
-				s_save(sc,OP_RDQQUOTEVEC, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDQQUOTEVEC, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 				sc->tok=TOK_LPAREN;
 				s_goto(sc,OP_RDSEXPR);
 			} else {
-				s_save(sc,OP_RDQQUOTE, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDQQUOTE, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 			}
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_COMMA:
-			s_save(sc,OP_RDUNQUOTE, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDUNQUOTE, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_ATMARK:
-			s_save(sc,OP_RDUQTSP, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDUQTSP, cell_ptr(SPCELL_NIL), cell_ptr(SPCELL_NIL));
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_ATOM:
@@ -360,15 +360,15 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			s_return(sc,x);
 		case TOK_SHARP: {
 			cell_ptr_t f=find_slot_in_env(sc,sc->envir,sc->SHARP_HOOK,1);
-			if(f==sc->NIL) {
+			if(f==cell_ptr(SPCELL_NIL)) {
 				error_0(sc,"undefined sharp expression");
 			} else {
-				sc->code=cons(sc,slot_value_in_env(f),sc->NIL);
+				sc->code=cons(sc,slot_value_in_env(f),cell_ptr(SPCELL_NIL));
 				s_goto(sc,OP_EVAL);
 			}
 		}
 		case TOK_SHARP_CONST:
-			if ((x = mk_sharp_const(sc, readstr_upto(sc, DELIMITERS))) == sc->NIL) {
+			if ((x = mk_sharp_const(sc, readstr_upto(sc, DELIMITERS))) == cell_ptr(SPCELL_NIL)) {
 				error_0(sc,"undefined sharp expression");
 			} else {
 				s_return(sc,x);
@@ -396,13 +396,13 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			if (c != '\n')
 				backchar(sc,c);
 
-			s_return(sc,reverse_in_place(sc, sc->NIL, sc->args));
+			s_return(sc,reverse_in_place(sc, cell_ptr(SPCELL_NIL), sc->args));
 		} else if (sc->tok == TOK_DOT) {
-			s_save(sc,OP_RDDOT, sc->args, sc->NIL);
+			s_save(sc,OP_RDDOT, sc->args, cell_ptr(SPCELL_NIL));
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		} else {
-			s_save(sc,OP_RDLIST, sc->args, sc->NIL);;
+			s_save(sc,OP_RDLIST, sc->args, cell_ptr(SPCELL_NIL));;
 			s_goto(sc,OP_RDSEXPR);
 		}
 	}
@@ -415,23 +415,23 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		}
 
 	case OP_RDQUOTE:
-		s_return(sc,cons(sc, sc->QUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->QUOTE, cons(sc, sc->value, cell_ptr(SPCELL_NIL))));
 
 	case OP_RDQQUOTE:
-		s_return(sc,cons(sc, sc->QQUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->QQUOTE, cons(sc, sc->value, cell_ptr(SPCELL_NIL))));
 
 	case OP_RDQQUOTEVEC:
 		s_return(sc,cons(sc, mk_symbol(sc,"apply"),
 				 cons(sc, mk_symbol(sc,"vector"),
 				      cons(sc,cons(sc, sc->QQUOTE,
-						   cons(sc,sc->value,sc->NIL)),
-					   sc->NIL))));
+						   cons(sc,sc->value,cell_ptr(SPCELL_NIL))),
+					   cell_ptr(SPCELL_NIL)))));
 
 	case OP_RDUNQUOTE:
-		s_return(sc,cons(sc, sc->UNQUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->UNQUOTE, cons(sc, sc->value, cell_ptr(SPCELL_NIL))));
 
 	case OP_RDUQTSP:
-		s_return(sc,cons(sc, sc->UNQUOTESP, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->UNQUOTESP, cons(sc, sc->value, cell_ptr(SPCELL_NIL))));
 
 	case OP_RDVEC:
 		/*sc->code=cons(sc,mk_proc(sc,OP_VECTOR),sc->value);
@@ -474,23 +474,23 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 			s_goto(sc,OP_P0LIST);
 		} else {
 			putstr(sc, "(");
-			s_save(sc,OP_P1LIST, cdr(sc->args), sc->NIL);
+			s_save(sc,OP_P1LIST, cdr(sc->args), cell_ptr(SPCELL_NIL));
 			sc->args = car(sc->args);
 			s_goto(sc,OP_P0LIST);
 		}
 
 	case OP_P1LIST:
 		if (is_pair(sc->args)) {
-			s_save(sc,OP_P1LIST, cdr(sc->args), sc->NIL);
+			s_save(sc,OP_P1LIST, cdr(sc->args), cell_ptr(SPCELL_NIL));
 			putstr(sc, " ");
 			sc->args = car(sc->args);
 			s_goto(sc,OP_P0LIST);
 		} else if(is_vector(sc->args)) {
-			s_save(sc,OP_P1LIST,sc->NIL,sc->NIL);
+			s_save(sc,OP_P1LIST,cell_ptr(SPCELL_NIL),cell_ptr(SPCELL_NIL));
 			putstr(sc, " . ");
 			s_goto(sc,OP_P0LIST);
 		} else {
-			if (sc->args != sc->NIL) {
+			if (sc->args != cell_ptr(SPCELL_NIL)) {
 				putstr(sc, " . ");
 				printatom(sc, sc->args, sc->print_flag);
 			}
@@ -507,7 +507,7 @@ cell_ptr_t op_parse(scheme_t *sc, enum scheme_opcodes op) {
 		} else {
 			cell_ptr_t elem=vector_elem(vec,i);
 			ivalue_unchecked(cdr(sc->args))=i+1;
-			s_save(sc,OP_PVECFROM, sc->args, sc->NIL);
+			s_save(sc,OP_PVECFROM, sc->args, cell_ptr(SPCELL_NIL));
 			sc->args=elem;
 			if (i > 0)
 				putstr(sc," ");

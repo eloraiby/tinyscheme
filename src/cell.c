@@ -104,21 +104,22 @@ int count_consecutive_cells(scheme_t *sc, cell_ptr_t x, int needed) {
 }
 
 cell_ptr_t find_consecutive_cells(scheme_t *sc, int n) {
-	cell_ptr_t *pp;
+	cell_ptr_t pp;
 	int cnt;
 
-	pp=&sc->free_cell;
-	while(*pp!=sc->NIL) {
-		cnt=count_consecutive_cells(*pp,n);
-		if(cnt>=n) {
-			cell_ptr_t x=*pp;
-			*pp=cdr(*pp+n-1);
+	pp = sc->free_cell;
+	while( !is_nil(pp) ) {
+		cnt = count_consecutive_cells(sc, pp, n);
+		if( cnt >= n ) {
+			cell_ptr_t x = pp;
+			pp = cdr(sc, cell_ptr(pp.index + n - 1));
 			sc->fcells -= n;
 			return x;
 		}
-		pp=&cdr(*pp+cnt-1);
+
+		pp = cdr(sc, cell_ptr(pp.index + cnt - 1));
 	}
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 /* To retain recent allocs before interpreter knows about them -
@@ -126,10 +127,10 @@ cell_ptr_t find_consecutive_cells(scheme_t *sc, int n) {
 
 void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra) {
 	cell_ptr_t holder = get_cell_x(sc, recent, extra);
-	typeflag(holder) = T_PAIR | T_IMMUTABLE;
-	car(holder) = recent;
-	cdr(holder) = car(sc->sink);
-	car(sc->sink) = holder;
+	ptr_typeflag(sc, holder) = T_PAIR | T_IMMUTABLE;
+	car(sc, holder) = recent;
+	cdr(sc, holder) = car(sc, sc->sink);
+	car(sc, sc->sink) = holder;
 }
 
 
@@ -138,10 +139,10 @@ cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	/* For right now, include "a" and "b" in "cell" so that gc doesn't
 	 think they are garbage. */
 	/* Tentatively record it as a pair so gc understands it. */
-	typeflag(cell) = T_PAIR;
-	car(cell) = a;
-	cdr(cell) = b;
-	push_recent_alloc(sc, cell, sc->NIL);
+	ptr_typeflag(sc, cell) = T_PAIR;
+	car(sc, cell) = a;
+	cdr(sc, cell) = b;
+	push_recent_alloc(sc, cell, cell_ptr(SPCELL_NIL));
 	return cell;
 }
 
@@ -151,11 +152,11 @@ cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init) {
 		return sc->sink;
 	}
 	/* Record it as a vector so that gc understands it. */
-	typeflag(cells) = (T_VECTOR | T_ATOM);
-	ivalue_unchecked(cells)=len;
-	set_num_integer(cells);
-	fill_vector(cells,init);
-	push_recent_alloc(sc, cells, sc->NIL);
+	ptr_typeflag(sc, cells) = (T_VECTOR | T_ATOM);
+	ivalue_unchecked(sc, cells)=len;
+	set_num_integer(sc, cells);
+	fill_vector(cells, init);
+	push_recent_alloc(sc, cells, cell_ptr(SPCELL_NIL));
 	return cells;
 }
 
@@ -186,46 +187,47 @@ void check_range_alloced(cell_ptr_t p, int n, int expect_alloced) {
 cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable) {
 	cell_ptr_t x = get_cell(sc,a, b);
 
-	typeflag(x) = T_PAIR;
-	if(immutable) {
-		setimmutable(x);
+	ptr_typeflag(sc, x) = T_PAIR;
+	if( immutable ) {
+		setimmutable(sc, x);
 	}
-	car(x) = a;
-	cdr(x) = b;
+	car(sc, x) = a;
+	cdr(sc, x) = b;
 	return (x);
 }
 
 
 void finalize_cell(scheme_t *sc, cell_ptr_t a) {
-	if(is_string(a)) {
-		sc->free(strvalue(a));
+	if(is_string(sc, a)) {
+		sc->free(strvalue(sc, a));
 	}
 }
 
 cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d) {
 	cell_ptr_t p, q;
-	if(cdr(d)==sc->NIL) {
-		return car(d);
+	if( is_nil(cdr(sc, d)) ) {
+		return car(sc, d);
 	}
-	p=cons(sc,car(d),cdr(d));
-	q=p;
-	while(cdr(cdr(p))!=sc->NIL) {
-		d=cons(sc,car(p),cdr(p));
-		if(cdr(cdr(p))!=sc->NIL) {
-			p=cdr(d);
+	p = cons(sc, car(sc, d), cdr(sc, d));
+	q = p;
+	while( !is_nil(cdr(sc, cdr(sc, p))) ) {
+		d = cons(sc, car(sc, p), cdr(sc, p));
+		if( !is_nil(cdr(sc, cdr(sc, p))) ) {
+			p = cdr(sc, d);
 		}
 	}
-	cdr(p)=car(cdr(p));
+
+	cdr(sc, p) = car(sc, cdr(sc, p));
 	return q;
 }
 
 /* reverse list -- produce new list */
 cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
 	/* a must be checked by gc */
-	cell_ptr_t p = sc->NIL;
+	cell_ptr_t p = cell_ptr(SPCELL_NIL);
 
-	for ( ; is_pair(a); a = cdr(a)) {
-		p = cons(sc, car(a), p);
+	for ( ; is_pair(sc, a); a = cdr(sc, a)) {
+		p = cons(sc, car(sc, a), p);
 	}
 	return (p);
 }
@@ -234,9 +236,9 @@ cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
 cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list) {
 	cell_ptr_t p = list, result = term, q;
 
-	while (p != sc->NIL) {
-		q = cdr(p);
-		cdr(p) = result;
+	while( !is_nil(p) ) {
+		q = cdr(sc, p);
+		cdr(sc, p) = result;
 		result = p;
 		p = q;
 	}
@@ -248,15 +250,15 @@ cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	cell_ptr_t result = a;
 	cell_ptr_t p = b;
 
-	while (is_pair(p)) {
-		result = cons(sc, car(p), result);
-		p = cdr(p);
+	while( is_pair(sc, p) ) {
+		result = cons(sc, car(sc, p), result);
+		p = cdr(sc, p);
 	}
 
-	if (p == sc->NIL) {
+	if( is_nil(p) ) {
 		return result;
 	}
 
-	return sc->F;   /* signal an error */
+	return cell_ptr(SPCELL_FALSE);   /* signal an error */
 }
 
