@@ -187,7 +187,7 @@ enum scheme_types {
 #define strvalue(sc, p)		(cell_ptr_to_cell(sc, p)->object.string.svalue)
 #define strlength(sc, p)	(cell_ptr_to_cell(sc, p)->object.string.length)
 
-#define setenvironment(p)    typeflag(p) = T_ENVIRONMENT
+#define setenvironment(sc, p)	ptr_typeflag(sc, p) = T_ENVIRONMENT
 
 #define is_atom(p)       (typeflag(p)&T_ATOM)
 #define setatom(p)       typeflag(p) |= T_ATOM

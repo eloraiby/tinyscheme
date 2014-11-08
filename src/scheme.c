@@ -271,7 +271,7 @@ setimmutable(scheme_t* sc,
 }
 
 static cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op);
-static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op);
+static void eval_cycle(scheme_t *sc, enum scheme_opcodes op);
 static void assign_syntax(scheme_t *sc, char *name);
 static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
@@ -642,7 +642,7 @@ void scheme_load_string(scheme_t *sc, const char *cmd) {
 	sc->envir		= sc->global_env;
 	sc->loaded_file		= cmd;
 	sc->file_position	= cmd;
-	Eval_Cycle(sc, OP_T0LVL);
+	eval_cycle(sc, OP_T0LVL);
 }
 
 void scheme_define(scheme_t *sc, cell_ptr_t envir, cell_ptr_t symbol, cell_ptr_t value) {

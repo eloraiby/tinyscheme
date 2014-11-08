@@ -32,27 +32,27 @@ void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env) {
 	cell_ptr_t new_frame;
 
 	/* The interaction-environment has about 300 variables in it. */
-	if (old_env == sc->NIL) {
+	if( is_nil(old_env) ) {
 		new_frame = mk_vector(sc, 461);
 	} else {
-		new_frame = sc->NIL;
+		new_frame = cell_ptr(SPCELL_NIL);
 	}
 
 	sc->envir = immutable_cons(sc, new_frame, old_env);
-	setenvironment(sc->envir);
+	setenvironment(sc, sc->envir);
 }
 
 void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
 					cell_ptr_t variable, cell_ptr_t value) {
 	cell_ptr_t slot = immutable_cons(sc, variable, value);
 
-	if (is_vector(car(env))) {
-		int location = hash_fn(symname(variable), ivalue_unchecked(car(env)));
+	if( is_vector(sc, car(sc, env)) ) {
+		int location = hash_fn(symname(sc, variable), ivalue_unchecked(sc, car(sc, env)));
 
-		set_vector_elem(car(env), location,
-				immutable_cons(sc, slot, vector_elem(car(env), location)));
+		set_vector_elem(car(sc, env), location,
+				immutable_cons(sc, slot, vector_elem(car(sc, env), location)));
 	} else {
-		car(env) = immutable_cons(sc, slot, car(env));
+		car(sc, env) = immutable_cons(sc, slot, car(sc, env));
 	}
 }
 
@@ -60,29 +60,33 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
 	cell_ptr_t x,y;
 	int location;
 
-	for (x = env; x != sc->NIL; x = cdr(x)) {
-		if (is_vector(car(x))) {
-			location = hash_fn(symname(hdl), ivalue_unchecked(car(x)));
-			y = vector_elem(car(x), location);
+	for( x = env; x.index != SPCELL_NIL; x = cdr(sc, x)) {
+		if( is_vector(sc, car(sc, x)) ) {
+			location = hash_fn(symname(sc, hdl), ivalue_unchecked(sc, car(sc, x)));
+			y = vector_elem(car(sc, x), location);
 		} else {
-			y = car(x);
+			y = car(sc, x);
 		}
-		for ( ; y != sc->NIL; y = cdr(y)) {
-			if (caar(y) == hdl) {
+
+		for ( ; y.index != SPCELL_NIL; y = cdr(sc, y)) {
+			if (caar(sc, y).index == hdl.index ) {
 				break;
 			}
 		}
-		if (y != sc->NIL) {
+
+		if( !is_nil(y) ) {
 			break;
 		}
+
 		if(!all) {
-			return sc->NIL;
+			return cell_ptr(SPCELL_NIL);
 		}
 	}
-	if (x != sc->NIL) {
-		return car(y);
+
+	if( !is_nil(x) ) {
+		return car(sc, y);
 	}
-	return sc->NIL;
+	return cell_ptr(SPCELL_NIL);
 }
 
 #else /* USE_ALIST_ENV */
