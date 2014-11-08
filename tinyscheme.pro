@@ -10,7 +10,7 @@ TARGET = tinyscheme
 CONFIG   += console
 CONFIG   -= app_bundle
 
-QMAKE_CC = clang
+#QMAKE_CC = clang
 QMAKE_CFLAGS += -std=c99 -fvisibility=hidden -fvisibility-inlines-hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
 QMAKE_LIBS += -ldl
 QMAKE_LFLAGS	+= -Wl,--gc-sections

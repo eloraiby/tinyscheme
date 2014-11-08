@@ -387,7 +387,7 @@ static cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op) {
 
 
 
-scheme_t *scheme_init_new() {
+scheme_t* scheme_init_new() {
 	scheme_t *sc=(scheme_t*)malloc(sizeof(scheme_t));
 	if(!scheme_init(sc)) {
 		free(sc);

@@ -136,12 +136,23 @@ typedef void (*func_dealloc)(void *);
 
 /* number_t, for generic arithmetic */
 typedef struct number_t {
-	char is_integer;
+	bool	is_integer;
 	union {
-		long ivalue;
-		double rvalue;
+		sint64	ivalue;
+		real64	rvalue;
 	} value;
 } number_t;
+
+typedef struct guid_t {
+	uint64		guid[2];
+} guid_t;
+
+typedef struct fobject_t {
+	const guid_t*	type;
+	uint32		(*get_ref_count)(struct fobject_t* obj);
+	uint32		(*inc_ref_count)(struct fobject_t* obj);
+	uint32		(*dec_ref_count)(struct fobject_t* obj);
+} fobject_t;
 
 SCHEME_EXPORT scheme_t *scheme_init_new();
 SCHEME_EXPORT scheme_t *scheme_init_new_custom_alloc(func_alloc malloc, func_dealloc free);
