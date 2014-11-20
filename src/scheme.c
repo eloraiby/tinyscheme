@@ -430,8 +430,8 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->T = &sc->_HASHT;
 	sc->F = &sc->_HASHF;
 	sc->EOF_OBJ=&sc->_EOF_OBJ;
-	sc->free_cell = &sc->_NIL;
-	sc->fcells = 0;
+	sc->memory.free_cell = &sc->_NIL;
+	sc->memory.fcells = 0;
 	sc->no_memory=0;
 	sc->interactive_repl=0;
 

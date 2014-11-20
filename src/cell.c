@@ -7,7 +7,7 @@ int alloc_cellseg(scheme_t *sc) {
 
 
 	/* insert new segment in address order */
-	sc->fcells += CELL_MAX_COUNT;
+	sc->memory.fcells += CELL_MAX_COUNT;
 	last = sc->cell_seg + CELL_MAX_COUNT - 1;
 
 	for (p = sc->cell_seg; p <= last; p++) {
@@ -15,15 +15,15 @@ int alloc_cellseg(scheme_t *sc) {
 		cdr(p) = p + 1;
 		car(p) = sc->NIL;
 	}
-	sc->free_cell = sc->cell_seg;
+	sc->memory.free_cell = sc->cell_seg;
 	return 1;
 }
 
 cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	if (sc->free_cell != sc->NIL) {
-		cell_ptr_t x = sc->free_cell;
-		sc->free_cell = cdr(x);
-		--sc->fcells;
+	if (sc->memory.free_cell != sc->NIL) {
+		cell_ptr_t x = sc->memory.free_cell;
+		sc->memory.free_cell = cdr(x);
+		--sc->memory.fcells;
 		return (x);
 	}
 	return _get_cell (sc, a, b);
@@ -38,17 +38,17 @@ cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 		return sc->sink;
 	}
 
-	if (sc->free_cell == sc->NIL) {
+	if (sc->memory.free_cell == sc->NIL) {
 		const int min_to_be_recovered = 8;
 		gc(sc,a, b);
-		if (sc->fcells < min_to_be_recovered || sc->free_cell == sc->NIL) {
+		if (sc->memory.fcells < min_to_be_recovered || sc->memory.free_cell == sc->NIL) {
 			sc->no_memory=1;
 			return sc->sink;
 		}
 	}
-	x = sc->free_cell;
-	sc->free_cell = cdr(x);
-	--sc->fcells;
+	x = sc->memory.free_cell;
+	sc->memory.free_cell = cdr(x);
+	--sc->memory.fcells;
 	return (x);
 }
 
@@ -59,10 +59,10 @@ cell_ptr_t reserve_cells(scheme_t *sc, int n) {
 	}
 
 	/* Are there enough cells available? */
-	if (sc->fcells < n) {
+	if (sc->memory.fcells < n) {
 		/* If not, try gc'ing some */
 		gc(sc, sc->NIL, sc->NIL);
-		if (sc->fcells < n) {
+		if (sc->memory.fcells < n) {
 			/* If all fail, report failure */
 			sc->no_memory=1;
 			return sc->NIL;
@@ -109,13 +109,13 @@ cell_ptr_t find_consecutive_cells(scheme_t *sc, int n) {
 	cell_ptr_t *pp;
 	int cnt;
 
-	pp=&sc->free_cell;
-	while(*pp!=sc->NIL) {
+	pp=&sc->memory.free_cell;
+	while(*pp != sc->NIL) {
 		cnt=count_consecutive_cells(*pp,n);
 		if(cnt>=n) {
 			cell_ptr_t x=*pp;
 			*pp=cdr(*pp+n-1);
-			sc->fcells -= n;
+			sc->memory.fcells -= n;
 			return x;
 		}
 		pp=&cdr(*pp+cnt-1);

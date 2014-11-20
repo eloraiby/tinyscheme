@@ -106,8 +106,10 @@ struct scheme_t {
 	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
 	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
 
-	cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
-	long		fcells;          /* # of free cells */
+	struct {
+		cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
+		long		fcells;          /* # of free cells */
+	} memory;
 
 	const char*	loaded_file;
 	const char*	file_position;

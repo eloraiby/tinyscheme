@@ -89,8 +89,8 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 
 	/* garbage collect */
 	clrmark(sc->NIL);
-	sc->fcells = 0;
-	sc->free_cell = sc->NIL;
+	sc->memory.fcells = 0;
+	sc->memory.free_cell = sc->NIL;
 	/* free-list is kept sorted by address so as to maintain consecutive
 	 ranges, if possible, for use with vectors. Here we scan the cells
 	 (which are also kept sorted by address) downwards to build the
@@ -107,15 +107,15 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 				typeflag(p) = 0;
 				car(p) = sc->NIL;
 			}
-			++sc->fcells;
-			cdr(p) = sc->free_cell;
-			sc->free_cell = p;
+			++sc->memory.fcells;
+			cdr(p) = sc->memory.free_cell;
+			sc->memory.free_cell = p;
 		}
 	}
 
 	if (sc->gc_verbose) {
 		char msg[80];
-		snprintf(msg,80,"done: %ld cells were recovered.\n", sc->fcells);
+		snprintf(msg,80,"done: %ld cells were recovered.\n", sc->memory.fcells);
 		fprintf(stdout, "%s", msg);
 	}
 }
