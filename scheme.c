@@ -109,20 +109,20 @@ static const char *strlwr(char *s) {
 #endif
 
 enum scheme_types {
-	T_STRING=1,
-	T_NUMBER=2,
-	T_SYMBOL=3,
-	T_PROC=4,
-	T_PAIR=5,
-	T_CLOSURE=6,
-	T_CONTINUATION=7,
-	T_FOREIGN=8,
-	T_CHARACTER=9,
-	T_PORT=10,
-	T_VECTOR=11,
-	T_MACRO=12,
-	T_PROMISE=13,
-	T_ENVIRONMENT=14,
+	T_STRING	= 1,
+	T_NUMBER	= 2,
+	T_SYMBOL	= 3,
+	T_PROC		= 4,
+	T_PAIR		= 5,
+	T_CLOSURE	= 6,
+	T_CONTINUATION	= 7,
+	T_FOREIGN	= 8,
+	T_CHARACTER	= 9,
+	T_PORT		= 10,
+	T_VECTOR	= 11,
+	T_MACRO		= 12,
+	T_PROMISE	= 13,
+	T_ENVIRONMENT	= 14,
 	T_LAST_SYSTEM_TYPE=14
 };
 
@@ -369,13 +369,8 @@ static cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a);
 static cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list);
 static cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 static void dump_stack_mark(scheme_t *);
-static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_1(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op);
+static cell_ptr_t eval_op(scheme_t *sc, enum scheme_opcodes op);
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op);
-static cell_ptr_t opexe_6(scheme_t *sc, enum scheme_opcodes op);
 static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op);
 static void assign_syntax(scheme_t *sc, char *name);
 static int syntaxnum(cell_ptr_t p);
@@ -2478,10 +2473,61 @@ static INLINE void dump_stack_mark(scheme_t *sc)
 }
 #endif
 
+
+static int is_list(scheme_t *sc, cell_ptr_t a)
+{ return list_length(sc,a) >= 0; }
+
+/* Result is:
+   proper list: length
+   circular list: -1
+   not even a pair: -2
+   dotted list: -2 minus length before dot
+*/
+int list_length(scheme_t *sc, cell_ptr_t a) {
+	int i=0;
+	cell_ptr_t slow, fast;
+
+	slow = fast = a;
+	while (1)
+	{
+		if (fast == sc->NIL)
+			return i;
+		if (!is_pair(fast))
+			return -2 - i;
+		fast = cdr(fast);
+		++i;
+		if (fast == sc->NIL)
+			return i;
+		if (!is_pair(fast))
+			return -2 - i;
+		++i;
+		fast = cdr(fast);
+
+		/* Safe because we would have already returned if `fast'
+	   encountered a non-pair. */
+		slow = cdr(slow);
+		if (fast == slow)
+		{
+			/* the fast cell_ptr_t has looped back around and caught up
+	       with the slow cell_ptr_t, hence the structure is circular,
+	       not of finite length, and therefore not a list */
+			return -1;
+		}
+	}
+}
+
 #define s_retbool(tf)    s_return(sc,(tf) ? sc->T : sc->F)
 
-static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x, y;
+static cell_ptr_t eval_op(scheme_t *sc, enum scheme_opcodes op) {
+	cell_ptr_t	x, y;
+	number_t	n;
+	long		v;
+
+#if USE_MATH
+	double dd;
+#endif
+
+	int (*comp_func)(number_t,number_t)=0;
 
 	switch (op) {
 	case OP_LOAD:       /* load */
@@ -2879,17 +2925,8 @@ static cell_ptr_t opexe_0(scheme_t *sc, enum scheme_opcodes op) {
 			sc->args = sc->NIL;
 			s_goto(sc,OP_BEGIN);
 		}
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		Error_0(sc,sc->strbuff);
-	}
-	return sc->T;
-}
 
-static cell_ptr_t opexe_1(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x, y;
-
-	switch (op) {
+	/* =================== binding operations ==================*/
 	case OP_LET0REC:    /* letrec */
 		new_frame_in_env(sc, sc->envir);
 		sc->args = sc->NIL;
@@ -3090,21 +3127,7 @@ static cell_ptr_t opexe_1(scheme_t *sc, enum scheme_opcodes op) {
 		sc->args = cons(sc, mk_continuation(sc, sc->dump), sc->NIL);
 		s_goto(sc,OP_APPLY);
 
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		Error_0(sc,sc->strbuff);
-	}
-	return sc->T;
-}
-
-static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x;
-	number_t v;
-#if USE_MATH
-	double dd;
-#endif
-
-	switch (op) {
+	/* ============== Math starts here ====================== */
 #if USE_MATH
 	case OP_INEX2EX:    /* inexact->exact */
 		x=car(sc->args);
@@ -3213,83 +3236,83 @@ static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op) {
 #endif
 
 	case OP_ADD:        /* + */
-		v=num_zero;
+		n = num_zero;
 		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v=num_add(v,nvalue(car(x)));
+			n = num_add(n, nvalue(car(x)));
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_MUL:        /* * */
-		v=num_one;
+		n = num_one;
 		for (x = sc->args; x != sc->NIL; x = cdr(x)) {
-			v=num_mul(v,nvalue(car(x)));
+			n = num_mul(n, nvalue(car(x)));
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_SUB:        /* - */
-		if(cdr(sc->args)==sc->NIL) {
-			x=sc->args;
-			v=num_zero;
+		if(cdr(sc->args) == sc->NIL) {
+			x = sc->args;
+			n = num_zero;
 		} else {
 			x = cdr(sc->args);
-			v = nvalue(car(sc->args));
+			n = nvalue(car(sc->args));
 		}
 		for (; x != sc->NIL; x = cdr(x)) {
-			v=num_sub(v,nvalue(car(x)));
+			n = num_sub(n, nvalue(car(x)));
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_DIV:        /* / */
-		if(cdr(sc->args)==sc->NIL) {
-			x=sc->args;
-			v=num_one;
+		if(cdr(sc->args) == sc->NIL) {
+			x = sc->args;
+			n = num_one;
 		} else {
 			x = cdr(sc->args);
-			v = nvalue(car(sc->args));
+			n = nvalue(car(sc->args));
 		}
 		for (; x != sc->NIL; x = cdr(x)) {
 			if (!is_zero_double(rvalue(car(x))))
-				v=num_div(v,nvalue(car(x)));
+				n = num_div(n, nvalue(car(x)));
 			else {
 				Error_0(sc,"/: division by zero");
 			}
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_INTDIV:        /* quotient */
 		if(cdr(sc->args)==sc->NIL) {
-			x=sc->args;
-			v=num_one;
+			x = sc->args;
+			n = num_one;
 		} else {
 			x = cdr(sc->args);
-			v = nvalue(car(sc->args));
+			n = nvalue(car(sc->args));
 		}
 		for (; x != sc->NIL; x = cdr(x)) {
 			if (ivalue(car(x)) != 0)
-				v=num_intdiv(v,nvalue(car(x)));
+				n = num_intdiv(n, nvalue(car(x)));
 			else {
 				Error_0(sc,"quotient: division by zero");
 			}
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_REM:        /* remainder */
-		v = nvalue(car(sc->args));
+		n = nvalue(car(sc->args));
 		if (ivalue(cadr(sc->args)) != 0)
-			v=num_rem(v,nvalue(cadr(sc->args)));
+			n = num_rem(n, nvalue(cadr(sc->args)));
 		else {
 			Error_0(sc,"remainder: division by zero");
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_MOD:        /* modulo */
-		v = nvalue(car(sc->args));
+		n = nvalue(car(sc->args));
 		if (ivalue(cadr(sc->args)) != 0)
-			v=num_mod(v,nvalue(cadr(sc->args)));
+			n = num_mod(n,nvalue(cadr(sc->args)));
 		else {
 			Error_0(sc,"modulo: division by zero");
 		}
-		s_return(sc,mk_number(sc, v));
+		s_return(sc, mk_number(sc, n));
 
 	case OP_CAR:        /* car */
 		s_return(sc,caar(sc->args));
@@ -3577,61 +3600,7 @@ static cell_ptr_t opexe_2(scheme_t *sc, enum scheme_opcodes op) {
 		s_return(sc,car(sc->args));
 	}
 
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		Error_0(sc,sc->strbuff);
-	}
-	return sc->T;
-}
-
-static int is_list(scheme_t *sc, cell_ptr_t a)
-{ return list_length(sc,a) >= 0; }
-
-/* Result is:
-   proper list: length
-   circular list: -1
-   not even a pair: -2
-   dotted list: -2 minus length before dot
-*/
-int list_length(scheme_t *sc, cell_ptr_t a) {
-	int i=0;
-	cell_ptr_t slow, fast;
-
-	slow = fast = a;
-	while (1)
-	{
-		if (fast == sc->NIL)
-			return i;
-		if (!is_pair(fast))
-			return -2 - i;
-		fast = cdr(fast);
-		++i;
-		if (fast == sc->NIL)
-			return i;
-		if (!is_pair(fast))
-			return -2 - i;
-		++i;
-		fast = cdr(fast);
-
-		/* Safe because we would have already returned if `fast'
-	   encountered a non-pair. */
-		slow = cdr(slow);
-		if (fast == slow)
-		{
-			/* the fast cell_ptr_t has looped back around and caught up
-	       with the slow cell_ptr_t, hence the structure is circular,
-	       not of finite length, and therefore not a list */
-			return -1;
-		}
-	}
-}
-
-static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x;
-	number_t v;
-	int (*comp_func)(number_t,number_t)=0;
-
-	switch (op) {
+	/* ============= Relations start here ==================== */
 	case OP_NOT:        /* not */
 		s_retbool(is_false(car(sc->args)));
 	case OP_BOOLP:       /* boolean? */
@@ -3651,16 +3620,19 @@ static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op) {
 		case OP_GRE:   comp_func=num_gt; break;
 		case OP_LEQ:   comp_func=num_le; break;
 		case OP_GEQ:   comp_func=num_ge; break;
+		default:
+			fprintf(stderr, "FATAL ERROR: should never have operation %u reaching this far\n", (unsigned int)op);
+			exit(1);
 		}
 		x=sc->args;
-		v=nvalue(car(x));
+		n=nvalue(car(x));
 		x=cdr(x);
 
 		for (; x != sc->NIL; x = cdr(x)) {
-			if(!comp_func(v,nvalue(car(x)))) {
+			if(!comp_func(n,nvalue(car(x)))) {
 				s_retbool(0);
 			}
-			v=nvalue(car(x));
+			n=nvalue(car(x));
 		}
 		s_retbool(1);
 	case OP_SYMBOLP:     /* symbol? */
@@ -3714,17 +3686,7 @@ static cell_ptr_t opexe_3(scheme_t *sc, enum scheme_opcodes op) {
 		s_retbool(car(sc->args) == cadr(sc->args));
 	case OP_EQV:        /* eqv? */
 		s_retbool(eqv(car(sc->args), cadr(sc->args)));
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		Error_0(sc,sc->strbuff);
-	}
-	return sc->T;
-}
 
-static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x, y;
-
-	switch (op) {
 	case OP_FORCE:      /* force */
 		sc->code = car(sc->args);
 		if (is_promise(sc->code)) {
@@ -3895,6 +3857,9 @@ static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 		case OP_OPEN_INFILE:     prop=port_input; break;
 		case OP_OPEN_OUTFILE:    prop=port_output; break;
 		case OP_OPEN_INOUTFILE: prop=port_input|port_output; break;
+		default:
+			fprintf(stderr, "FATAL ERROR: should never have operation %u reaching this far\n", (unsigned int)op);
+			exit(1);
 		}
 		p=port_from_filename(sc,strvalue(car(sc->args)),prop);
 		if(p==sc->NIL) {
@@ -3911,6 +3876,9 @@ static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 		switch(op) {
 		case OP_OPEN_INSTRING:     prop=port_input; break;
 		case OP_OPEN_INOUTSTRING:  prop=port_input|port_output; break;
+		default:
+			fprintf(stderr, "FATAL ERROR: should never have operation %u reaching this far\n", (unsigned int)op);
+			exit(1);
 		}
 		p=port_from_string(sc, strvalue(car(sc->args)),
 				   strvalue(car(sc->args))+strlength(car(sc->args)), prop);
@@ -3973,21 +3941,50 @@ static cell_ptr_t opexe_4(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_CURR_ENV: /* current-environment */
 		s_return(sc,sc->envir);
 
-	}
-	return sc->T;
-}
+	/* ======= Extensions (assq, macro, closures) parts ======= */
+	case OP_LIST_LENGTH:     /* length */   /* a.k */
+		v=list_length(sc,car(sc->args));
+		if(v<0) {
+			Error_1(sc,"length: not a list:",car(sc->args));
+		}
+		s_return(sc,mk_integer(sc, v));
 
-static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x;
+	case OP_ASSQ:       /* assq */     /* a.k */
+		x = car(sc->args);
+		for (y = cadr(sc->args); is_pair(y); y = cdr(y)) {
+			if (!is_pair(car(y))) {
+				Error_0(sc,"unable to handle non pair element");
+			}
+			if (x == caar(y))
+				break;
+		}
+		if (is_pair(y)) {
+			s_return(sc,car(y));
+		} else {
+			s_return(sc,sc->F);
+		}
 
-	if(sc->nesting!=0) {
-		int n=sc->nesting;
-		sc->nesting=0;
-		sc->retcode=-1;
-		Error_1(sc,"unmatched parentheses:",mk_integer(sc,n));
-	}
 
-	switch (op) {
+	case OP_GET_CLOSURE:     /* get-closure-code */   /* a.k */
+		sc->args = car(sc->args);
+		if (sc->args == sc->NIL) {
+			s_return(sc,sc->F);
+		} else if (is_closure(sc->args)) {
+			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
+		} else if (is_macro(sc->args)) {
+			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
+		} else {
+			s_return(sc,sc->F);
+		}
+	case OP_CLOSUREP:        /* closure? */
+		/*
+		* Note, macro object is also a closure.
+		* Therefore, (closure? <#MACRO>) ==> #t
+		*/
+		s_retbool(is_closure(car(sc->args)));
+	case OP_MACROP:          /* macro? */
+		s_retbool(is_macro(car(sc->args)));
+
 	/* ========== reading part ========== */
 	case OP_READ:
 		if(!is_pair(sc->args)) {
@@ -4043,7 +4040,24 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	case OP_SET_OUTPORT: /* set-output-port */
 		sc->outport=car(sc->args);
 		s_return(sc,sc->value);
+	default:
+		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
+		Error_0(sc,sc->strbuff);
+	}
+	return sc->T;
+}
 
+static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
+	cell_ptr_t	x;
+
+	if(sc->nesting!=0) {
+		int n=sc->nesting;
+		sc->nesting=0;
+		sc->retcode=-1;
+		Error_1(sc,"unmatched parentheses:",mk_integer(sc,n));
+	}
+
+	switch (op) {
 	case OP_RDSEXPR:
 		switch (sc->tok) {
 		case TOK_EOF:
@@ -4267,61 +4281,6 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		}
 	}
 
-	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		Error_0(sc,sc->strbuff);
-
-	}
-	return sc->T;
-}
-
-static cell_ptr_t opexe_6(scheme_t *sc, enum scheme_opcodes op) {
-	cell_ptr_t x, y;
-	long v;
-
-	switch (op) {
-	case OP_LIST_LENGTH:     /* length */   /* a.k */
-		v=list_length(sc,car(sc->args));
-		if(v<0) {
-			Error_1(sc,"length: not a list:",car(sc->args));
-		}
-		s_return(sc,mk_integer(sc, v));
-
-	case OP_ASSQ:       /* assq */     /* a.k */
-		x = car(sc->args);
-		for (y = cadr(sc->args); is_pair(y); y = cdr(y)) {
-			if (!is_pair(car(y))) {
-				Error_0(sc,"unable to handle non pair element");
-			}
-			if (x == caar(y))
-				break;
-		}
-		if (is_pair(y)) {
-			s_return(sc,car(y));
-		} else {
-			s_return(sc,sc->F);
-		}
-
-
-	case OP_GET_CLOSURE:     /* get-closure-code */   /* a.k */
-		sc->args = car(sc->args);
-		if (sc->args == sc->NIL) {
-			s_return(sc,sc->F);
-		} else if (is_closure(sc->args)) {
-			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
-		} else if (is_macro(sc->args)) {
-			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
-		} else {
-			s_return(sc,sc->F);
-		}
-	case OP_CLOSUREP:        /* closure? */
-		/*
-	   * Note, macro object is also a closure.
-	   * Therefore, (closure? <#MACRO>) ==> #t
-	   */
-		s_retbool(is_closure(car(sc->args)));
-	case OP_MACROP:          /* macro? */
-		s_retbool(is_macro(car(sc->args)));
 	default:
 		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
 		Error_0(sc,sc->strbuff);
