@@ -222,27 +222,35 @@ round_per_R5RS(double x)
  *
  *******************************************************************************/
 cell_ptr_t
-mk_port(scheme_t *sc, port_t *p) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+mk_port(scheme_t *sc,
+	port_t *p)
+{
+	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
 
-	typeflag(x) = T_PORT|T_ATOM;
-	x->_object._port=p;
+	typeflag(x)	= T_PORT | T_ATOM;
+	x->object._port = p;
 	return (x);
 }
 
-cell_ptr_t mk_foreign_func(scheme_t *sc, foreign_func f) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+cell_ptr_t
+mk_foreign_func(scheme_t *sc,
+		foreign_func f)
+{
+	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
 
-	typeflag(x) = (T_FOREIGN | T_ATOM);
-	x->_object._ff=f;
+	typeflag(x)	= T_FOREIGN | T_ATOM;
+	x->object._ff	=f;
 	return (x);
 }
 
-INTERFACE cell_ptr_t mk_character(scheme_t *sc, int c) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+cell_ptr_t
+mk_character(scheme_t *sc,
+	     int c)
+{
+	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
 
-	typeflag(x) = (T_CHARACTER | T_ATOM);
-	ivalue_unchecked(x)= c;
+	typeflag(x)	= T_CHARACTER | T_ATOM;
+	ivalue_unchecked(x)	= c;
 	set_num_integer(x);
 	return (x);
 }

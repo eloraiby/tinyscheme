@@ -118,16 +118,14 @@ eval_op(scheme_t *sc,
 		/* fall through */
 	case OP_REAL_APPLY:
 #endif
-		if (is_proc(sc->code)) {
-			s_goto(sc,procnum(sc->code));   /* PROCEDURE */
-		} else if (is_foreign(sc->code))
-		{
+		if( is_proc(sc->code) ) {
+			s_goto(sc, procnum(sc->code));   /* PROCEDURE */
+		} else if (is_foreign(sc->code) ) {
 			/* Keep nested calls from GC'ing the arglist */
-			push_recent_alloc(sc,sc->args,sc->NIL);
-			x=sc->code->_object._ff(sc,sc->args);
+			push_recent_alloc(sc, sc->args, sc->NIL);
+			x = sc->code->object._ff(sc, sc->args);
 			s_return(sc,x);
-		} else if (is_closure(sc->code) || is_macro(sc->code)
-			   || is_promise(sc->code)) { /* CLOSURE */
+		} else if( is_closure(sc->code) || is_macro(sc->code) || is_promise(sc->code) ) { /* CLOSURE */
 			/* Should not accept promise */
 			/* make environment */
 			new_frame_in_env(sc, closure_env(sc->code));
@@ -1341,7 +1339,7 @@ eval_op(scheme_t *sc,
 	case OP_GET_OUTSTRING: /* get-output-string */ {
 		port_t *p;
 
-		if ((p=car(sc->args)->_object._port)->kind & port_string) {
+		if( (p=car(sc->args)->object._port)->kind & port_string ) {
 			size_t size;
 			char *str;
 
@@ -1463,7 +1461,7 @@ eval_op(scheme_t *sc,
 		if(is_pair(sc->args)) {
 			p=car(sc->args);
 		}
-		res=p->_object._port->kind&port_string;
+		res = p->object._port->kind & port_string;
 		s_retbool(res);
 	}
 

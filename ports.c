@@ -113,36 +113,47 @@ cell_ptr_t port_from_scratch(scheme_t *sc) {
 	return mk_port(sc,pt);
 }
 
-void port_close(scheme_t *sc, cell_ptr_t p, int flag) {
-	port_t *pt=p->_object._port;
-	pt->kind&=~flag;
-	if((pt->kind & (port_input|port_output))==0) {
-		if(pt->kind&port_file) {
+void
+port_close(scheme_t *sc,
+	   cell_ptr_t p,
+	   int flag)
+{
+	port_t *pt	= p->object._port;
+	pt->kind	&= ~flag;
+	if( (pt->kind & (port_input | port_output)) == 0 ) {
+		if( pt->kind & port_file ) {
 
 #if SHOW_ERROR_LINE
 			/* Cleanup is here so (close-*-port) functions could work too */
 			pt->rep.stdio.curr_line = 0;
 
-			if(pt->rep.stdio.filename)
+			if(pt->rep.stdio.filename) {
 				sc->free(pt->rep.stdio.filename);
+			}
 #endif
 
 			fclose(pt->rep.stdio.file);
 		}
-		pt->kind=port_free;
+
+		pt->kind = port_free;
 	}
 }
 
 /* get new character from input file */
-int inchar(scheme_t *sc) {
+int
+inchar(scheme_t *sc)
+{
 	int c;
 	port_t *pt;
 
-	pt = sc->inport->_object._port;
-	if(pt->kind & port_saw_EOF)
-	{ return EOF; }
+	pt = sc->inport->object._port;
+
+	if( pt->kind & port_saw_EOF ) {
+		return EOF;
+	}
+
 	c = basic_inchar(pt);
-	if(c == EOF && sc->inport == sc->loadport) {
+	if( c == EOF && sc->inport == sc->loadport ) {
 		/* Instead, set port_saw_EOF */
 		pt->kind |= port_saw_EOF;
 
@@ -150,6 +161,7 @@ int inchar(scheme_t *sc) {
 		return EOF;
 		/* NOTREACHED */
 	}
+
 	return c;
 }
 
@@ -167,14 +179,21 @@ int basic_inchar(port_t *pt) {
 }
 
 /* back character to input buffer */
-void backchar(scheme_t *sc, int c) {
+void
+backchar(scheme_t *sc,
+	 int c)
+{
 	port_t *pt;
-	if(c==EOF) return;
-	pt=sc->inport->_object._port;
-	if(pt->kind & port_file) {
-		ungetc(c,pt->rep.stdio.file);
+	if( c == EOF ) {
+		return;
+	}
+
+	pt	= sc->inport->object._port;
+
+	if( pt->kind & port_file ) {
+		ungetc(c, pt->rep.stdio.file);
 	} else {
-		if(pt->rep.string.curr!=pt->rep.string.start) {
+		if( pt->rep.string.curr != pt->rep.string.start ) {
 			--pt->rep.string.curr;
 		}
 	}
@@ -199,45 +218,55 @@ int realloc_port_string(scheme_t *sc, port_t *p)
 	}
 }
 
-void putstr(scheme_t *sc, const char *s) {
-	port_t *pt=sc->outport->_object._port;
-	if(pt->kind & port_file) {
-		fputs(s,pt->rep.stdio.file);
+void
+putstr(scheme_t *sc,
+       const char *s)
+{
+	port_t *pt	= sc->outport->object._port;
+	if( pt->kind & port_file ) {
+		fputs(s, pt->rep.stdio.file);
 	} else {
-		for(;*s;s++) {
-			if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
-				*pt->rep.string.curr++=*s;
-			} else if(pt->kind&port_srfi6&&realloc_port_string(sc,pt)) {
-				*pt->rep.string.curr++=*s;
+		for(; *s; s++) {
+			if( pt->rep.string.curr!=pt->rep.string.past_the_end ) {
+				*pt->rep.string.curr++	= *s;
+			} else if( pt->kind & port_srfi6 && realloc_port_string(sc, pt) ) {
+				*pt->rep.string.curr++	= *s;
 			}
 		}
 	}
 }
 
-void putchars(scheme_t *sc, const char *s, int len) {
-	port_t *pt=sc->outport->_object._port;
-	if(pt->kind&port_file) {
-		fwrite(s,1,len,pt->rep.stdio.file);
+void
+putchars(scheme_t *sc,
+	 const char *s,
+	 int len)
+{
+	port_t *pt	= sc->outport->object._port;
+	if( pt->kind & port_file ) {
+		fwrite(s, 1, len, pt->rep.stdio.file);
 	} else {
-		for(;len;len--) {
-			if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
-				*pt->rep.string.curr++=*s++;
-			} else if(pt->kind&port_srfi6&&realloc_port_string(sc,pt)) {
-				*pt->rep.string.curr++=*s++;
+		for(; len; len--) {
+			if( pt->rep.string.curr != pt->rep.string.past_the_end ) {
+				*pt->rep.string.curr++	= *s++;
+			} else if( pt->kind & port_srfi6 && realloc_port_string(sc, pt) ) {
+				*pt->rep.string.curr++	= *s++;
 			}
 		}
 	}
 }
 
-void putcharacter(scheme_t *sc, int c) {
-	port_t *pt=sc->outport->_object._port;
-	if(pt->kind&port_file) {
-		fputc(c,pt->rep.stdio.file);
+void
+putcharacter(scheme_t *sc,
+	     int c)
+{
+	port_t *pt	= sc->outport->object._port;
+	if( pt->kind & port_file ) {
+		fputc(c, pt->rep.stdio.file);
 	} else {
-		if(pt->rep.string.curr!=pt->rep.string.past_the_end) {
-			*pt->rep.string.curr++=c;
-		} else if(pt->kind&port_srfi6&&realloc_port_string(sc,pt)) {
-			*pt->rep.string.curr++=c;
+		if( pt->rep.string.curr != pt->rep.string.past_the_end ) {
+			*pt->rep.string.curr++	= c;
+		} else if( pt->kind & port_srfi6 && realloc_port_string(sc, pt) ) {
+			*pt->rep.string.curr++	= c;
 		}
 	}
 }
