@@ -3,19 +3,23 @@
 #ifndef _SCHEME_H
 #define _SCHEME_H
 
-#include <stdio.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifdef __GNUC__
+#	ifdef _POSIX_C_SOURCE
+#		undef _POSIX_C_SOURCE
+#	endif
+#	define _POSIX_C_SOURCE 200112L
 #	define INLINE static __inline__ __attribute__ ((__unused__))
 #	define UNUSED __attribute__ ((__unused__))
 #else
 #	define INLINE __inline
 #	define UNUSED
 #endif
+
+#include <stdio.h>
 
 /*
  * Default values for #define'd symbols
