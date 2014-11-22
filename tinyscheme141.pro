@@ -4,28 +4,30 @@
 #
 #-------------------------------------------------
 
-QT       += core
-
-QT       -= gui
+QT       -= core gui
 
 TARGET = tinyscheme141
 CONFIG   += console
 CONFIG   -= app_bundle
 
-QMAKE_CFLAGS += -std=c99 -fvisibility=hidden -fvisibility-inlines-hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
-QMAKE_LIBS += -ldl
+QMAKE_CC	= gcc
+QMAKE_CFLAGS	+= -std=c99 -fvisibility=hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
+QMAKE_LIBS	+= -ldl -lm
 QMAKE_LFLAGS	+= -Wl,--gc-sections
-
+QMAKE_LINK	= gcc
 
 #QMAKE_CFLAGS += -std=c89
-QMAKE_LIBS += -ldl
+#QMAKE_LIBS += -ldl
 
 TEMPLATE = app
 
 
 SOURCES += \
     dynload.c \
-    scheme.c
+    scheme.c \
+    eval.c \
+    atoms.c \
+    ports.c
 
 OTHER_FILES += \
     BUILDING \

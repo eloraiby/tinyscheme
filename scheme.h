@@ -9,6 +9,14 @@
 extern "C" {
 #endif
 
+#ifdef __GNUC__
+#	define INLINE static inline __attribute__ ((__unused__))
+#	define UNUSED __attribute__ ((__unused__))
+#else
+#	define INLINE __inline
+#	define UNUSED
+#endif
+
 /*
  * Default values for #define'd symbols
  */
@@ -98,10 +106,6 @@ extern "C" {
 
 #ifndef STDIO_ADDS_CR    /* Define if DOS/Windows */
 # define STDIO_ADDS_CR 0
-#endif
-
-#ifndef INLINE
-# define INLINE
 #endif
 
 #ifndef USE_INTERFACE
