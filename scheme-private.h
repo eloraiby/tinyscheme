@@ -81,12 +81,12 @@ struct cell_t {
 			char   *_svalue;
 			int   _length;
 		} _string;
-		number_t _number;
-		port_t*	port;
-		foreign_func _ff;
+		number_t	number;
+		port_t*		port;
+		foreign_func	ff;
 		struct {
-			cell_t*	head;
-			cell_t* tail;
+			cell_t*		head;
+			cell_t*		tail;
 		} pair;
 	} object;
 };
@@ -211,7 +211,7 @@ double round_per_R5RS(double x);
 #endif
 
 INLINE int num_is_integer(cell_ptr_t p) {
-	return ((p)->object._number.is_integer);
+	return ((p)->object.number.is_integer);
 }
 
 /* macros for cell operations */
@@ -221,10 +221,10 @@ INLINE int num_is_integer(cell_ptr_t p) {
 #define strvalue(p)		((p)->object._string._svalue)
 #define strlength(p)		((p)->object._string._length)
 
-#define ivalue_unchecked(p)	((p)->object._number.value.ivalue)
-#define rvalue_unchecked(p)	((p)->object._number.value.rvalue)
-#define set_num_integer(p)	(p)->object._number.is_integer = 1;
-#define set_num_real(p)		(p)->object._number.is_integer = 0;
+#define ivalue_unchecked(p)	((p)->object.number.value.ivalue)
+#define rvalue_unchecked(p)	((p)->object.number.value.rvalue)
+#define set_num_integer(p)	(p)->object.number.is_integer = 1;
+#define set_num_real(p)		(p)->object.number.is_integer = 0;
 
 #define car(p)			((p)->object.pair.head)
 #define cdr(p)			((p)->object.pair.tail)
@@ -347,7 +347,7 @@ INLINE int is_string(cell_ptr_t p)		{ return (type(p) == T_STRING); }
 INLINE int is_list(scheme_t *sc, cell_ptr_t a)	{ return list_length(sc,a) >= 0; }
 INLINE int is_vector(cell_ptr_t p)		{ return (type(p) == T_VECTOR); }
 INLINE int is_number(cell_ptr_t p)		{ return (type(p)==T_NUMBER); }
-INLINE int is_real(cell_ptr_t p)		{ return is_number(p) && (!(p)->object._number.is_integer); }
+INLINE int is_real(cell_ptr_t p)		{ return is_number(p) && (!(p)->object.number.is_integer); }
 INLINE int is_character(cell_ptr_t p)		{ return (type(p) == T_CHARACTER); }
 INLINE int is_port(cell_ptr_t p)		{ return (type(p) == T_PORT); }
 INLINE int is_inport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind & port_input; }
@@ -365,9 +365,9 @@ INLINE int is_promise(cell_ptr_t p)		{ return (type(p) == T_PROMISE); }
 INLINE int is_environment(cell_ptr_t p)		{ return (type(p) == T_ENVIRONMENT); }
 
 INLINE char *string_value(cell_ptr_t p)		{ return strvalue(p); }
-INLINE number_t nvalue(cell_ptr_t p)		{ return ((p)->object._number); }
-INLINE long ivalue(cell_ptr_t p)		{ return (num_is_integer(p) ? (p)->object._number.value.ivalue : (long)(p)->object._number.value.rvalue); }
-INLINE double rvalue(cell_ptr_t p)		{ return (!num_is_integer(p) ? (p)->object._number.value.rvalue : (double)(p)->object._number.value.ivalue); }
+INLINE number_t nvalue(cell_ptr_t p)		{ return ((p)->object.number); }
+INLINE long ivalue(cell_ptr_t p)		{ return (num_is_integer(p) ? (p)->object.number.value.ivalue : (long)(p)->object.number.value.rvalue); }
+INLINE double rvalue(cell_ptr_t p)		{ return (!num_is_integer(p) ? (p)->object.number.value.rvalue : (double)(p)->object.number.value.ivalue); }
 INLINE long charvalue(cell_ptr_t p)		{ return ivalue_unchecked(p); }
 
 INLINE int is_integer(cell_ptr_t p)		{ if (!is_number(p) ) return 0; return ( num_is_integer(p) || (double)ivalue(p) == rvalue(p) ) ? 1 : 0; }
