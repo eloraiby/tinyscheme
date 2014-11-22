@@ -45,13 +45,13 @@ extern "C" {
 #endif
 
 enum scheme_port_kind {
-	port_free=0,
-	port_file=1,
-	port_string=2,
-	port_srfi6=4,
-	port_input=16,
-	port_output=32,
-	port_saw_EOF=64
+	port_free	=0,
+	port_file	=1,
+	port_string	=2,
+	port_srfi6	=4,
+	port_input	=16,
+	port_output	=32,
+	port_saw_EOF	=64
 };
 
 typedef struct port_t {
@@ -85,9 +85,9 @@ struct cell_t {
 		port_t *_port;
 		foreign_func _ff;
 		struct {
-			cell_t *_car;
-			cell_t *_cdr;
-		} _cons;
+			cell_t*	head;
+			cell_t* tail;
+		} pair;
 	} object;
 };
 
@@ -226,10 +226,10 @@ INLINE int num_is_integer(cell_ptr_t p) {
 #define set_num_integer(p)	(p)->object._number.is_integer = 1;
 #define set_num_real(p)		(p)->object._number.is_integer = 0;
 
-#define car(p)			((p)->object._cons._car)
-#define cdr(p)			((p)->object._cons._cdr)
+#define car(p)			((p)->object.pair.head)
+#define cdr(p)			((p)->object.pair.tail)
 
-#define s_retbool(tf)		s_return(sc,(tf) ? sc->T : sc->F)
+#define s_retbool(tf)		s_return(sc, (tf) ? sc->T : sc->F)
 
 #define procnum(p)		ivalue(p)
 
