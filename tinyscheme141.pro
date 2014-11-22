@@ -10,8 +10,12 @@ TARGET = tinyscheme141
 CONFIG   += console
 CONFIG   -= app_bundle
 
+#
+# consider stripping the executable using: strip -s -R .comment -R .gnu.version -R .note -R .eh_frame -R .eh_frame_hdr tinyscheme141
+#
+
 QMAKE_CC	= gcc
-QMAKE_CFLAGS	+= -std=c99 -fvisibility=hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
+QMAKE_CFLAGS	+= -std=c89 -fvisibility=hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
 QMAKE_LIBS	+= -ldl -lm
 QMAKE_LFLAGS	+= -Wl,--gc-sections
 QMAKE_LINK	= gcc

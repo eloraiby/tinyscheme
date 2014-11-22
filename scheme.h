@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 #ifdef __GNUC__
-#	define INLINE static inline __attribute__ ((__unused__))
+#	define INLINE static __inline__ __attribute__ ((__unused__))
 #	define UNUSED __attribute__ ((__unused__))
 #else
 #	define INLINE __inline
