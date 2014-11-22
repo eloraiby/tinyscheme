@@ -970,36 +970,37 @@ eval_op(scheme_t *sc,
 	}
 
 	case OP_VECTOR: {   /* vector */
-		int i;
-		cell_ptr_t vec;
-		int len=list_length(sc,sc->args);
-		if(len<0) {
-			error_1(sc,"vector: not a proper list:",sc->args);
+		int		i;
+		cell_ptr_t	vec;
+		int		len	= list_length(sc, sc->args);
+		if( len < 0 ) {
+			error_1(sc, "vector: not a proper list:", sc->args);
 		}
-		vec=mk_vector(sc,len);
-		if(sc->no_memory) { s_return(sc, sc->sink); }
-		for (x = sc->args, i = 0; is_pair(x); x = cdr(x), i++) {
-			set_vector_elem(vec,i,car(x));
+		vec	= mk_vector(sc, len);
+		if( sc->memory.no_memory ) { s_return(sc, sc->sink); }
+		for( x = sc->args, i = 0; is_pair(x); x = cdr(x), i++ ) {
+			set_vector_elem(vec, i, car(x));
 		}
 		s_return(sc,vec);
 	}
 
 	case OP_MKVECTOR: { /* make-vector */
-		cell_ptr_t fill=sc->NIL;
-		int len;
-		cell_ptr_t vec;
+		cell_ptr_t	fill = sc->NIL;
+		int		len;
+		cell_ptr_t	vec;
 
-		len=ivalue(car(sc->args));
+		len	= ivalue(car(sc->args));
 
-		if(cdr(sc->args)!=sc->NIL) {
-			fill=cadr(sc->args);
+		if( cdr(sc->args) != sc->NIL ) {
+			fill	= cadr(sc->args);
 		}
-		vec=mk_vector(sc,len);
-		if(sc->no_memory) { s_return(sc, sc->sink); }
-		if(fill!=sc->NIL) {
-			fill_vector(vec,fill);
+
+		vec	= mk_vector(sc, len);
+		if( sc->memory.no_memory ) { s_return(sc, sc->sink); }
+		if( fill != sc->NIL ) {
+			fill_vector(vec, fill);
 		}
-		s_return(sc,vec);
+		s_return(sc, vec);
 	}
 
 	case OP_VECLEN:  /* vector-length */
@@ -1259,9 +1260,9 @@ eval_op(scheme_t *sc,
 		s_return(sc,sc->T);
 
 	case OP_GCVERB:          /* gc-verbose */
-	{    int  was = sc->gc_verbose;
+	{    int  was = sc->memory.gc_verbose;
 
-		sc->gc_verbose = (car(sc->args) != sc->F);
+		sc->memory.gc_verbose = (car(sc->args) != sc->F);
 		s_retbool(was);
 	}
 

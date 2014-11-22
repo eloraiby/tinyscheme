@@ -5,6 +5,10 @@
 
 #ifdef __cplusplus
 extern "C" {
+#else
+typedef unsigned char	bool;
+#	define false	0
+#	define true	(!false)
 #endif
 
 #ifdef __GNUC__

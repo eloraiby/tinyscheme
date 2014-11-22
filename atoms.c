@@ -283,20 +283,28 @@ cell_ptr_t mk_number(scheme_t *sc, number_t n) {
 }
 
 /* allocate name to string area */
-char *store_string(scheme_t *sc, int len_str, const char *str, char fill) {
+char*
+store_string(scheme_t *sc,
+	     int len_str,
+	     const char *str,
+	     char fill)
+{
 	char *q;
 
-	q=(char*)sc->malloc(len_str+1);
-	if(q==0) {
-		sc->no_memory=1;
+	q	= (char*)sc->malloc(len_str + 1);
+
+	if( q == 0 ) {
+		sc->memory.no_memory	= true;
 		return sc->strbuff;
 	}
-	if(str!=0) {
-		snprintf(q, len_str+1, "%s", str);
+
+	if( str != 0 ) {
+		snprintf(q, len_str + 1, "%s", str);
 	} else {
 		memset(q, fill, len_str);
-		q[len_str]=0;
+		q[len_str]	= 0;
 	}
+
 	return (q);
 }
 

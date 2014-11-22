@@ -106,7 +106,7 @@ static int token(scheme_t *sc);
 static void dump_stack_mark(scheme_t *);
 
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op);
-static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op);
+static void eval_cycle(scheme_t *sc, enum scheme_opcodes op);
 static void assign_syntax(scheme_t *sc, char *name);
 static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
@@ -204,7 +204,7 @@ _get_cell(scheme_t *sc,
 {
 	cell_ptr_t x;
 
-	if( sc->no_memory ) {
+	if( sc->memory.no_memory ) {
 		return sc->sink;
 	}
 
@@ -213,8 +213,8 @@ _get_cell(scheme_t *sc,
 		gc(sc, a, b);
 		if( sc->memory.fcells < min_to_be_recovered || sc->memory.free_cell == sc->NIL ) {
 			/* if only a few recovered, get more to avoid fruitless gc's */
-			if (!alloc_cellseg(sc, 1) && sc->memory.free_cell == sc->NIL ) {
-				sc->no_memory	= 1;
+			if( !alloc_cellseg(sc, 1) && sc->memory.free_cell == sc->NIL ) {
+				sc->memory.no_memory	= true;
 				return sc->sink;
 			}
 		}
@@ -232,7 +232,7 @@ static cell_ptr_t
 reserve_cells(scheme_t *sc,
 	      int n)
 {
-	if( sc->no_memory ) {
+	if( sc->memory.no_memory ) {
 		return sc->NIL;
 	}
 
@@ -243,14 +243,14 @@ reserve_cells(scheme_t *sc,
 		if( sc->memory.fcells < n ) {
 			/* If there still aren't, try getting more heap */
 			if (!alloc_cellseg(sc, 1)) {
-				sc->no_memory	= 1;
+				sc->memory.no_memory	= true;
 				return sc->NIL;
 			}
 		}
 
 		if( sc->memory.fcells < n ) {
 			/* If all fail, report failure */
-			sc->no_memory	= 1;
+			sc->memory.no_memory	= true;
 			return sc->NIL;
 		}
 	}
@@ -258,41 +258,47 @@ reserve_cells(scheme_t *sc,
 }
 #endif
 
-static cell_ptr_t get_consecutive_cells(scheme_t *sc, int n) {
+static cell_ptr_t
+get_consecutive_cells(scheme_t *sc,
+		      int n)
+{
 	cell_ptr_t x;
 
-	if(sc->no_memory) { return sc->sink; }
+	if( sc->memory.no_memory ) { return sc->sink; }
 
 	/* Are there any cells available? */
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) { return x; }
+	x	= find_consecutive_cells(sc, n);
+	if( x != sc->NIL ) { return x; }
 
 	/* If not, try gc'ing some */
 	gc(sc, sc->NIL, sc->NIL);
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) { return x; }
+	x	= find_consecutive_cells(sc, n);
+
+	if( x != sc->NIL ) { return x; }
 
 	/* If there still aren't, try getting more heap */
-	if (!alloc_cellseg(sc,1))
-	{
-		sc->no_memory=1;
+	if( !alloc_cellseg(sc, 1) ) {
+		sc->memory.no_memory	= true;
 		return sc->sink;
 	}
 
-	x=find_consecutive_cells(sc,n);
-	if (x != sc->NIL) { return x; }
+	x	= find_consecutive_cells(sc, n);
+	if( x != sc->NIL ) { return x; }
 
 	/* If all fail, report failure */
-	sc->no_memory=1;
+	sc->memory.no_memory	= true;
 	return sc->sink;
 }
 
-static int count_consecutive_cells(cell_ptr_t x, int needed) {
-	int n=1;
-	while(cdr(x)==x+1) {
-		x=cdr(x);
+static int
+count_consecutive_cells(cell_ptr_t x,
+			int needed)
+{
+	int n	= 1;
+	while( cdr(x) == x + 1 ) {
+		x	= cdr(x);
 		n++;
-		if(n>needed) return n;
+		if( n > needed ) return n;
 	}
 	return n;
 }
@@ -346,15 +352,22 @@ cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b)
 	return cell;
 }
 
-cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init)
+cell_ptr_t
+get_vector_object(scheme_t *sc,
+		  int len,
+		  cell_ptr_t init)
 {
-	cell_ptr_t cells = get_consecutive_cells(sc,len/2+len%2+1);
-	if(sc->no_memory) { return sc->sink; }
+	cell_ptr_t cells	= get_consecutive_cells(sc, len / 2 + len % 2 + 1);
+
+	if( sc->memory.no_memory ) {
+		return sc->sink;
+	}
+
 	/* Record it as a vector so that gc understands it. */
-	typeflag(cells) = (T_VECTOR | T_ATOM);
-	ivalue_unchecked(cells)=len;
+	typeflag(cells)		= T_VECTOR | T_ATOM;
+	ivalue_unchecked(cells)	= len;
 	set_num_integer(cells);
-	fill_vector(cells,init);
+	fill_vector(cells, init);
 	push_recent_alloc(sc, cells, sc->NIL);
 	return cells;
 }
@@ -465,11 +478,15 @@ E6:   /* up.  Undo the link switching from steps E4 and E5. */
 }
 
 /* garbage collection. parameter a, b is marked. */
-void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
+void
+gc(scheme_t *sc,
+   cell_ptr_t a,
+   cell_ptr_t b)
+{
 	cell_ptr_t p;
 	int i;
 
-	if(sc->gc_verbose) {
+	if( sc->memory.gc_verbose ) {
 		putstr(sc, "gc...");
 	}
 
@@ -525,7 +542,7 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 		}
 	}
 
-	if( sc->gc_verbose ) {
+	if( sc->memory.gc_verbose ) {
 		char msg[80];
 		snprintf(msg,80,"done: %d cells were recovered.\n", sc->memory.fcells);
 		putstr(sc,msg);
@@ -1309,72 +1326,86 @@ const char *procname(cell_ptr_t x) {
 }
 
 /* kernel of this interpreter */
-static void Eval_Cycle(scheme_t *sc, enum scheme_opcodes op) {
-	sc->op = op;
-	for (;;) {
-		op_code_info *pcd=dispatch_table+sc->op;
-		if (pcd->name!=0) { /* if built-in function, check arguments */
-			char msg[STRBUFFSIZE];
-			int ok=1;
-			int n=list_length(sc,sc->args);
+static void
+eval_cycle(scheme_t *sc,
+	   enum scheme_opcodes op)
+{
+	sc->op	= op;
+	for( ; ; ) {
+		op_code_info *pcd	= dispatch_table + sc->op;
+		if( pcd->name != 0 ) { /* if built-in function, check arguments */
+			char	msg[STRBUFFSIZE];
+			bool	ok	= true;
+			int	n	= list_length(sc, sc->args);
 
 			/* Check number of arguments */
-			if(n<pcd->min_arity) {
-				ok=0;
+			if( n < pcd->min_arity ) {
+				ok	= false;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 					 pcd->name,
-					 pcd->min_arity==pcd->max_arity?"":" at least",
+					 pcd->min_arity == pcd->max_arity ? "" : " at least",
 					 pcd->min_arity);
 			}
-			if(ok && n>pcd->max_arity) {
-				ok=0;
+
+			if( ok && n > pcd->max_arity ) {
+				ok	= false;
 				snprintf(msg, STRBUFFSIZE, "%s: needs%s %d argument(s)",
 					 pcd->name,
-					 pcd->min_arity==pcd->max_arity?"":" at most",
+					 pcd->min_arity == pcd->max_arity ? "" : " at most",
 					 pcd->max_arity);
 			}
-			if(ok) {
-				if(pcd->arg_tests_encoding!=0) {
-					int i=0;
+
+			if( ok ) {
+				if( pcd->arg_tests_encoding != 0 ) {
+					int i	= 0;
 					int j;
-					const char *t=pcd->arg_tests_encoding;
-					cell_ptr_t arglist=sc->args;
+					const char *t	= pcd->arg_tests_encoding;
+					cell_ptr_t arglist	= sc->args;
 					do {
-						cell_ptr_t arg=car(arglist);
-						j=(int)t[0];
-						if(j==TST_LIST[0]) {
-							if(arg!=sc->NIL && !is_pair(arg)) break;
+						cell_ptr_t arg	= car(arglist);
+						j	= (int)t[0];
+
+						if( j == TST_LIST[0] ) {
+							if( arg != sc->NIL && !is_pair(arg) )
+								break;
 						} else {
-							if(!tests[j].fct(arg)) break;
+							if( !tests[j].fct(arg) ) break;
 						}
 
-						if(t[1]!=0) {/* last test is replicated as necessary */
+						if( t[1] != 0 ) {/* last test is replicated as necessary */
 							t++;
 						}
-						arglist=cdr(arglist);
+
+						arglist	= cdr(arglist);
 						i++;
-					} while(i<n);
-					if(i<n) {
-						ok=0;
+					} while( i < n );
+
+					if( i < n ) {
+						ok	= false;
 						snprintf(msg, STRBUFFSIZE, "%s: argument %d must be: %s",
 							 pcd->name,
-							 i+1,
+							 i + 1,
 							 tests[j].kind);
 					}
 				}
 			}
-			if(!ok) {
-				if(_error_1(sc,msg,0)==sc->NIL) {
+
+			if( !ok ) {
+				if(_error_1(sc, msg, 0) == sc->NIL) {
 					return;
 				}
-				pcd=dispatch_table+sc->op;
+
+				pcd	= dispatch_table + sc->op;
 			}
 		}
+
 		ok_to_freely_gc(sc);
-		if (pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL) {
+
+		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL ) {
 			return;
 		}
-		if(sc->no_memory) {
+
+		if( sc->memory.no_memory ) {
 			fprintf(stderr,"No memory!\n");
 			return;
 		}
@@ -1558,7 +1589,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->memory.free_cell		= &sc->_NIL;
 	sc->memory.fcells		= 0;
 	sc->memory.last_cell_seg	= -1;
-	sc->no_memory			= 0;
+	sc->memory.no_memory		= false;
 	sc->inport			= sc->NIL;
 	sc->outport			= sc->NIL;
 	sc->save_inport			= sc->NIL;
@@ -1567,11 +1598,11 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->interactive_repl		= 0;
 
 	if( alloc_cellseg(sc, FIRST_CELLSEGS) != FIRST_CELLSEGS ) {
-		sc->no_memory		= 1;
+		sc->memory.no_memory	= true;
 		return 0;
 	}
 
-	sc->gc_verbose			= 0;
+	sc->memory.gc_verbose		= false;
 	dump_stack_initialize(sc);
 	sc->code			= sc->NIL;
 	sc->tracing			= 0;
@@ -1634,7 +1665,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
 	sc->COMPILE_HOOK	= mk_symbol(sc, "*compile-hook*");
 
-	return !sc->no_memory;
+	return !sc->memory.no_memory;
 }
 
 void scheme_set_input_port_file(scheme_t *sc, FILE *fin) {
@@ -1657,46 +1688,53 @@ void scheme_set_external_data(scheme_t *sc, void *p) {
 	sc->ext_data=p;
 }
 
-void scheme_deinit(scheme_t *sc) {
+void scheme_deinit(scheme_t *sc)
+{
 	int i;
 
 #if SHOW_ERROR_LINE
 	char *fname;
 #endif
 
-	sc->oblist=sc->NIL;
-	sc->global_env=sc->NIL;
+	sc->oblist	= sc->NIL;
+	sc->global_env	= sc->NIL;
 	dump_stack_free(sc);
-	sc->envir=sc->NIL;
-	sc->code=sc->NIL;
-	sc->args=sc->NIL;
-	sc->value=sc->NIL;
-	if(is_port(sc->inport)) {
+	sc->envir	= sc->NIL;
+	sc->code	= sc->NIL;
+	sc->args	= sc->NIL;
+	sc->value	= sc->NIL;
+
+	if( is_port(sc->inport) ) {
 		typeflag(sc->inport) = T_ATOM;
 	}
-	sc->inport=sc->NIL;
-	sc->outport=sc->NIL;
-	if(is_port(sc->save_inport)) {
+
+	sc->inport	= sc->NIL;
+	sc->outport	= sc->NIL;
+
+	if( is_port(sc->save_inport)) {
 		typeflag(sc->save_inport) = T_ATOM;
 	}
-	sc->save_inport=sc->NIL;
-	if(is_port(sc->loadport)) {
+
+	sc->save_inport	= sc->NIL;
+	if( is_port(sc->loadport) ) {
 		typeflag(sc->loadport) = T_ATOM;
 	}
-	sc->loadport=sc->NIL;
-	sc->gc_verbose=0;
-	gc(sc,sc->NIL,sc->NIL);
 
-	for( i=0; i <= sc->memory.last_cell_seg; i++ ) {
+	sc->loadport	= sc->NIL;
+	sc->memory.gc_verbose	= false;
+	gc(sc, sc->NIL, sc->NIL);
+
+	for( i = 0; i <= sc->memory.last_cell_seg; i++ ) {
 		sc->free(sc->memory.alloc_seg[i]);
 	}
 
 #if SHOW_ERROR_LINE
-	for(i=0; i<=sc->file_i; i++) {
-		if (sc->load_stack[i].kind.value & port_file) {
+	for( i = 0; i <= sc->file_i; i++ ) {
+		if( sc->load_stack[i].kind.value & port_file ) {
 			fname = sc->load_stack[i].rep.stdio.filename;
-			if(fname)
+			if(fname) {
 				sc->free(fname);
+			}
 		}
 	}
 #endif
@@ -1729,7 +1767,7 @@ void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 
 	sc->inport=sc->loadport;
 	sc->args = mk_integer(sc,sc->file_i);
-	Eval_Cycle(sc, OP_T0LVL);
+	eval_cycle(sc, OP_T0LVL);
 	typeflag(sc->loadport)	= T_ATOM;
 	if( sc->retcode == 0 ) {
 		sc->retcode	= sc->nesting != 0;
@@ -1752,7 +1790,7 @@ scheme_load_string(scheme_t *sc,
 	sc->interactive_repl	= 0;
 	sc->inport	= sc->loadport;
 	sc->args	= mk_integer(sc, sc->file_i);
-	Eval_Cycle(sc, OP_T0LVL);
+	eval_cycle(sc, OP_T0LVL);
 	typeflag(sc->loadport)	= T_ATOM;
 	if( sc->retcode == 0 ) {
 		sc->retcode	= sc->nesting != 0;

@@ -113,6 +113,9 @@ struct scheme_t {
 		int		last_cell_seg;
 		cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
 		int		fcells;          /* # of free cells */
+
+		bool		gc_verbose;      /* if gc_verbose is not zero, print gc status */
+		bool		no_memory;       /* Whether mem. alloc. has failed */
 	} memory;
 
 	/* We use 4 registers. */
@@ -165,8 +168,6 @@ struct scheme_t {
 	int file_i;
 	int nesting;
 
-	char    gc_verbose;      /* if gc_verbose is not zero, print gc status */
-	char    no_memory;       /* Whether mem. alloc. has failed */
 
 #define LINESIZE 1024
 	char    linebuff[LINESIZE];
