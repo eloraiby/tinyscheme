@@ -23,14 +23,8 @@
 #if USE_DL
 # include "dynload.h"
 #endif
-#include <ctype.h>
 
-#if USE_STRCASECMP
-#include <strings.h>
-# ifndef __APPLE__
-#  define stricmp strcasecmp
-# endif
-#endif
+
 
 #define TOK_EOF     (-1)
 #define TOK_LPAREN  0
@@ -56,8 +50,7 @@
 
 #define banner "TinyScheme 1.41"
 
-#include <string.h>
-#include <stdlib.h>
+
 
 #ifdef __APPLE__
 static int stricmp(const char *s1, const char *s2)
@@ -76,17 +69,6 @@ static int stricmp(const char *s1, const char *s2)
 }
 #endif /* __APPLE__ */
 
-#if USE_STRLWR
-static const char *strlwr(char *s) {
-	const char *p=s;
-	while(*s) {
-		*s=tolower(*s);
-		s++;
-	}
-	return p;
-}
-#endif
-
 #ifndef prompt
 # define prompt "ts> "
 #endif
@@ -100,93 +82,23 @@ static const char *strlwr(char *s) {
 #endif
 
 
-#if USE_CHAR_CLASSIFIERS
-INLINE int Cisalpha(int c) { return isascii(c) && isalpha(c); }
-INLINE int Cisdigit(int c) { return isascii(c) && isdigit(c); }
-INLINE int Cisspace(int c) { return isascii(c) && isspace(c); }
-INLINE int Cisupper(int c) { return isascii(c) && isupper(c); }
-INLINE int Cislower(int c) { return isascii(c) && islower(c); }
-#endif
-
-#if USE_ASCII_NAMES
-static const char *charnames[32]={
-	"nul",
-	"soh",
-	"stx",
-	"etx",
-	"eot",
-	"enq",
-	"ack",
-	"bel",
-	"bs",
-	"ht",
-	"lf",
-	"vt",
-	"ff",
-	"cr",
-	"so",
-	"si",
-	"dle",
-	"dc1",
-	"dc2",
-	"dc3",
-	"dc4",
-	"nak",
-	"syn",
-	"etb",
-	"can",
-	"em",
-	"sub",
-	"esc",
-	"fs",
-	"gs",
-	"rs",
-	"us"
-};
-
-static int is_ascii_name(const char *name, int *pc) {
-	int i;
-	for(i=0; i<32; i++) {
-		if(stricmp(name,charnames[i])==0) {
-			*pc=i;
-			return 1;
-		}
-	}
-	if(stricmp(name,"del")==0) {
-		*pc=127;
-		return 1;
-	}
-	return 0;
-}
-
-#endif
 
 static int file_push(scheme_t *sc, const char *fname);
 static void file_pop(scheme_t *sc);
 static int file_interactive(scheme_t *sc);
 INLINE int is_one_of(char *s, int c);
-static int alloc_cellseg(scheme_t *sc, int n);
-static long binary_decode(const char *s);
-INLINE cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 static cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
 static cell_ptr_t reserve_cells(scheme_t *sc, int n);
 static cell_ptr_t get_consecutive_cells(scheme_t *sc, int n);
 static cell_ptr_t find_consecutive_cells(scheme_t *sc, int n);
 static void finalize_cell(scheme_t *sc, cell_ptr_t a);
 static int count_consecutive_cells(cell_ptr_t x, int needed);
-static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t sym, int all);
+cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t sym, int all);
 static void mark(cell_ptr_t a);
-static void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-static int basic_inchar(port_t *pt);
-static int inchar(scheme_t *sc);
-static void backchar(scheme_t *sc, int c);
 static char *readstr_upto(scheme_t *sc, char *delim);
 static cell_ptr_t readstrexp(scheme_t *sc);
 INLINE int skipspace(scheme_t *sc);
 static int token(scheme_t *sc);
-static void printslashstring(scheme_t *sc, char *s, int len);
-static void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen);
-static void printatom(scheme_t *sc, cell_ptr_t l, int f);
 static void dump_stack_mark(scheme_t *);
 
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op);
@@ -195,20 +107,8 @@ static void assign_syntax(scheme_t *sc, char *name);
 static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
 
-static long binary_decode(const char *s) {
-	long x=0;
-
-	while(*s!=0 && (*s=='1' || *s=='0')) {
-		x<<=1;
-		x+=*s-'0';
-		s++;
-	}
-
-	return x;
-}
-
 /* allocate new cell segment */
-static int alloc_cellseg(scheme_t *sc, int n) {
+int alloc_cellseg(scheme_t *sc, int n) {
 	cell_ptr_t newp;
 	cell_ptr_t last;
 	cell_ptr_t p;
@@ -386,7 +286,7 @@ static cell_ptr_t find_consecutive_cells(scheme_t *sc, int n) {
 /* To retain recent allocs before interpreter knows about them -
    Tehom */
 
-static void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra)
+void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra)
 {
 	cell_ptr_t holder = get_cell_x(sc, recent, extra);
 	typeflag(holder) = T_PAIR | T_IMMUTABLE;
@@ -396,7 +296,7 @@ static void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra)
 }
 
 
-static cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b)
+cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b)
 {
 	cell_ptr_t cell   = get_cell_x(sc, a, b);
 	/* For right now, include "a" and "b" in "cell" so that gc doesn't
@@ -409,7 +309,7 @@ static cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b)
 	return cell;
 }
 
-static cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init)
+cell_ptr_t get_vector_object(scheme_t *sc, int len, cell_ptr_t init)
 {
 	cell_ptr_t cells = get_consecutive_cells(sc,len/2+len%2+1);
 	if(sc->no_memory) { return sc->sink; }
@@ -467,103 +367,7 @@ cell_ptr_t _cons(scheme_t *sc, cell_ptr_t a, cell_ptr_t b, int immutable) {
 	return (x);
 }
 
-/* ========== oblist implementation  ========== */
 
-#ifndef USE_OBJECT_LIST
-
-static int hash_fn(const char *key, int table_size);
-
-static cell_ptr_t oblist_initial_value(scheme_t *sc)
-{
-	return mk_vector(sc, 461); /* probably should be bigger */
-}
-
-/* returns the new symbol */
-static cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name)
-{
-	cell_ptr_t x;
-	int location;
-
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
-	typeflag(x) = T_SYMBOL;
-	setimmutable(car(x));
-
-	location = hash_fn(name, ivalue_unchecked(sc->oblist));
-	set_vector_elem(sc->oblist, location,
-			immutable_cons(sc, x, vector_elem(sc->oblist, location)));
-	return x;
-}
-
-INLINE cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name)
-{
-	int location;
-	cell_ptr_t x;
-	char *s;
-
-	location = hash_fn(name, ivalue_unchecked(sc->oblist));
-	for (x = vector_elem(sc->oblist, location); x != sc->NIL; x = cdr(x)) {
-		s = symname(car(x));
-		/* case-insensitive, per R5RS section 2. */
-		if(stricmp(name, s) == 0) {
-			return car(x);
-		}
-	}
-	return sc->NIL;
-}
-
-static cell_ptr_t oblist_all_symbols(scheme_t *sc)
-{
-	int i;
-	cell_ptr_t x;
-	cell_ptr_t ob_list = sc->NIL;
-
-	for (i = 0; i < ivalue_unchecked(sc->oblist); i++) {
-		for (x  = vector_elem(sc->oblist, i); x != sc->NIL; x = cdr(x)) {
-			ob_list = cons(sc, x, ob_list);
-		}
-	}
-	return ob_list;
-}
-
-#else
-
-static cell_ptr_t oblist_initial_value(scheme_t *sc)
-{
-	return sc->NIL;
-}
-
-static INLINE cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name)
-{
-	cell_ptr_t x;
-	char    *s;
-
-	for (x = sc->oblist; x != sc->NIL; x = cdr(x)) {
-		s = symname(car(x));
-		/* case-insensitive, per R5RS section 2. */
-		if(stricmp(name, s) == 0) {
-			return car(x);
-		}
-	}
-	return sc->NIL;
-}
-
-/* returns the new symbol */
-static cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name)
-{
-	cell_ptr_t x;
-
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
-	typeflag(x) = T_SYMBOL;
-	setimmutable(car(x));
-	sc->oblist = immutable_cons(sc, x, sc->oblist);
-	return x;
-}
-static cell_ptr_t oblist_all_symbols(scheme_t *sc)
-{
-	return sc->oblist;
-}
-
-#endif
 
 
 /* ========== garbage collector ========== */
@@ -624,7 +428,7 @@ E6:   /* up.  Undo the link switching from steps E4 and E5. */
 }
 
 /* garbage collection. parameter a, b is marked. */
-static void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
+void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	cell_ptr_t p;
 	int i;
 
@@ -735,11 +539,6 @@ static void file_pop(scheme_t *sc) {
 		sc->file_i--;
 		sc->loadport->_object._port=sc->load_stack+sc->file_i;
 	}
-}
-
-static int file_interactive(scheme_t *sc) {
-	return sc->file_i==0 && sc->load_stack[0].rep.stdio.file==stdin
-			&& sc->inport->_object._port->kind&port_file;
 }
 
 
@@ -986,419 +785,9 @@ static int token(scheme_t *sc) {
 	}
 }
 
-/* ========== Routines for Printing ========== */
-#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == sc->NIL)
-
-static void printslashstring(scheme_t *sc, char *p, int len) {
-	int i;
-	unsigned char *s=(unsigned char*)p;
-	putcharacter(sc,'"');
-	for ( i=0; i<len; i++) {
-		if(*s==0xff || *s=='"' || *s<' ' || *s=='\\') {
-			putcharacter(sc,'\\');
-			switch(*s) {
-			case '"':
-				putcharacter(sc,'"');
-				break;
-			case '\n':
-				putcharacter(sc,'n');
-				break;
-			case '\t':
-				putcharacter(sc,'t');
-				break;
-			case '\r':
-				putcharacter(sc,'r');
-				break;
-			case '\\':
-				putcharacter(sc,'\\');
-				break;
-			default: {
-				int d=*s/16;
-				putcharacter(sc,'x');
-				if(d<10) {
-					putcharacter(sc,d+'0');
-				} else {
-					putcharacter(sc,d-10+'A');
-				}
-				d=*s%16;
-				if(d<10) {
-					putcharacter(sc,d+'0');
-				} else {
-					putcharacter(sc,d-10+'A');
-				}
-			}
-			}
-		} else {
-			putcharacter(sc,*s);
-		}
-		s++;
-	}
-	putcharacter(sc,'"');
-}
-
-
-/* print atoms */
-static void printatom(scheme_t *sc, cell_ptr_t l, int f) {
-	char *p;
-	int len;
-	atom2str(sc,l,f,&p,&len);
-	putchars(sc,p,len);
-}
-
-
-/* Uses internal buffer unless string cell_ptr_t is already available */
-static void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
-	char *p;
-
-	if (l == sc->NIL) {
-		p = "()";
-	} else if (l == sc->T) {
-		p = "#t";
-	} else if (l == sc->F) {
-		p = "#f";
-	} else if (l == sc->EOF_OBJ) {
-		p = "#<EOF>";
-	} else if (is_port(l)) {
-		p = sc->strbuff;
-		snprintf(p, STRBUFFSIZE, "#<PORT>");
-	} else if (is_number(l)) {
-		p = sc->strbuff;
-		if (f <= 1 || f == 10) /* f is the base for numbers if > 1 */ {
-			if(num_is_integer(l)) {
-				snprintf(p, STRBUFFSIZE, "%ld", ivalue_unchecked(l));
-			} else {
-				snprintf(p, STRBUFFSIZE, "%.10g", rvalue_unchecked(l));
-				/* r5rs says there must be a '.' (unless 'e'?) */
-				f = strcspn(p, ".e");
-				if (p[f] == 0) {
-					p[f] = '.'; /* not found, so add '.0' at the end */
-					p[f+1] = '0';
-					p[f+2] = 0;
-				}
-			}
-		} else {
-			long v = ivalue(l);
-			if (f == 16) {
-				if (v >= 0)
-					snprintf(p, STRBUFFSIZE, "%lx", v);
-				else
-					snprintf(p, STRBUFFSIZE, "-%lx", -v);
-			} else if (f == 8) {
-				if (v >= 0)
-					snprintf(p, STRBUFFSIZE, "%lo", v);
-				else
-					snprintf(p, STRBUFFSIZE, "-%lo", -v);
-			} else if (f == 2) {
-				unsigned long b = (v < 0) ? -v : v;
-				p = &p[STRBUFFSIZE-1];
-				*p = 0;
-				do { *--p = (b&1) ? '1' : '0'; b >>= 1; } while (b != 0);
-				if (v < 0) *--p = '-';
-			}
-		}
-	} else if (is_string(l)) {
-		if (!f) {
-			p = strvalue(l);
-		} else { /* Hack, uses the fact that printing is needed */
-			*pp=sc->strbuff;
-			*plen=0;
-			printslashstring(sc, strvalue(l), strlength(l));
-			return;
-		}
-	} else if (is_character(l)) {
-		int c=charvalue(l);
-		p = sc->strbuff;
-		if (!f) {
-			p[0]=c;
-			p[1]=0;
-		} else {
-			switch(c) {
-			case ' ':
-				snprintf(p,STRBUFFSIZE,"#\\space"); break;
-			case '\n':
-				snprintf(p,STRBUFFSIZE,"#\\newline"); break;
-			case '\r':
-				snprintf(p,STRBUFFSIZE,"#\\return"); break;
-			case '\t':
-				snprintf(p,STRBUFFSIZE,"#\\tab"); break;
-			default:
-#if USE_ASCII_NAMES
-				if(c==127) {
-					snprintf(p,STRBUFFSIZE, "#\\del");
-					break;
-				} else if(c<32) {
-					snprintf(p, STRBUFFSIZE, "#\\%s", charnames[c]);
-					break;
-				}
-#else
-				if(c<32) {
-					snprintf(p,STRBUFFSIZE,"#\\x%x",c); break;
-					break;
-				}
-#endif
-				snprintf(p,STRBUFFSIZE,"#\\%c",c); break;
-				break;
-			}
-		}
-	} else if (is_symbol(l)) {
-		p = symname(l);
-	} else if (is_proc(l)) {
-		p = sc->strbuff;
-		snprintf(p,STRBUFFSIZE,"#<%s PROCEDURE %ld>", procname(l),procnum(l));
-	} else if (is_macro(l)) {
-		p = "#<MACRO>";
-	} else if (is_closure(l)) {
-		p = "#<CLOSURE>";
-	} else if (is_promise(l)) {
-		p = "#<PROMISE>";
-	} else if (is_foreign(l)) {
-		p = sc->strbuff;
-		snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
-	} else if (is_continuation(l)) {
-		p = "#<CONTINUATION>";
-	} else {
-		p = "#<ERROR>";
-	}
-	*pp=p;
-	*plen=strlen(p);
-}
-/* ========== Routines for Evaluation Cycle ========== */
-
-static cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d) {
-	cell_ptr_t p, q;
-	if(cdr(d)==sc->NIL) {
-		return car(d);
-	}
-	p=cons(sc,car(d),cdr(d));
-	q=p;
-	while(cdr(cdr(p))!=sc->NIL) {
-		d=cons(sc,car(p),cdr(p));
-		if(cdr(cdr(p))!=sc->NIL) {
-			p=cdr(d);
-		}
-	}
-	cdr(p)=car(cdr(p));
-	return q;
-}
-
-/* reverse list -- produce new list */
-cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
-	/* a must be checked by gc */
-	cell_ptr_t p = sc->NIL;
-
-	for ( ; is_pair(a); a = cdr(a)) {
-		p = cons(sc, car(a), p);
-	}
-	return (p);
-}
-
-/* reverse list --- in-place */
-cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list) {
-	cell_ptr_t p = list, result = term, q;
-
-	while (p != sc->NIL) {
-		q = cdr(p);
-		cdr(p) = result;
-		result = p;
-		p = q;
-	}
-	return (result);
-}
-
-/* append list -- produce new list (in reverse order) */
-cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	cell_ptr_t result = a;
-	cell_ptr_t p = b;
-
-	while (is_pair(p)) {
-		result = cons(sc, car(p), result);
-		p = cdr(p);
-	}
-
-	if (p == sc->NIL) {
-		return result;
-	}
-
-	return sc->F;   /* signal an error */
-}
-
-/* equivalence of atoms */
-int eqv(cell_ptr_t a, cell_ptr_t b) {
-	if (is_string(a)) {
-		if (is_string(b))
-			return (strvalue(a) == strvalue(b));
-		else
-			return (0);
-	} else if (is_number(a)) {
-		if (is_number(b)) {
-			if (num_is_integer(a) == num_is_integer(b))
-				return num_eq(nvalue(a),nvalue(b));
-		}
-		return (0);
-	} else if (is_character(a)) {
-		if (is_character(b))
-			return charvalue(a)==charvalue(b);
-		else
-			return (0);
-	} else if (is_port(a)) {
-		if (is_port(b))
-			return a==b;
-		else
-			return (0);
-	} else if (is_proc(a)) {
-		if (is_proc(b))
-			return procnum(a)==procnum(b);
-		else
-			return (0);
-	} else {
-		return (a == b);
-	}
-}
-
-
-/* ========== Environment implementation  ========== */
-
-#if !defined(USE_ALIST_ENV) || !defined(USE_OBJECT_LIST)
-
-static int hash_fn(const char *key, int table_size)
-{
-	unsigned int hashed = 0;
-	const char *c;
-	int bits_per_int = sizeof(unsigned int)*8;
-
-	for (c = key; *c; c++) {
-		/* letters have about 5 bits in them */
-		hashed = (hashed<<5) | (hashed>>(bits_per_int-5));
-		hashed ^= *c;
-	}
-	return hashed % table_size;
-}
-#endif
-
-#ifndef USE_ALIST_ENV
-
-/*
- * In this implementation, each frame of the environment may be
- * a hash table: a vector of alists hashed by variable name.
- * In practice, we use a vector only for the initial frame;
- * subsequent frames are too small and transient for the lookup
- * speed to out-weigh the cost of making a new vector.
- */
-
-static void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
-{
-	cell_ptr_t new_frame;
-
-	/* The interaction-environment has about 300 variables in it. */
-	if (old_env == sc->NIL) {
-		new_frame = mk_vector(sc, 461);
-	} else {
-		new_frame = sc->NIL;
-	}
-
-	sc->envir = immutable_cons(sc, new_frame, old_env);
-	setenvironment(sc->envir);
-}
-
-INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
-					cell_ptr_t variable, cell_ptr_t value)
-{
-	cell_ptr_t slot = immutable_cons(sc, variable, value);
-
-	if (is_vector(car(env))) {
-		int location = hash_fn(symname(variable), ivalue_unchecked(car(env)));
-
-		set_vector_elem(car(env), location,
-				immutable_cons(sc, slot, vector_elem(car(env), location)));
-	} else {
-		car(env) = immutable_cons(sc, slot, car(env));
-	}
-}
-
-static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all)
-{
-	cell_ptr_t x,y;
-	int location;
-
-	for (x = env; x != sc->NIL; x = cdr(x)) {
-		if (is_vector(car(x))) {
-			location = hash_fn(symname(hdl), ivalue_unchecked(car(x)));
-			y = vector_elem(car(x), location);
-		} else {
-			y = car(x);
-		}
-		for ( ; y != sc->NIL; y = cdr(y)) {
-			if (caar(y) == hdl) {
-				break;
-			}
-		}
-		if (y != sc->NIL) {
-			break;
-		}
-		if(!all) {
-			return sc->NIL;
-		}
-	}
-	if (x != sc->NIL) {
-		return car(y);
-	}
-	return sc->NIL;
-}
-
-#else /* USE_ALIST_ENV */
-
-static INLINE void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
-{
-	sc->envir = immutable_cons(sc, sc->NIL, old_env);
-	setenvironment(sc->envir);
-}
-
-static INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
-					cell_ptr_t variable, cell_ptr_t value)
-{
-	car(env) = immutable_cons(sc, immutable_cons(sc, variable, value), car(env));
-}
-
-static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all)
-{
-	cell_ptr_t x,y;
-	for (x = env; x != sc->NIL; x = cdr(x)) {
-		for (y = car(x); y != sc->NIL; y = cdr(y)) {
-			if (caar(y) == hdl) {
-				break;
-			}
-		}
-		if (y != sc->NIL) {
-			break;
-		}
-		if(!all) {
-			return sc->NIL;
-		}
-	}
-	if (x != sc->NIL) {
-		return car(y);
-	}
-	return sc->NIL;
-}
-
-#endif /* USE_ALIST_ENV else */
-
-INLINE void new_slot_in_env(scheme_t *sc, cell_ptr_t variable, cell_ptr_t value)
-{
-	new_slot_spec_in_env(sc, sc->envir, variable, value);
-}
-
-INLINE void set_slot_in_env(scheme_t *sc, cell_ptr_t slot, cell_ptr_t value)
-{
-	cdr(slot) = value;
-}
-
-INLINE cell_ptr_t slot_value_in_env(cell_ptr_t slot)
-{
-	return cdr(slot);
-}
 
 /* ========== Evaluation Cycle ========== */
+#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == sc->NIL)
 
 
 cell_ptr_t
@@ -1486,7 +875,7 @@ cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a) {
 	return sc->T;
 }
 
-static void s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code) {
+void s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code) {
 	sc->dump = cons(sc, sc->envir, cons(sc, (code), sc->dump));
 	sc->dump = cons(sc, (args), sc->dump);
 	sc->dump = cons(sc, mk_integer(sc, (long)(op)), sc->dump);
@@ -1499,44 +888,7 @@ INLINE void dump_stack_mark(scheme_t *sc)
 
 
 
-/* Result is:
-   proper list: length
-   circular list: -1
-   not even a pair: -2
-   dotted list: -2 minus length before dot
-*/
-int list_length(scheme_t *sc, cell_ptr_t a) {
-	int i=0;
-	cell_ptr_t slow, fast;
 
-	slow = fast = a;
-	while (1)
-	{
-		if (fast == sc->NIL)
-			return i;
-		if (!is_pair(fast))
-			return -2 - i;
-		fast = cdr(fast);
-		++i;
-		if (fast == sc->NIL)
-			return i;
-		if (!is_pair(fast))
-			return -2 - i;
-		++i;
-		fast = cdr(fast);
-
-		/* Safe because we would have already returned if `fast'
-	   encountered a non-pair. */
-		slow = cdr(slow);
-		if (fast == slow)
-		{
-			/* the fast cell_ptr_t has looped back around and caught up
-	       with the slow cell_ptr_t, hence the structure is circular,
-	       not of finite length, and therefore not a list */
-			return -1;
-		}
-	}
-}
 
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t	x;
@@ -2457,7 +1809,7 @@ int MacTS_main(int argc, char **argv) {
 int main(int argc, char **argv) {
 #endif
 	scheme_t sc;
-	FILE *fin;
+	FILE *fin = 0;
 	char *file_name=InitFile;
 	int retcode;
 	int isfile=1;

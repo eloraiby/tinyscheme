@@ -4,6 +4,7 @@
 #define _SCHEME_PRIVATE_H
 
 #include "scheme.h"
+
 /*------------------ Ugly internals -----------------------------------*/
 /*------------------ Of interest only to FFI users --------------------*/
 
@@ -277,7 +278,70 @@ INLINE int num_is_integer(cell_ptr_t p) {
 
 #define s_return(sc,a)		return _s_return(sc,a)
 
-cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a);
+cell_ptr_t	_s_return(scheme_t *sc, cell_ptr_t a);
+void		s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code);
+
+int		hash_fn(const char *key, int table_size);
+void		new_frame_in_env(scheme_t *sc, cell_ptr_t old_env);
+cell_ptr_t	find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all);
+
+cell_ptr_t	mk_proc(scheme_t *sc, enum scheme_opcodes op);
+cell_ptr_t	mk_closure(scheme_t *sc, cell_ptr_t c, cell_ptr_t e);
+cell_ptr_t	mk_continuation(scheme_t *sc, cell_ptr_t d);
+
+cell_ptr_t	list_star(scheme_t *sc, cell_ptr_t d);
+cell_ptr_t	reverse(scheme_t *sc, cell_ptr_t a);
+cell_ptr_t	reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list);
+cell_ptr_t	revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+cell_ptr_t	oblist_initial_value(scheme_t *sc);
+cell_ptr_t	oblist_add_by_name(scheme_t *sc, const char *name);
+cell_ptr_t	oblist_all_symbols(scheme_t *sc);
+cell_ptr_t	oblist_find_by_name(scheme_t *sc, const char *name);
+
+cell_ptr_t	mk_number(scheme_t *sc, number_t n);
+char*		store_string(scheme_t *sc, int len, const char *str, char fill);
+cell_ptr_t	mk_vector(scheme_t *sc, int len);
+cell_ptr_t	mk_atom(scheme_t *sc, char *q);
+cell_ptr_t	mk_sharp_const(scheme_t *sc, char *name);
+cell_ptr_t	mk_port(scheme_t *sc, port_t *p);
+
+
+void		printatom(scheme_t *sc, cell_ptr_t l, int f);
+void		atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) ;
+cell_ptr_t	get_vector_object(scheme_t *sc, int len, cell_ptr_t init);
+
+void		fill_vector(cell_ptr_t vec, cell_ptr_t obj);
+cell_ptr_t	vector_elem(cell_ptr_t vec, int ielem);
+cell_ptr_t	set_vector_elem(cell_ptr_t vec, int ielem, cell_ptr_t a);
+
+
+int		syntaxnum(cell_ptr_t p);
+cell_ptr_t	_error_1(scheme_t *sc, const char *s, cell_ptr_t a);
+
+/* ports */
+cell_ptr_t	port_from_filename(scheme_t *sc, const char *fn, int prop);
+cell_ptr_t	port_from_file(scheme_t *sc, FILE *, int prop);
+cell_ptr_t	port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
+port_t*		port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
+port_t*		port_rep_from_file(scheme_t *sc, FILE *, int prop);
+port_t*		port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
+void		port_close(scheme_t *sc, cell_ptr_t p, int flag);
+int		basic_inchar(port_t *pt);
+int		inchar(scheme_t *sc);
+void		backchar(scheme_t *sc, int c);
+void		putchars(scheme_t *sc, const char *s, int len);
+void		putcharacter(scheme_t *sc, int c);
+port_t*		port_rep_from_scratch(scheme_t *sc);
+
+
+cell_ptr_t	get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+int		alloc_cellseg(scheme_t *sc, int n);
+void		push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra);
+
+void		gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+
+cell_ptr_t	eval_op(scheme_t *sc, enum scheme_opcodes op);
+
 
 INLINE int is_string(cell_ptr_t p)		{ return (type(p) == T_STRING); }
 INLINE int is_list(scheme_t *sc, cell_ptr_t a)	{ return list_length(sc,a) >= 0; }
@@ -323,49 +387,44 @@ SCHEME_EXPORT INLINE int hasprop(cell_ptr_t p)     { return (typeflag(p)&T_SYMBO
 INLINE char *syntaxname(cell_ptr_t p)		{ return strvalue(car(p)); }
 const char *procname(cell_ptr_t x);
 
-INLINE cell_ptr_t closure_code(cell_ptr_t p)   { return car(p); }
-INLINE cell_ptr_t closure_env(cell_ptr_t p)    { return cdr(p); }
+INLINE cell_ptr_t closure_code(cell_ptr_t p)	{ return car(p); }
+INLINE cell_ptr_t closure_env(cell_ptr_t p)	{ return cdr(p); }
 
+INLINE int file_interactive(scheme_t *sc)	{ return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin && sc->inport->_object._port->kind & port_file; }
 
+INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t variable, cell_ptr_t value)
+{
+	cell_ptr_t slot = immutable_cons(sc, variable, value);
 
+	if (is_vector(car(env))) {
+		int location = hash_fn(symname(variable), ivalue_unchecked(car(env)));
+
+		set_vector_elem(car(env), location,
+				immutable_cons(sc, slot, vector_elem(car(env), location)));
+	} else {
+		car(env) = immutable_cons(sc, slot, car(env));
+	}
+}
+
+INLINE void new_slot_in_env(scheme_t *sc, cell_ptr_t variable, cell_ptr_t value) { new_slot_spec_in_env(sc, sc->envir, variable, value); }
+
+INLINE void set_slot_in_env(scheme_t *sc, cell_ptr_t slot, cell_ptr_t value)	{ cdr(slot) = value; }
+
+INLINE cell_ptr_t slot_value_in_env(cell_ptr_t slot)	{ return cdr(slot); }
+
+#if USE_CHAR_CLASSIFIERS
+INLINE int Cisalpha(int c)			{ return isascii(c) && isalpha(c); }
+INLINE int Cisdigit(int c)			{ return isascii(c) && isdigit(c); }
+INLINE int Cisspace(int c)			{ return isascii(c) && isspace(c); }
+INLINE int Cisupper(int c)			{ return isascii(c) && isupper(c); }
+INLINE int Cislower(int c)			{ return isascii(c) && islower(c); }
+#endif
 
 INTERFACE INLINE int is_immutable(cell_ptr_t p) { return (typeflag(p)&T_IMMUTABLE); }
 /*#define setimmutable(p)  typeflag(p) |= T_IMMUTABLE*/
 INTERFACE INLINE void setimmutable(cell_ptr_t p) { typeflag(p) |= T_IMMUTABLE; }
 
-cell_ptr_t	mk_proc(scheme_t *sc, enum scheme_opcodes op);
-cell_ptr_t	mk_closure(scheme_t *sc, cell_ptr_t c, cell_ptr_t e);
-cell_ptr_t	mk_continuation(scheme_t *sc, cell_ptr_t d);
 
-cell_ptr_t	reverse(scheme_t *sc, cell_ptr_t a);
-cell_ptr_t	reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list);
-cell_ptr_t	revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
-
-cell_ptr_t	mk_number(scheme_t *sc, number_t n);
-char*		store_string(scheme_t *sc, int len, const char *str, char fill);
-cell_ptr_t	mk_vector(scheme_t *sc, int len);
-cell_ptr_t	mk_atom(scheme_t *sc, char *q);
-cell_ptr_t	mk_sharp_const(scheme_t *sc, char *name);
-cell_ptr_t	mk_port(scheme_t *sc, port_t *p);
-
-void		fill_vector(cell_ptr_t vec, cell_ptr_t obj);
-cell_ptr_t	vector_elem(cell_ptr_t vec, int ielem);
-cell_ptr_t	set_vector_elem(cell_ptr_t vec, int ielem, cell_ptr_t a);
-
-int		syntaxnum(cell_ptr_t p);
-cell_ptr_t	_error_1(scheme_t *sc, const char *s, cell_ptr_t a);
-
-/* ports */
-cell_ptr_t	port_from_filename(scheme_t *sc, const char *fn, int prop);
-cell_ptr_t	port_from_file(scheme_t *sc, FILE *, int prop);
-cell_ptr_t	port_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
-port_t*		port_rep_from_filename(scheme_t *sc, const char *fn, int prop);
-port_t*		port_rep_from_file(scheme_t *sc, FILE *, int prop);
-port_t*		port_rep_from_string(scheme_t *sc, char *start, char *past_the_end, int prop);
-void		port_close(scheme_t *sc, cell_ptr_t p, int flag);
-
-
-cell_ptr_t	eval_op(scheme_t *sc, enum scheme_opcodes op);
 #ifdef __cplusplus
 }
 #endif

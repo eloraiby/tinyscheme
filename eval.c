@@ -1,5 +1,11 @@
 #include "scheme-private.h"
 
+static int
+is_zero_double(double x)
+{
+	return x < DBL_MIN && x > -DBL_MIN;
+}
+
 cell_ptr_t
 eval_op(scheme_t *sc,
 	enum scheme_opcodes op)

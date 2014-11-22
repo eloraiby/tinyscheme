@@ -27,7 +27,8 @@ SOURCES += \
     scheme.c \
     eval.c \
     atoms.c \
-    ports.c
+    ports.c \
+    sexp.c
 
 OTHER_FILES += \
     BUILDING \

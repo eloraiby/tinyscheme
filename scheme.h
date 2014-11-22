@@ -116,6 +116,26 @@ extern "C" {
 # define SHOW_ERROR_LINE 1
 #endif
 
+#define __USE_SVID 1
+#include <ctype.h>
+
+#if USE_STRCASECMP
+#include <strings.h>
+# ifndef __APPLE__
+#  define stricmp strcasecmp
+# endif
+#endif
+
+#include <string.h>
+#include <stdlib.h>
+
+#if USE_MATH
+# include <math.h>
+#endif
+
+#include <limits.h>
+#include <float.h>
+
 typedef struct scheme_t scheme_t;
 typedef struct cell_t cell_t;
 typedef struct cell_t* cell_ptr_t;
