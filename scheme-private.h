@@ -23,7 +23,7 @@ enum scheme_types {
 	T_MACRO		= 12,
 	T_PROMISE	= 13,
 	T_ENVIRONMENT	= 14,
-	T_LAST_SYSTEM_TYPE=14
+	T_LAST_SYSTEM_TYPE = 14
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
@@ -45,30 +45,34 @@ extern "C" {
 #endif
 
 enum scheme_port_kind {
-	port_free	=0,
-	port_file	=1,
-	port_string	=2,
-	port_srfi6	=4,
-	port_input	=16,
-	port_output	=32,
-	port_saw_EOF	=64
+	port_free	= 0,
+	port_file	= 1,
+	port_string	= 2,
+	port_srfi6	= 4,
+	port_input	= 16,
+	port_output	= 32,
+	port_saw_EOF	= 64
 };
 
+typedef struct {
+	unsigned char value;
+} port_kind_t;
+
 typedef struct port_t {
-	unsigned char kind;
+	port_kind_t	kind;
 	union {
 		struct {
-			FILE *file;
-			int closeit;
+			FILE*	file;
+			int	closeit;
 #if SHOW_ERROR_LINE
-			int curr_line;
-			char *filename;
+			int	curr_line;
+			char*	filename;
 #endif
 		} stdio;
 		struct {
-			char *start;
-			char *past_the_end;
-			char *curr;
+			char*	start;
+			char*	past_the_end;
+			char*	curr;
 		} string;
 	} rep;
 } port_t;
@@ -103,9 +107,13 @@ struct scheme_t {
 
 #define CELL_SEGSIZE    5000  /* # of cells in one segment */
 #define CELL_NSEGMENT   10    /* # of segments for cells */
-	char *alloc_seg[CELL_NSEGMENT];
-	cell_ptr_t cell_seg[CELL_NSEGMENT];
-	int     last_cell_seg;
+	struct {
+		char*		alloc_seg[CELL_NSEGMENT];
+		cell_ptr_t	cell_seg[CELL_NSEGMENT];
+		int		last_cell_seg;
+		cell_ptr_t	free_cell;       /* cell_ptr_t to top of free cells */
+		int		fcells;          /* # of free cells */
+	} memory;
 
 	/* We use 4 registers. */
 	cell_ptr_t args;            /* register for arguments of function */
@@ -145,8 +153,6 @@ struct scheme_t {
 	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
 	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
 
-	cell_ptr_t free_cell;       /* cell_ptr_t to top of free cells */
-	long    fcells;          /* # of free cells */
 
 	cell_ptr_t inport;
 	cell_ptr_t outport;
@@ -351,8 +357,8 @@ INLINE int is_number(cell_ptr_t p)		{ return (type(p)==T_NUMBER); }
 INLINE int is_real(cell_ptr_t p)		{ return is_number(p) && (!(p)->object.number.is_integer); }
 INLINE int is_character(cell_ptr_t p)		{ return (type(p) == T_CHARACTER); }
 INLINE int is_port(cell_ptr_t p)		{ return (type(p) == T_PORT); }
-INLINE int is_inport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind & port_input; }
-INLINE int is_outport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind & port_output; }
+INLINE int is_inport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind.value & port_input; }
+INLINE int is_outport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind.value & port_output; }
 INLINE int is_pair(cell_ptr_t p)		{ return (type(p) == T_PAIR); }
 INLINE int is_symbol(cell_ptr_t p)		{ return (type(p) == T_SYMBOL); }
 INLINE int is_syntax(cell_ptr_t p)		{ return (typeflag(p) & T_SYNTAX); }
@@ -391,7 +397,7 @@ const char *procname(cell_ptr_t x);
 INLINE cell_ptr_t closure_code(cell_ptr_t p)	{ return car(p); }
 INLINE cell_ptr_t closure_env(cell_ptr_t p)	{ return cdr(p); }
 
-INLINE int file_interactive(scheme_t *sc)	{ return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin && sc->inport->object.port->kind & port_file; }
+INLINE int file_interactive(scheme_t *sc)	{ return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin && sc->inport->object.port->kind.value & port_file; }
 
 INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t variable, cell_ptr_t value)
 {

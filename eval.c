@@ -1340,7 +1340,7 @@ eval_op(scheme_t *sc,
 	case OP_GET_OUTSTRING: /* get-output-string */ {
 		port_t *p;
 
-		if( (p = car(sc->args)->object.port)->kind & port_string ) {
+		if( (p = car(sc->args)->object.port)->kind.value & port_string ) {
 			size_t	size;
 			char*	str;
 
@@ -1457,12 +1457,12 @@ eval_op(scheme_t *sc,
 	}
 
 	case OP_CHAR_READY: /* char-ready? */ {
-		cell_ptr_t p=sc->inport;
+		cell_ptr_t p	= sc->inport;
 		int res;
-		if(is_pair(sc->args)) {
-			p=car(sc->args);
+		if( is_pair(sc->args) ) {
+			p	= car(sc->args);
 		}
-		res = p->object.port->kind & port_string;
+		res = p->object.port->kind.value & port_string;
 		s_retbool(res);
 	}
 

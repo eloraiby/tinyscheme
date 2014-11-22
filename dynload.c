@@ -53,7 +53,7 @@ static FARPROC dl_proc(HMODULE mo, const char *proc) {
 	return procedure;
 }
 
-static void dl_detach(HMODULE mo) {
+static UNUSED void dl_detach(HMODULE mo) {
 	(void)FreeLibrary(mo);
 }
 
@@ -73,8 +73,10 @@ static HMODULE dl_attach(const char *module) {
 }
 
 static FARPROC dl_proc(HMODULE mo, const char *proc) {
-	const char *errmsg;
-	FARPROC fp=(FARPROC)dlsym(mo,proc);
+	const char*	errmsg;
+	FARPROC fp	= NULL;
+	size_t*	ff	= (size_t*)&fp;
+	*ff		= (size_t)dlsym(mo, proc);
 	if ((errmsg = dlerror()) == 0) {
 		return fp;
 	}
@@ -82,7 +84,7 @@ static FARPROC dl_proc(HMODULE mo, const char *proc) {
 	return 0;
 }
 
-static void dl_detach(HMODULE mo) {
+static UNUSED void dl_detach(HMODULE mo) {
 	(void)dlclose(mo);
 }
 #endif

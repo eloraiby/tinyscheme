@@ -15,13 +15,11 @@ CONFIG   -= app_bundle
 #
 
 QMAKE_CC	= gcc
-QMAKE_CFLAGS	+= -std=c89 -fvisibility=hidden -fvisibility-inlines-hidden -pedantic -ffunction-sections -fdata-sections
+QMAKE_CFLAGS	+= -std=c89 -fvisibility=hidden -pedantic -ffunction-sections -fdata-sections -DUSE_DL=1
 QMAKE_LIBS	+= -ldl -lm
 QMAKE_LFLAGS	+= -Wl,--gc-sections
 QMAKE_LINK	= gcc
 
-#QMAKE_CFLAGS += -std=c89
-#QMAKE_LIBS += -ldl
 
 TEMPLATE = app
 

@@ -128,41 +128,52 @@ alloc_cellseg(scheme_t *sc,
 		adj = sizeof(cell_t);
 	}
 
-	for (k = 0; k < n; k++) {
-		if (sc->last_cell_seg >= CELL_NSEGMENT - 1)
+	for( k = 0; k < n; k++ ) {
+		if( sc->memory.last_cell_seg >= CELL_NSEGMENT - 1 ) {
 			return k;
-		cp = (char*) sc->malloc(CELL_SEGSIZE * sizeof(cell_t)+adj);
-		if (cp == 0)
+		}
+
+		cp	= (char*) sc->malloc(CELL_SEGSIZE * sizeof(cell_t) + adj);
+		if( cp == 0 ) {
 			return k;
-		i = ++sc->last_cell_seg ;
-		sc->alloc_seg[i] = cp;
+		}
+
+		i	= ++sc->memory.last_cell_seg ;
+		sc->memory.alloc_seg[i]	= cp;
+
 		/* adjust in TYPE_BITS-bit boundary */
-		if(((unsigned long)cp)%adj!=0) {
-			cp=(char*)(adj*((unsigned long)cp/adj+1));
+		if( ((unsigned long)cp) % adj != 0 ) {
+			cp	= (char*)(adj*((unsigned long)cp / adj + 1));
 		}
+
 		/* insert new segment in address order */
-		newp=(cell_ptr_t)cp;
-		sc->cell_seg[i] = newp;
-		while (i > 0 && sc->cell_seg[i - 1] > sc->cell_seg[i]) {
-			p = sc->cell_seg[i];
-			sc->cell_seg[i] = sc->cell_seg[i - 1];
-			sc->cell_seg[--i] = p;
+		newp	= (cell_ptr_t)cp;
+		sc->memory.cell_seg[i]	= newp;
+		while( i > 0 && sc->memory.cell_seg[i - 1] > sc->memory.cell_seg[i] ) {
+			p			= sc->memory.cell_seg[i];
+			sc->memory.cell_seg[i]	= sc->memory.cell_seg[i - 1];
+			sc->memory.cell_seg[--i]= p;
 		}
-		sc->fcells += CELL_SEGSIZE;
-		last = newp + CELL_SEGSIZE - 1;
-		for (p = newp; p <= last; p++) {
-			typeflag(p) = 0;
-			cdr(p) = p + 1;
-			car(p) = sc->NIL;
+
+		sc->memory.fcells	+= CELL_SEGSIZE;
+		last			= newp + CELL_SEGSIZE - 1;
+		for( p = newp; p <= last; p++ ) {
+			typeflag(p)	= 0;
+			cdr(p)		= p + 1;
+			car(p)		= sc->NIL;
 		}
+
 		/* insert new cells in address order on free list */
-		if (sc->free_cell == sc->NIL || p < sc->free_cell) {
-			cdr(last) = sc->free_cell;
-			sc->free_cell = newp;
+		if( sc->memory.free_cell == sc->NIL || p < sc->memory.free_cell ) {
+			cdr(last)		= sc->memory.free_cell;
+			sc->memory.free_cell	= newp;
 		} else {
-			p = sc->free_cell;
-			while (cdr(p) != sc->NIL && newp > cdr(p))
+			p	= sc->memory.free_cell;
+
+			while( cdr(p) != sc->NIL && newp > cdr(p) ) {
 				p = cdr(p);
+			}
+
 			cdr(last) = cdr(p);
 			cdr(p) = newp;
 		}
@@ -170,11 +181,15 @@ alloc_cellseg(scheme_t *sc,
 	return n;
 }
 
-INLINE cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
-	if (sc->free_cell != sc->NIL) {
-		cell_ptr_t x = sc->free_cell;
-		sc->free_cell = cdr(x);
-		--sc->fcells;
+INLINE cell_ptr_t
+get_cell_x(scheme_t *sc,
+	   cell_ptr_t a,
+	   cell_ptr_t b)
+{
+	if( sc->memory.free_cell != sc->NIL ) {
+		cell_ptr_t x		= sc->memory.free_cell;
+		sc->memory.free_cell	= cdr(x);
+		--sc->memory.fcells;
 		return (x);
 	}
 	return _get_cell (sc, a, b);
@@ -182,52 +197,60 @@ INLINE cell_ptr_t get_cell_x(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 
 
 /* get new cell.  parameter a, b is marked by gc. */
-static cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
+static cell_ptr_t
+_get_cell(scheme_t *sc,
+	  cell_ptr_t a,
+	  cell_ptr_t b)
+{
 	cell_ptr_t x;
 
-	if(sc->no_memory) {
+	if( sc->no_memory ) {
 		return sc->sink;
 	}
 
-	if (sc->free_cell == sc->NIL) {
-		const int min_to_be_recovered = sc->last_cell_seg*8;
-		gc(sc,a, b);
-		if (sc->fcells < min_to_be_recovered
-				|| sc->free_cell == sc->NIL) {
+	if( sc->memory.free_cell == sc->NIL ) {
+		int min_to_be_recovered = sc->memory.last_cell_seg * 8;
+		gc(sc, a, b);
+		if( sc->memory.fcells < min_to_be_recovered || sc->memory.free_cell == sc->NIL ) {
 			/* if only a few recovered, get more to avoid fruitless gc's */
-			if (!alloc_cellseg(sc,1) && sc->free_cell == sc->NIL) {
-				sc->no_memory=1;
+			if (!alloc_cellseg(sc, 1) && sc->memory.free_cell == sc->NIL ) {
+				sc->no_memory	= 1;
 				return sc->sink;
 			}
 		}
 	}
-	x = sc->free_cell;
-	sc->free_cell = cdr(x);
-	--sc->fcells;
+
+	x			= sc->memory.free_cell;
+	sc->memory.free_cell	= cdr(x);
+	--sc->memory.fcells;
 	return (x);
 }
 
 #if USE_INTERFACE
 /* make sure that there is a given number of cells free */
-static cell_ptr_t reserve_cells(scheme_t *sc, int n) {
-	if(sc->no_memory) {
+static cell_ptr_t
+reserve_cells(scheme_t *sc,
+	      int n)
+{
+	if( sc->no_memory ) {
 		return sc->NIL;
 	}
 
 	/* Are there enough cells available? */
-	if (sc->fcells < n) {
+	if( sc->memory.fcells < n ) {
 		/* If not, try gc'ing some */
 		gc(sc, sc->NIL, sc->NIL);
-		if (sc->fcells < n) {
+		if( sc->memory.fcells < n ) {
 			/* If there still aren't, try getting more heap */
-			if (!alloc_cellseg(sc,1)) {
-				sc->no_memory=1;
+			if (!alloc_cellseg(sc, 1)) {
+				sc->no_memory	= 1;
 				return sc->NIL;
 			}
 		}
-		if (sc->fcells < n) {
+
+		if( sc->memory.fcells < n ) {
 			/* If all fail, report failure */
-			sc->no_memory=1;
+			sc->no_memory	= 1;
 			return sc->NIL;
 		}
 	}
@@ -274,21 +297,26 @@ static int count_consecutive_cells(cell_ptr_t x, int needed) {
 	return n;
 }
 
-static cell_ptr_t find_consecutive_cells(scheme_t *sc, int n) {
-	cell_ptr_t *pp;
-	int cnt;
+static cell_ptr_t
+find_consecutive_cells(scheme_t *sc,
+		       int n)
+{
+	cell_ptr_t*	pp	= &sc->memory.free_cell;
+	int		cnt;
 
-	pp=&sc->free_cell;
-	while(*pp!=sc->NIL) {
-		cnt=count_consecutive_cells(*pp,n);
-		if(cnt>=n) {
-			cell_ptr_t x=*pp;
-			*pp=cdr(*pp+n-1);
-			sc->fcells -= n;
+	while( *pp != sc->NIL ) {
+		cnt	= count_consecutive_cells(*pp, n);
+		if( cnt >= n ) {
+
+			cell_ptr_t x	= *pp;
+			*pp		= cdr(*pp + n - 1);
+			sc->memory.fcells	-= n;
+
 			return x;
 		}
-		pp=&cdr(*pp+cnt-1);
+		pp	= &cdr(*pp + cnt - 1);
 	}
+
 	return sc->NIL;
 }
 
@@ -471,35 +499,35 @@ void gc(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 
 	/* garbage collect */
 	clrmark(sc->NIL);
-	sc->fcells = 0;
-	sc->free_cell = sc->NIL;
+	sc->memory.fcells	= 0;
+	sc->memory.free_cell	= sc->NIL;
 	/* free-list is kept sorted by address so as to maintain consecutive
-     ranges, if possible, for use with vectors. Here we scan the cells
-     (which are also kept sorted by address) downwards to build the
-     free-list in sorted order.
-  */
-	for (i = sc->last_cell_seg; i >= 0; i--) {
-		p = sc->cell_seg[i] + CELL_SEGSIZE;
-		while (--p >= sc->cell_seg[i]) {
-			if (is_mark(p)) {
+	   ranges, if possible, for use with vectors. Here we scan the cells
+	   (which are also kept sorted by address) downwards to build the
+	   free-list in sorted order.
+	*/
+	for( i = sc->memory.last_cell_seg; i >= 0; i-- ) {
+		p = sc->memory.cell_seg[i] + CELL_SEGSIZE;
+		while( --p >= sc->memory.cell_seg[i] ) {
+			if( is_mark(p) ) {
 				clrmark(p);
 			} else {
 				/* reclaim cell */
-				if (typeflag(p) != 0) {
+				if( typeflag(p) != 0 ) {
 					finalize_cell(sc, p);
 					typeflag(p) = 0;
 					car(p) = sc->NIL;
 				}
-				++sc->fcells;
-				cdr(p) = sc->free_cell;
-				sc->free_cell = p;
+				++sc->memory.fcells;
+				cdr(p) = sc->memory.free_cell;
+				sc->memory.free_cell = p;
 			}
 		}
 	}
 
-	if (sc->gc_verbose) {
+	if( sc->gc_verbose ) {
 		char msg[80];
-		snprintf(msg,80,"done: %ld cells were recovered.\n", sc->fcells);
+		snprintf(msg,80,"done: %d cells were recovered.\n", sc->memory.fcells);
 		putstr(sc,msg);
 	}
 }
@@ -511,7 +539,7 @@ finalize_cell(scheme_t *sc,
 	if( is_string(a) ) {
 		sc->free(strvalue(a));
 	} else if( is_port(a) ) {
-		if( a->object.port->kind & port_file && a->object.port->rep.stdio.closeit ) {
+		if( a->object.port->kind.value & port_file && a->object.port->rep.stdio.closeit ) {
 			port_close(sc, a, port_input | port_output);
 		}
 		sc->free(a->object.port);
@@ -534,7 +562,7 @@ file_push(scheme_t *sc,
 
 	if( fin != 0 ) {
 		sc->file_i++;
-		sc->load_stack[sc->file_i].kind			= port_file | port_input;
+		sc->load_stack[sc->file_i].kind.value		= port_file | port_input;
 		sc->load_stack[sc->file_i].rep.stdio.file	= fin;
 		sc->load_stack[sc->file_i].rep.stdio.closeit	= 1;
 		sc->nesting_stack[sc->file_i]			= 0;
@@ -708,7 +736,10 @@ INLINE int is_one_of(char *s, int c) {
 
 /* skip white characters */
 INLINE int skipspace(scheme_t *sc) {
-	int c = 0, curr_line = 0;
+	int	c = 0;
+#if SHOW_ERROR_LINE
+	int	curr_line = 0;
+#endif
 
 	do {
 		c=inchar(sc);
@@ -720,7 +751,7 @@ INLINE int skipspace(scheme_t *sc) {
 
 	/* record it */
 #if SHOW_ERROR_LINE
-	if (sc->load_stack[sc->file_i].kind & port_file)
+	if (sc->load_stack[sc->file_i].kind.value & port_file)
 		sc->load_stack[sc->file_i].rep.stdio.curr_line += curr_line;
 #endif
 
@@ -760,7 +791,7 @@ static int token(scheme_t *sc) {
 			;
 
 #if SHOW_ERROR_LINE
-		if(c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
+		if(c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file)
 			sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 
@@ -788,7 +819,7 @@ static int token(scheme_t *sc) {
 				;
 
 #if SHOW_ERROR_LINE
-			if(c == '\n' && sc->load_stack[sc->file_i].kind & port_file)
+			if(c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file)
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 
@@ -830,7 +861,7 @@ _error_1(scheme_t *sc,
 	char sbuf[STRBUFFSIZE];
 
 	/* make sure error is not in REPL */
-	if (sc->load_stack[sc->file_i].kind & port_file &&
+	if (sc->load_stack[sc->file_i].kind.value & port_file &&
 			sc->load_stack[sc->file_i].rep.stdio.file != stdin) {
 		int ln = sc->load_stack[sc->file_i].rep.stdio.curr_line;
 		const char *fname = sc->load_stack[sc->file_i].rep.stdio.filename;
@@ -912,9 +943,6 @@ INLINE void dump_stack_mark(scheme_t *sc)
 }
 
 
-
-
-
 static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t	x;
 
@@ -940,7 +968,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
-		if( sc->loadport->object.port->kind & port_saw_EOF ) {
+		if( sc->loadport->object.port->kind.value & port_saw_EOF ) {
 			if( sc->file_i == 0 ) {
 				sc->args = sc->NIL;
 				s_goto(sc, OP_QUIT);
@@ -1077,7 +1105,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 			if (c != '\n')
 				backchar(sc,c);
 #if SHOW_ERROR_LINE
-			else if (sc->load_stack[sc->file_i].kind & port_file)
+			else if (sc->load_stack[sc->file_i].kind.value & port_file)
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 			sc->nesting_stack[sc->file_i]--;
@@ -1221,39 +1249,39 @@ static int is_nonneg(cell_ptr_t p) {
 static struct {
 	test_predicate fct;
 	const char *kind;
-} tests[]={
-{0,0}, /* unused */
-{is_any, 0},
-{is_string, "string"},
-{is_symbol, "symbol"},
-{is_port, "port"},
-{is_inport,"input port"},
-{is_outport,"output port"},
-{is_environment, "environment"},
-{is_pair, "pair"},
-{0, "pair or '()"},
-{is_character, "character"},
-{is_vector, "vector"},
-{is_number, "number"},
-{is_integer, "integer"},
-{is_nonneg, "non-negative integer"}
+} tests[] = {
+	{0,		0}, /* unused */
+	{is_any,	0},
+	{is_string,	"string"},
+	{is_symbol,	"symbol"},
+	{is_port,	"port"},
+	{is_inport,	"input port"},
+	{is_outport,	"output port"},
+	{is_environment, "environment"},
+	{is_pair,	"pair"},
+	{0,		"pair or '()"},
+	{is_character,	"character"},
+	{is_vector,	"vector"},
+	{is_number,	"number"},
+	{is_integer,	"integer"},
+	{is_nonneg,	"non-negative integer"}
 };
 
-#define TST_NONE 0
-#define TST_ANY "\001"
-#define TST_STRING "\002"
-#define TST_SYMBOL "\003"
-#define TST_PORT "\004"
-#define TST_INPORT "\005"
-#define TST_OUTPORT "\006"
+#define TST_NONE	0
+#define TST_ANY		"\001"
+#define TST_STRING	"\002"
+#define TST_SYMBOL	"\003"
+#define TST_PORT	"\004"
+#define TST_INPORT	"\005"
+#define TST_OUTPORT	"\006"
 #define TST_ENVIRONMENT "\007"
-#define TST_PAIR "\010"
-#define TST_LIST "\011"
-#define TST_CHAR "\012"
-#define TST_VECTOR "\013"
-#define TST_NUMBER "\014"
-#define TST_INTEGER "\015"
-#define TST_NATURAL "\016"
+#define TST_PAIR	"\010"
+#define TST_LIST	"\011"
+#define TST_CHAR	"\012"
+#define TST_VECTOR	"\013"
+#define TST_NUMBER	"\014"
+#define TST_INTEGER	"\015"
+#define TST_NATURAL	"\016"
 
 typedef struct {
 	dispatch_func func;
@@ -1268,7 +1296,7 @@ typedef struct {
 static op_code_info dispatch_table[]= {
 	#define _OP_DEF(A,B,C,D,E,OP) {A,B,C,D,E},
 	#include "opdefines.h"
-	{ 0 }
+	{ 0, 0, 0, 0, 0 }
 };
 
 const char *procname(cell_ptr_t x) {
@@ -1503,8 +1531,12 @@ int scheme_init(scheme_t *sc) {
 	return scheme_init_custom_alloc(sc,malloc,free);
 }
 
-int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free) {
-	int i, n=sizeof(dispatch_table)/sizeof(dispatch_table[0]);
+int
+scheme_init_custom_alloc(scheme_t *sc,
+			 func_alloc malloc,
+			 func_dealloc free)
+{
+	int i, n	= sizeof(dispatch_table) / sizeof(dispatch_table[0]);
 	cell_ptr_t x;
 
 	sc->num_zero.is_integer		= 1;
@@ -1513,55 +1545,56 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	sc->num_one.value.ivalue	= 1;
 
 #if USE_INTERFACE
-	sc->vptr=&vtbl;
+	sc->vptr			= &vtbl;
 #endif
-	sc->gensym_cnt=0;
-	sc->malloc=malloc;
-	sc->free=free;
-	sc->last_cell_seg = -1;
-	sc->sink = &sc->_sink;
-	sc->NIL = &sc->_NIL;
-	sc->T = &sc->_HASHT;
-	sc->F = &sc->_HASHF;
-	sc->EOF_OBJ=&sc->_EOF_OBJ;
-	sc->free_cell = &sc->_NIL;
-	sc->fcells = 0;
-	sc->no_memory=0;
-	sc->inport=sc->NIL;
-	sc->outport=sc->NIL;
-	sc->save_inport=sc->NIL;
-	sc->loadport=sc->NIL;
-	sc->nesting=0;
-	sc->interactive_repl=0;
+	sc->gensym_cnt			= 0;
+	sc->malloc			= malloc;
+	sc->free			= free;
+	sc->sink			= &sc->_sink;
+	sc->NIL				= &sc->_NIL;
+	sc->T				= &sc->_HASHT;
+	sc->F				= &sc->_HASHF;
+	sc->EOF_OBJ			= &sc->_EOF_OBJ;
+	sc->memory.free_cell		= &sc->_NIL;
+	sc->memory.fcells		= 0;
+	sc->memory.last_cell_seg	= -1;
+	sc->no_memory			= 0;
+	sc->inport			= sc->NIL;
+	sc->outport			= sc->NIL;
+	sc->save_inport			= sc->NIL;
+	sc->loadport			= sc->NIL;
+	sc->nesting			= 0;
+	sc->interactive_repl		= 0;
 
-	if (alloc_cellseg(sc,FIRST_CELLSEGS) != FIRST_CELLSEGS) {
-		sc->no_memory=1;
+	if( alloc_cellseg(sc, FIRST_CELLSEGS) != FIRST_CELLSEGS ) {
+		sc->no_memory		= 1;
 		return 0;
 	}
-	sc->gc_verbose = 0;
+
+	sc->gc_verbose			= 0;
 	dump_stack_initialize(sc);
-	sc->code = sc->NIL;
-	sc->tracing=0;
+	sc->code			= sc->NIL;
+	sc->tracing			= 0;
 
 	/* init sc->NIL */
-	typeflag(sc->NIL) = (T_ATOM | MARK);
-	car(sc->NIL) = cdr(sc->NIL) = sc->NIL;
+	typeflag(sc->NIL)		= T_ATOM | MARK;
+	car(sc->NIL) = cdr(sc->NIL)	= sc->NIL;
 	/* init T */
-	typeflag(sc->T) = (T_ATOM | MARK);
-	car(sc->T) = cdr(sc->T) = sc->T;
+	typeflag(sc->T)			= T_ATOM | MARK;
+	car(sc->T) = cdr(sc->T)		= sc->T;
 	/* init F */
-	typeflag(sc->F) = (T_ATOM | MARK);
-	car(sc->F) = cdr(sc->F) = sc->F;
+	typeflag(sc->F)			= T_ATOM | MARK;
+	car(sc->F) = cdr(sc->F)		= sc->F;
 	/* init sink */
-	typeflag(sc->sink) = (T_PAIR | MARK);
-	car(sc->sink) = sc->NIL;
+	typeflag(sc->sink)		= T_PAIR | MARK;
+	car(sc->sink)			= sc->NIL;
 	/* init c_nest */
-	sc->c_nest = sc->NIL;
+	sc->c_nest			= sc->NIL;
 
-	sc->oblist = oblist_initial_value(sc);
+	sc->oblist			= oblist_initial_value(sc);
 	/* init global_env */
 	new_frame_in_env(sc, sc->NIL);
-	sc->global_env = sc->envir;
+	sc->global_env			= sc->envir;
 	/* init else */
 	x = mk_symbol(sc,"else");
 	new_slot_in_env(sc, x, sc->T);
@@ -1583,23 +1616,23 @@ int scheme_init_custom_alloc(scheme_t *sc, func_alloc malloc, func_dealloc free)
 	assign_syntax(sc, "macro");
 	assign_syntax(sc, "case");
 
-	for(i=0; i<n; i++) {
-		if(dispatch_table[i].name!=0) {
+	for( i = 0; i < n; i++ ) {
+		if( dispatch_table[i].name != 0 ) {
 			assign_proc(sc, (enum scheme_opcodes)i, dispatch_table[i].name);
 		}
 	}
 
 	/* initialization of global pointers to special symbols */
-	sc->LAMBDA = mk_symbol(sc, "lambda");
-	sc->QUOTE = mk_symbol(sc, "quote");
-	sc->QQUOTE = mk_symbol(sc, "quasiquote");
-	sc->UNQUOTE = mk_symbol(sc, "unquote");
-	sc->UNQUOTESP = mk_symbol(sc, "unquote-splicing");
-	sc->FEED_TO = mk_symbol(sc, "=>");
-	sc->COLON_HOOK = mk_symbol(sc,"*colon-hook*");
-	sc->ERROR_HOOK = mk_symbol(sc, "*error-hook*");
-	sc->SHARP_HOOK = mk_symbol(sc, "*sharp-hook*");
-	sc->COMPILE_HOOK = mk_symbol(sc, "*compile-hook*");
+	sc->LAMBDA	= mk_symbol(sc, "lambda");
+	sc->QUOTE	= mk_symbol(sc, "quote");
+	sc->QQUOTE	= mk_symbol(sc, "quasiquote");
+	sc->UNQUOTE	= mk_symbol(sc, "unquote");
+	sc->UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
+	sc->FEED_TO	= mk_symbol(sc, "=>");
+	sc->COLON_HOOK	= mk_symbol(sc,"*colon-hook*");
+	sc->ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
+	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
+	sc->COMPILE_HOOK	= mk_symbol(sc, "*compile-hook*");
 
 	return !sc->no_memory;
 }
@@ -1654,13 +1687,13 @@ void scheme_deinit(scheme_t *sc) {
 	sc->gc_verbose=0;
 	gc(sc,sc->NIL,sc->NIL);
 
-	for(i=0; i<=sc->last_cell_seg; i++) {
-		sc->free(sc->alloc_seg[i]);
+	for( i=0; i <= sc->memory.last_cell_seg; i++ ) {
+		sc->free(sc->memory.alloc_seg[i]);
 	}
 
 #if SHOW_ERROR_LINE
 	for(i=0; i<=sc->file_i; i++) {
-		if (sc->load_stack[i].kind & port_file) {
+		if (sc->load_stack[i].kind.value & port_file) {
 			fname = sc->load_stack[i].rep.stdio.filename;
 			if(fname)
 				sc->free(fname);
@@ -1669,19 +1702,23 @@ void scheme_deinit(scheme_t *sc) {
 #endif
 }
 
-void scheme_load_file(scheme_t *sc, FILE *fin)
-{ scheme_load_named_file(sc,fin,0); }
+void
+scheme_load_file(scheme_t *sc,
+		 FILE *fin)
+{
+	scheme_load_named_file(sc,fin,0);
+}
 
 void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 	dump_stack_reset(sc);
-	sc->envir = sc->global_env;
-	sc->file_i=0;
-	sc->load_stack[0].kind=port_input|port_file;
-	sc->load_stack[0].rep.stdio.file=fin;
-	sc->loadport=mk_port(sc,sc->load_stack);
-	sc->retcode=0;
-	if(fin==stdin) {
-		sc->interactive_repl=1;
+	sc->envir	= sc->global_env;
+	sc->file_i	= 0;
+	sc->load_stack[0].kind.value		= port_input | port_file;
+	sc->load_stack[0].rep.stdio.file	= fin;
+	sc->loadport	= mk_port(sc, sc->load_stack);
+	sc->retcode	= 0;
+	if( fin == stdin ) {
+		sc->interactive_repl	= 1;
 	}
 
 #if SHOW_ERROR_LINE
@@ -1693,29 +1730,32 @@ void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 	sc->inport=sc->loadport;
 	sc->args = mk_integer(sc,sc->file_i);
 	Eval_Cycle(sc, OP_T0LVL);
-	typeflag(sc->loadport)=T_ATOM;
-	if(sc->retcode==0) {
-		sc->retcode=sc->nesting!=0;
+	typeflag(sc->loadport)	= T_ATOM;
+	if( sc->retcode == 0 ) {
+		sc->retcode	= sc->nesting != 0;
 	}
 }
 
-void scheme_load_string(scheme_t *sc, const char *cmd) {
+void
+scheme_load_string(scheme_t *sc,
+		   const char *cmd)
+{
 	dump_stack_reset(sc);
-	sc->envir = sc->global_env;
-	sc->file_i=0;
-	sc->load_stack[0].kind=port_input|port_string;
-	sc->load_stack[0].rep.string.start=(char*)cmd; /* This func respects const */
-	sc->load_stack[0].rep.string.past_the_end=(char*)cmd+strlen(cmd);
-	sc->load_stack[0].rep.string.curr=(char*)cmd;
-	sc->loadport=mk_port(sc,sc->load_stack);
-	sc->retcode=0;
-	sc->interactive_repl=0;
-	sc->inport=sc->loadport;
-	sc->args = mk_integer(sc,sc->file_i);
+	sc->envir	= sc->global_env;
+	sc->file_i	= 0;
+	sc->load_stack[0].kind.value		= port_input | port_string;
+	sc->load_stack[0].rep.string.start	= (char*)cmd; /* This func respects const */
+	sc->load_stack[0].rep.string.past_the_end	=(char*)cmd + strlen(cmd);
+	sc->load_stack[0].rep.string.curr	= (char*)cmd;
+	sc->loadport	= mk_port(sc, sc->load_stack);
+	sc->retcode	= 0;
+	sc->interactive_repl	= 0;
+	sc->inport	= sc->loadport;
+	sc->args	= mk_integer(sc, sc->file_i);
 	Eval_Cycle(sc, OP_T0LVL);
-	typeflag(sc->loadport)=T_ATOM;
-	if(sc->retcode==0) {
-		sc->retcode=sc->nesting!=0;
+	typeflag(sc->loadport)	= T_ATOM;
+	if( sc->retcode == 0 ) {
+		sc->retcode	= sc->nesting != 0;
 	}
 }
 
