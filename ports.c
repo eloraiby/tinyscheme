@@ -118,7 +118,7 @@ port_close(scheme_t *sc,
 	   cell_ptr_t p,
 	   int flag)
 {
-	port_t *pt	= p->object._port;
+	port_t *pt	= p->object.port;
 	pt->kind	&= ~flag;
 	if( (pt->kind & (port_input | port_output)) == 0 ) {
 		if( pt->kind & port_file ) {
@@ -146,7 +146,7 @@ inchar(scheme_t *sc)
 	int c;
 	port_t *pt;
 
-	pt = sc->inport->object._port;
+	pt = sc->inport->object.port;
 
 	if( pt->kind & port_saw_EOF ) {
 		return EOF;
@@ -188,7 +188,7 @@ backchar(scheme_t *sc,
 		return;
 	}
 
-	pt	= sc->inport->object._port;
+	pt	= sc->inport->object.port;
 
 	if( pt->kind & port_file ) {
 		ungetc(c, pt->rep.stdio.file);
@@ -222,7 +222,7 @@ void
 putstr(scheme_t *sc,
        const char *s)
 {
-	port_t *pt	= sc->outport->object._port;
+	port_t *pt	= sc->outport->object.port;
 	if( pt->kind & port_file ) {
 		fputs(s, pt->rep.stdio.file);
 	} else {
@@ -241,7 +241,7 @@ putchars(scheme_t *sc,
 	 const char *s,
 	 int len)
 {
-	port_t *pt	= sc->outport->object._port;
+	port_t *pt	= sc->outport->object.port;
 	if( pt->kind & port_file ) {
 		fwrite(s, 1, len, pt->rep.stdio.file);
 	} else {
@@ -259,7 +259,7 @@ void
 putcharacter(scheme_t *sc,
 	     int c)
 {
-	port_t *pt	= sc->outport->object._port;
+	port_t *pt	= sc->outport->object.port;
 	if( pt->kind & port_file ) {
 		fputc(c, pt->rep.stdio.file);
 	} else {

@@ -228,7 +228,7 @@ mk_port(scheme_t *sc,
 	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
 
 	typeflag(x)	= T_PORT | T_ATOM;
-	x->object._port = p;
+	x->object.port	= p;
 	return (x);
 }
 

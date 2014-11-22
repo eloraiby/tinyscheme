@@ -82,7 +82,7 @@ struct cell_t {
 			int   _length;
 		} _string;
 		number_t _number;
-		port_t *_port;
+		port_t*	port;
 		foreign_func _ff;
 		struct {
 			cell_t*	head;
@@ -350,8 +350,8 @@ INLINE int is_number(cell_ptr_t p)		{ return (type(p)==T_NUMBER); }
 INLINE int is_real(cell_ptr_t p)		{ return is_number(p) && (!(p)->object._number.is_integer); }
 INLINE int is_character(cell_ptr_t p)		{ return (type(p) == T_CHARACTER); }
 INLINE int is_port(cell_ptr_t p)		{ return (type(p) == T_PORT); }
-INLINE int is_inport(cell_ptr_t p)		{ return is_port(p) && p->object._port->kind & port_input; }
-INLINE int is_outport(cell_ptr_t p)		{ return is_port(p) && p->object._port->kind & port_output; }
+INLINE int is_inport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind & port_input; }
+INLINE int is_outport(cell_ptr_t p)		{ return is_port(p) && p->object.port->kind & port_output; }
 INLINE int is_pair(cell_ptr_t p)		{ return (type(p) == T_PAIR); }
 INLINE int is_symbol(cell_ptr_t p)		{ return (type(p) == T_SYMBOL); }
 INLINE int is_syntax(cell_ptr_t p)		{ return (typeflag(p) & T_SYNTAX); }
@@ -390,7 +390,7 @@ const char *procname(cell_ptr_t x);
 INLINE cell_ptr_t closure_code(cell_ptr_t p)	{ return car(p); }
 INLINE cell_ptr_t closure_env(cell_ptr_t p)	{ return cdr(p); }
 
-INLINE int file_interactive(scheme_t *sc)	{ return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin && sc->inport->object._port->kind & port_file; }
+INLINE int file_interactive(scheme_t *sc)	{ return sc->file_i == 0 && sc->load_stack[0].rep.stdio.file == stdin && sc->inport->object.port->kind & port_file; }
 
 INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t variable, cell_ptr_t value)
 {

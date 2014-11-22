@@ -502,61 +502,73 @@ finalize_cell(scheme_t *sc,
 	if( is_string(a) ) {
 		sc->free(strvalue(a));
 	} else if( is_port(a) ) {
-		if( a->object._port->kind & port_file && a->object._port->rep.stdio.closeit ) {
+		if( a->object.port->kind & port_file && a->object.port->rep.stdio.closeit ) {
 			port_close(sc, a, port_input | port_output);
 		}
-		sc->free(a->object._port);
+		sc->free(a->object.port);
 	}
 }
 
 /* ========== Routines for Reading ========== */
 
-static int file_push(scheme_t *sc, const char *fname) {
+static int
+file_push(scheme_t *sc,
+	  const char *fname)
+{
 	FILE *fin = NULL;
 
-	if (sc->file_i == MAXFIL-1)
+	if( sc->file_i == MAXFIL - 1 ) {
 		return 0;
-	fin=fopen(fname,"r");
-	if(fin!=0) {
+	}
+
+	fin	= fopen(fname, "r");
+
+	if( fin != 0 ) {
 		sc->file_i++;
-		sc->load_stack[sc->file_i].kind=port_file|port_input;
-		sc->load_stack[sc->file_i].rep.stdio.file=fin;
-		sc->load_stack[sc->file_i].rep.stdio.closeit=1;
-		sc->nesting_stack[sc->file_i]=0;
-		sc->loadport->object._port	= sc->load_stack+sc->file_i;
+		sc->load_stack[sc->file_i].kind			= port_file | port_input;
+		sc->load_stack[sc->file_i].rep.stdio.file	= fin;
+		sc->load_stack[sc->file_i].rep.stdio.closeit	= 1;
+		sc->nesting_stack[sc->file_i]			= 0;
+		sc->loadport->object.port			= sc->load_stack + sc->file_i;
 
 #if SHOW_ERROR_LINE
 		sc->load_stack[sc->file_i].rep.stdio.curr_line = 0;
-		if(fname)
+		if( fname ) {
 			sc->load_stack[sc->file_i].rep.stdio.filename = store_string(sc, strlen(fname), fname, 0);
+		}
 #endif
 	}
 	return fin!=0;
 }
 
-static void file_pop(scheme_t *sc) {
-	if(sc->file_i != 0) {
-		sc->nesting=sc->nesting_stack[sc->file_i];
-		port_close(sc,sc->loadport,port_input);
+static void
+file_pop(scheme_t *sc)
+{
+	if( sc->file_i != 0 ) {
+		sc->nesting	= sc->nesting_stack[sc->file_i];
+		port_close(sc, sc->loadport, port_input);
 		sc->file_i--;
-		sc->loadport->object._port	= sc->load_stack + sc->file_i;
+		sc->loadport->object.port	= sc->load_stack + sc->file_i;
 	}
 }
 
 
 /* read characters up to delimiter, but cater to character constants */
-static char *readstr_upto(scheme_t *sc, char *delim) {
+static char*
+readstr_upto(scheme_t *sc,
+	     char *delim)
+{
 	char *p = sc->strbuff;
 
-	while ((p - sc->strbuff < sizeof(sc->strbuff)) &&
-			!is_one_of(delim, (*p++ = inchar(sc))));
+	while ((p - sc->strbuff < sizeof(sc->strbuff)) && !is_one_of(delim, (*p++ = inchar(sc))));
 
-	if(p == sc->strbuff+2 && p[-2] == '\\') {
-		*p=0;
+	if(p == sc->strbuff + 2 && p[-2] == '\\') {
+		*p	= 0;
 	} else {
-		backchar(sc,p[-1]);
-		*--p = '\0';
+		backchar(sc, p[-1]);
+		*--p	= '\0';
 	}
+
 	return sc->strbuff;
 }
 
@@ -905,11 +917,11 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	switch (op) {
 	case OP_LOAD:       /* load */
 		if( file_interactive(sc) ) {
-			fprintf(sc->outport->object._port->rep.stdio.file, "Loading %s\n", strvalue(car(sc->args)));
+			fprintf(sc->outport->object.port->rep.stdio.file, "Loading %s\n", strvalue(car(sc->args)));
 		}
 
-		if( !file_push(sc,strvalue(car(sc->args))) ) {
-			error_1(sc,"unable to open", car(sc->args));
+		if( !file_push(sc, strvalue(car(sc->args))) ) {
+			error_1(sc, "unable to open", car(sc->args));
 		} else {
 			sc->args = mk_integer(sc, sc->file_i);
 			s_goto(sc, OP_T0LVL);
@@ -917,7 +929,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_T0LVL: /* top level */
 		/* If we reached the end of file, this loop is done. */
-		if( sc->loadport->object._port->kind & port_saw_EOF ) {
+		if( sc->loadport->object.port->kind & port_saw_EOF ) {
 			if( sc->file_i == 0 ) {
 				sc->args = sc->NIL;
 				s_goto(sc, OP_QUIT);

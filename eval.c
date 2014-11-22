@@ -1339,20 +1339,20 @@ eval_op(scheme_t *sc,
 	case OP_GET_OUTSTRING: /* get-output-string */ {
 		port_t *p;
 
-		if( (p=car(sc->args)->object._port)->kind & port_string ) {
-			size_t size;
-			char *str;
+		if( (p = car(sc->args)->object.port)->kind & port_string ) {
+			size_t	size;
+			char*	str;
 
-			size=p->rep.string.curr-p->rep.string.start+1;
-			str=sc->malloc(size);
-			if(str != NULL) {
+			size	= p->rep.string.curr - p->rep.string.start + 1;
+			str	= sc->malloc(size);
+			if( str != NULL ) {
 				cell_ptr_t s;
 
-				memcpy(str,p->rep.string.start,size-1);
-				str[size-1]='\0';
-				s=mk_string(sc,str);
+				memcpy(str, p->rep.string.start, size - 1);
+				str[size - 1]	= '\0';
+				s=mk_string(sc, str);
 				sc->free(str);
-				s_return(sc,s);
+				s_return(sc, s);
 			}
 		}
 		s_return(sc,sc->F);
@@ -1461,7 +1461,7 @@ eval_op(scheme_t *sc,
 		if(is_pair(sc->args)) {
 			p=car(sc->args);
 		}
-		res = p->object._port->kind & port_string;
+		res = p->object.port->kind & port_string;
 		s_retbool(res);
 	}
 
