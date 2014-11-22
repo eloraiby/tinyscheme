@@ -88,7 +88,11 @@ static void file_pop(scheme_t *sc);
 static int file_interactive(scheme_t *sc);
 INLINE int is_one_of(char *s, int c);
 static cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
+
+#if USE_INTERFACE
 static cell_ptr_t reserve_cells(scheme_t *sc, int n);
+#endif
+
 static cell_ptr_t get_consecutive_cells(scheme_t *sc, int n);
 static cell_ptr_t find_consecutive_cells(scheme_t *sc, int n);
 static void finalize_cell(scheme_t *sc, cell_ptr_t a);
@@ -108,17 +112,20 @@ static void assign_proc(scheme_t *sc, enum scheme_opcodes, char *name);
 
 
 /* allocate new cell segment */
-int alloc_cellseg(scheme_t *sc, int n) {
-	cell_ptr_t newp;
-	cell_ptr_t last;
-	cell_ptr_t p;
-	char *cp;
-	long i;
-	int k;
-	int adj=ADJ;
+int
+alloc_cellseg(scheme_t *sc,
+	      int n)
+{
+	cell_ptr_t	newp;
+	cell_ptr_t	last;
+	cell_ptr_t	p;
+	char*		cp;
+	long		i;
+	int		k;
+	unsigned int	adj = ADJ;
 
-	if(adj<sizeof(cell_t)) {
-		adj=sizeof(cell_t);
+	if( adj < sizeof(cell_t)) {
+		adj = sizeof(cell_t);
 	}
 
 	for (k = 0; k < n; k++) {
@@ -200,6 +207,7 @@ static cell_ptr_t _get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 	return (x);
 }
 
+#if USE_INTERFACE
 /* make sure that there is a given number of cells free */
 static cell_ptr_t reserve_cells(scheme_t *sc, int n) {
 	if(sc->no_memory) {
@@ -225,6 +233,7 @@ static cell_ptr_t reserve_cells(scheme_t *sc, int n) {
 	}
 	return (sc->T);
 }
+#endif
 
 static cell_ptr_t get_consecutive_cells(scheme_t *sc, int n) {
 	cell_ptr_t x;
@@ -558,9 +567,9 @@ static char*
 readstr_upto(scheme_t *sc,
 	     char *delim)
 {
-	char *p = sc->strbuff;
+	char* p = sc->strbuff;
 
-	while ((p - sc->strbuff < sizeof(sc->strbuff)) && !is_one_of(delim, (*p++ = inchar(sc))));
+	while (((size_t)(p - sc->strbuff) < sizeof(sc->strbuff)) && !is_one_of(delim, (*p++ = (char)inchar(sc))));
 
 	if(p == sc->strbuff + 2 && p[-2] == '\\') {
 		*p	= 0;
@@ -573,15 +582,17 @@ readstr_upto(scheme_t *sc,
 }
 
 /* read string expression "xxx...xxx" */
-static cell_ptr_t readstrexp(scheme_t *sc) {
-	char *p = sc->strbuff;
-	int c;
-	int c1=0;
-	enum { st_ok, st_bsl, st_x1, st_x2, st_oct1, st_oct2 } state=st_ok;
+static cell_ptr_t
+readstrexp(scheme_t *sc)
+{
+	char*	p = sc->strbuff;
+	int	c;
+	int	c1 = 0;
+	enum { st_ok, st_bsl, st_x1, st_x2, st_oct1, st_oct2 } state	= st_ok;
 
-	for (;;) {
-		c=inchar(sc);
-		if(c == EOF || p-sc->strbuff > sizeof(sc->strbuff)-1) {
+	for(;;) {
+		c	= inchar(sc);
+		if( c == EOF || (size_t)(p - sc->strbuff) > sizeof(sc->strbuff) - 1) {
 			return sc->F;
 		}
 		switch(state) {
@@ -1200,10 +1211,10 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 typedef cell_ptr_t (*dispatch_func)(scheme_t *, enum scheme_opcodes);
 
 typedef int (*test_predicate)(cell_ptr_t);
-static int is_any(cell_ptr_t p) { return 1;}
+static int is_any(cell_ptr_t p UNUSED) { return 1; }
 
 static int is_nonneg(cell_ptr_t p) {
-	return ivalue(p)>=0 && is_integer(p);
+	return ivalue(p) >= 0 && is_integer(p);
 }
 
 /* Correspond carefully with following defines! */

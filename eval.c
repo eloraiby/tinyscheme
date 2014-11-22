@@ -883,39 +883,40 @@ eval_op(scheme_t *sc,
 		s_return(sc,mk_integer(sc,strlength(car(sc->args))));
 
 	case OP_STRREF: { /* string-ref */
-		char *str;
-		int index;
+		char*		str;
+		unsigned int	index;
 
-		str=strvalue(car(sc->args));
+		str	= strvalue(car(sc->args));
 
-		index=ivalue(cadr(sc->args));
+		index	= (unsigned int)ivalue(cadr(sc->args));
 
-		if(index>=strlength(car(sc->args))) {
-			error_1(sc,"string-ref: out of bounds:",cadr(sc->args));
+		if( index >= strlength(car(sc->args)) ) {
+			error_1(sc,"string-ref: out of bounds:", cadr(sc->args));
 		}
 
-		s_return(sc,mk_character(sc,((unsigned char*)str)[index]));
+		s_return(sc, mk_character(sc, ((unsigned char*)str)[index]));
 	}
 
 	case OP_STRSET: { /* string-set! */
-		char *str;
-		int index;
-		int c;
+		char*		str;
+		unsigned int	index;
+		int		c;
 
-		if(is_immutable(car(sc->args))) {
+		if( is_immutable(car(sc->args)) ) {
 			error_1(sc,"string-set!: unable to alter immutable string:",car(sc->args));
 		}
-		str=strvalue(car(sc->args));
 
-		index=ivalue(cadr(sc->args));
-		if(index>=strlength(car(sc->args))) {
+		str	= strvalue(car(sc->args));
+
+		index	= (unsigned int)ivalue(cadr(sc->args));
+		if( index >= strlength(car(sc->args)) ) {
 			error_1(sc,"string-set!: out of bounds:",cadr(sc->args));
 		}
 
-		c=charvalue(caddr(sc->args));
+		c	= charvalue(caddr(sc->args));
 
-		str[index]=(char)c;
-		s_return(sc,car(sc->args));
+		str[index]	= (char)c;
+		s_return(sc, car(sc->args));
 	}
 
 	case OP_STRAPPEND: { /* string-append */
@@ -938,32 +939,32 @@ eval_op(scheme_t *sc,
 	}
 
 	case OP_SUBSTR: { /* substring */
-		char *str;
-		int index0;
-		int index1;
-		int len;
+		char*		str;
+		unsigned int	index0;
+		unsigned int	index1;
+		unsigned int	len;
 
-		str=strvalue(car(sc->args));
+		str	= strvalue(car(sc->args));
 
-		index0=ivalue(cadr(sc->args));
+		index0	= (unsigned int)ivalue(cadr(sc->args));
 
-		if(index0>strlength(car(sc->args))) {
+		if( index0 > strlength(car(sc->args))) {
 			error_1(sc,"substring: start out of bounds:",cadr(sc->args));
 		}
 
-		if(cddr(sc->args)!=sc->NIL) {
-			index1=ivalue(caddr(sc->args));
-			if(index1>strlength(car(sc->args)) || index1<index0) {
-				error_1(sc,"substring: end out of bounds:",caddr(sc->args));
+		if( cddr(sc->args) != sc->NIL) {
+			index1	= (unsigned int)ivalue(caddr(sc->args));
+			if( index1 > strlength(car(sc->args)) || index1 < index0 ) {
+				error_1(sc, "substring: end out of bounds:", caddr(sc->args));
 			}
 		} else {
-			index1=strlength(car(sc->args));
+			index1 = strlength(car(sc->args));
 		}
 
-		len=index1-index0;
-		x=mk_empty_string(sc,len,' ');
-		memcpy(strvalue(x),str+index0,len);
-		strvalue(x)[len]=0;
+		len	= index1 - index0;
+		x	= mk_empty_string(sc, len, ' ');
+		memcpy(strvalue(x), str + index0, len);
+		strvalue(x)[len]	= 0;
 
 		s_return(sc,x);
 	}

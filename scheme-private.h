@@ -27,8 +27,8 @@ enum scheme_types {
 };
 
 /* ADJ is enough slack to align cells in a TYPE_BITS-bit boundary */
-#define ADJ 32
-#define TYPE_BITS 5
+#define ADJ		32
+#define TYPE_BITS	5
 #define T_MASKTYPE      31    /* 0000000000011111 */
 #define T_SYNTAX      4096    /* 0001000000000000 */
 #define T_IMMUTABLE   8192    /* 0010000000000000 */
@@ -78,9 +78,9 @@ struct cell_t {
 	unsigned int flag;
 	union {
 		struct {
-			char   *_svalue;
-			int   _length;
-		} _string;
+			char*		svalue;
+			unsigned int	length;
+		} string;
 		number_t	number;
 		port_t*		port;
 		foreign_func	ff;
@@ -218,8 +218,8 @@ INLINE int num_is_integer(cell_ptr_t p) {
 #define typeflag(p)		((p)->flag)
 #define type(p)			(typeflag(p) & T_MASKTYPE)
 
-#define strvalue(p)		((p)->object._string._svalue)
-#define strlength(p)		((p)->object._string._length)
+#define strvalue(p)		((p)->object.string.svalue)
+#define strlength(p)		((p)->object.string.length)
 
 #define ivalue_unchecked(p)	((p)->object.number.value.ivalue)
 #define rvalue_unchecked(p)	((p)->object.number.value.rvalue)
@@ -332,6 +332,7 @@ void		backchar(scheme_t *sc, int c);
 void		putchars(scheme_t *sc, const char *s, int len);
 void		putcharacter(scheme_t *sc, int c);
 port_t*		port_rep_from_scratch(scheme_t *sc);
+cell_ptr_t	port_from_scratch(scheme_t *sc);
 
 
 cell_ptr_t	get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b);
@@ -408,7 +409,7 @@ INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t variab
 
 INLINE void new_slot_in_env(scheme_t *sc, cell_ptr_t variable, cell_ptr_t value) { new_slot_spec_in_env(sc, sc->envir, variable, value); }
 
-INLINE void set_slot_in_env(scheme_t *sc, cell_ptr_t slot, cell_ptr_t value)	{ cdr(slot) = value; }
+INLINE void set_slot_in_env(scheme_t* sc UNUSED, cell_ptr_t slot, cell_ptr_t value)	{ cdr(slot) = value; }
 
 INLINE cell_ptr_t slot_value_in_env(cell_ptr_t slot)	{ return cdr(slot); }
 

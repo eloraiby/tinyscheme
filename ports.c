@@ -104,13 +104,14 @@ port_t *port_rep_from_scratch(scheme_t *sc) {
 	return pt;
 }
 
-cell_ptr_t port_from_scratch(scheme_t *sc) {
-	port_t *pt;
-	pt=port_rep_from_scratch(sc);
-	if(pt==0) {
+cell_ptr_t
+port_from_scratch(scheme_t *sc)
+{
+	port_t*	pt = port_rep_from_scratch(sc);
+	if( pt == 0 ) {
 		return sc->NIL;
 	}
-	return mk_port(sc,pt);
+	return mk_port(sc, pt);
 }
 
 void
