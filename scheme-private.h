@@ -119,10 +119,12 @@ struct scheme_t {
 	} memory;
 
 	/* We use 4 registers. */
-	cell_ptr_t args;            /* register for arguments of function */
-	cell_ptr_t envir;           /* stack register for current environment */
-	cell_ptr_t code;            /* register for current code */
-	cell_ptr_t dump;            /* stack register for next evaluation */
+	struct {
+		cell_ptr_t args;            /* register for arguments of function */
+		cell_ptr_t envir;           /* stack register for current environment */
+		cell_ptr_t code;            /* register for current code */
+		cell_ptr_t dump;            /* stack register for next evaluation */
+	} regs;
 
 	int interactive_repl;    /* are we in an interactive REPL? */
 
@@ -414,7 +416,7 @@ INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t variab
 	}
 }
 
-INLINE void new_slot_in_env(scheme_t *sc, cell_ptr_t variable, cell_ptr_t value) { new_slot_spec_in_env(sc, sc->envir, variable, value); }
+INLINE void new_slot_in_env(scheme_t *sc, cell_ptr_t variable, cell_ptr_t value) { new_slot_spec_in_env(sc, sc->regs.envir, variable, value); }
 
 INLINE void set_slot_in_env(scheme_t* sc UNUSED, cell_ptr_t slot, cell_ptr_t value)	{ cdr(slot) = value; }
 

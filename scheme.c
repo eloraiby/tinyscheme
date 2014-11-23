@@ -495,9 +495,9 @@ gc(scheme_t *sc,
 	mark(sc->global_env);
 
 	/* mark current registers */
-	mark(sc->args);
-	mark(sc->envir);
-	mark(sc->code);
+	mark(sc->regs.args);
+	mark(sc->regs.envir);
+	mark(sc->regs.code);
 	dump_stack_mark(sc);
 	mark(sc->value);
 	mark(sc->inport);
@@ -895,68 +895,80 @@ _error_1(scheme_t *sc,
 #endif
 
 #if USE_ERROR_HOOK
-	x=find_slot_in_env(sc,sc->envir,hdl,1);
+	x=find_slot_in_env(sc, sc->regs.envir, hdl, 1);
 	if (x != sc->NIL) {
 		if(a!=0) {
-			sc->code = cons(sc, cons(sc, sc->QUOTE, cons(sc,(a), sc->NIL)), sc->NIL);
+			sc->regs.code = cons(sc, cons(sc, sc->QUOTE, cons(sc,(a), sc->NIL)), sc->NIL);
 		} else {
-			sc->code = sc->NIL;
+			sc->regs.code = sc->NIL;
 		}
-		sc->code = cons(sc, mk_string(sc, str), sc->code);
-		setimmutable(car(sc->code));
-		sc->code = cons(sc, slot_value_in_env(x), sc->code);
+		sc->regs.code = cons(sc, mk_string(sc, str), sc->regs.code);
+		setimmutable(car(sc->regs.code));
+		sc->regs.code = cons(sc, slot_value_in_env(x), sc->regs.code);
 		sc->op = (int)OP_EVAL;
 		return sc->T;
 	}
 #endif
 
-	if(a!=0) {
-		sc->args = cons(sc, (a), sc->NIL);
+	if( a != 0 ) {
+		sc->regs.args = cons(sc, (a), sc->NIL);
 	} else {
-		sc->args = sc->NIL;
+		sc->regs.args = sc->NIL;
 	}
-	sc->args = cons(sc, mk_string(sc, str), sc->args);
-	setimmutable(car(sc->args));
+	sc->regs.args = cons(sc, mk_string(sc, str), sc->regs.args);
+	setimmutable(car(sc->regs.args));
 	sc->op = (int)OP_ERR0;
 	return sc->T;
 }
 
 
-INLINE void dump_stack_reset(scheme_t *sc)
+INLINE void
+dump_stack_reset(scheme_t *sc)
 {
-	sc->dump = sc->NIL;
+	sc->regs.dump = sc->NIL;
 }
 
-INLINE void dump_stack_initialize(scheme_t *sc)
+INLINE void
+dump_stack_initialize(scheme_t *sc)
 {
 	dump_stack_reset(sc);
 }
 
-static void dump_stack_free(scheme_t *sc)
+static void
+dump_stack_free(scheme_t *sc)
 {
-	sc->dump = sc->NIL;
+	sc->regs.dump = sc->NIL;
 }
 
-cell_ptr_t _s_return(scheme_t *sc, cell_ptr_t a) {
+cell_ptr_t
+_s_return(scheme_t *sc,
+	  cell_ptr_t a)
+{
 	sc->value = (a);
-	if(sc->dump==sc->NIL) return sc->NIL;
-	sc->op = ivalue(car(sc->dump));
-	sc->args = cadr(sc->dump);
-	sc->envir = caddr(sc->dump);
-	sc->code = cadddr(sc->dump);
-	sc->dump = cddddr(sc->dump);
+	if( sc->regs.dump == sc->NIL ) return sc->NIL;
+	sc->op		= ivalue(car(sc->regs.dump));
+	sc->regs.args	= cadr(sc->regs.dump);
+	sc->regs.envir	= caddr(sc->regs.dump);
+	sc->regs.code	= cadddr(sc->regs.dump);
+	sc->regs.dump	= cddddr(sc->regs.dump);
 	return sc->T;
 }
 
-void s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code) {
-	sc->dump = cons(sc, sc->envir, cons(sc, (code), sc->dump));
-	sc->dump = cons(sc, (args), sc->dump);
-	sc->dump = cons(sc, mk_integer(sc, (long)(op)), sc->dump);
+void
+s_save(scheme_t *sc,
+       enum scheme_opcodes op,
+       cell_ptr_t args,
+       cell_ptr_t code)
+{
+	sc->regs.dump = cons(sc, sc->regs.envir, cons(sc, (code), sc->regs.dump));
+	sc->regs.dump = cons(sc, (args), sc->regs.dump);
+	sc->regs.dump = cons(sc, mk_integer(sc, (long)(op)), sc->regs.dump);
 }
 
-INLINE void dump_stack_mark(scheme_t *sc)
+INLINE void
+dump_stack_mark(scheme_t *sc)
 {
-	mark(sc->dump);
+	mark(sc->regs.dump);
 }
 
 
@@ -973,13 +985,13 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	switch (op) {
 	case OP_LOAD:       /* load */
 		if( file_interactive(sc) ) {
-			fprintf(sc->outport->object.port->rep.stdio.file, "Loading %s\n", strvalue(car(sc->args)));
+			fprintf(sc->outport->object.port->rep.stdio.file, "Loading %s\n", strvalue(car(sc->regs.args)));
 		}
 
-		if( !file_push(sc, strvalue(car(sc->args))) ) {
-			error_1(sc, "unable to open", car(sc->args));
+		if( !file_push(sc, strvalue(car(sc->regs.args))) ) {
+			error_1(sc, "unable to open", car(sc->regs.args));
 		} else {
-			sc->args = mk_integer(sc, sc->file_i);
+			sc->regs.args = mk_integer(sc, sc->file_i);
 			s_goto(sc, OP_T0LVL);
 		}
 
@@ -987,7 +999,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		/* If we reached the end of file, this loop is done. */
 		if( sc->loadport->object.port->kind.value & port_saw_EOF ) {
 			if( sc->file_i == 0 ) {
-				sc->args = sc->NIL;
+				sc->regs.args = sc->NIL;
 				s_goto(sc, OP_QUIT);
 			} else {
 				file_pop(sc);
@@ -998,7 +1010,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 
 		/* If interactive, be nice to user. */
 		if( file_interactive(sc) ) {
-			sc->envir = sc->global_env;
+			sc->regs.envir = sc->global_env;
 			dump_stack_reset(sc);
 			putstr(sc,"\n");
 			putstr(sc, prompt);
@@ -1014,7 +1026,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_T1LVL: /* top level */
-		sc->code = sc->value;
+		sc->regs.code = sc->value;
 		sc->inport=sc->save_inport;
 		s_goto(sc,OP_EVAL);
 
@@ -1079,17 +1091,17 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 			s_return(sc,mk_atom(sc, readstr_upto(sc, DELIMITERS)));
 		case TOK_DQUOTE:
 			x=readstrexp(sc);
-			if(x==sc->F) {
-				error_0(sc,"Error reading string");
+			if( x == sc->F ) {
+				error_0(sc, "Error reading string");
 			}
 			setimmutable(x);
-			s_return(sc,x);
+			s_return(sc, x);
 		case TOK_SHARP: {
-			cell_ptr_t f=find_slot_in_env(sc,sc->envir,sc->SHARP_HOOK,1);
-			if(f==sc->NIL) {
-				error_0(sc,"undefined sharp expression");
+			cell_ptr_t f	= find_slot_in_env(sc, sc->regs.envir, sc->SHARP_HOOK, 1);
+			if( f == sc->NIL ) {
+				error_0(sc, "undefined sharp expression");
 			} else {
-				sc->code=cons(sc,slot_value_in_env(f),sc->NIL);
+				sc->regs.code	= cons(sc, slot_value_in_env(f), sc->NIL);
 				s_goto(sc,OP_EVAL);
 			}
 		}
@@ -1105,7 +1117,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		break;
 
 	case OP_RDLIST: {
-		sc->args = cons(sc, sc->value, sc->args);
+		sc->regs.args = cons(sc, sc->value, sc->regs.args);
 		sc->tok = token(sc);
 		/* We now skip comments in the scanner
 	  while (sc->tok == TOK_COMMENT) {
@@ -1126,14 +1138,14 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 			sc->nesting_stack[sc->file_i]--;
-			s_return(sc,reverse_in_place(sc, sc->NIL, sc->args));
+			s_return(sc, reverse_in_place(sc, sc->NIL, sc->regs.args));
 		} else if (sc->tok == TOK_DOT) {
-			s_save(sc,OP_RDDOT, sc->args, sc->NIL);
+			s_save(sc, OP_RDDOT, sc->regs.args, sc->NIL);
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		} else {
-			s_save(sc,OP_RDLIST, sc->args, sc->NIL);;
-			s_goto(sc,OP_RDSEXPR);
+			s_save(sc, OP_RDLIST, sc->regs.args, sc->NIL);;
+			s_goto(sc, OP_RDSEXPR);
 		}
 	}
 
@@ -1142,7 +1154,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 			error_0(sc,"syntax error: illegal dot expression");
 		} else {
 			sc->nesting_stack[sc->file_i]--;
-			s_return(sc,reverse_in_place(sc, sc->value, sc->args));
+			s_return(sc, reverse_in_place(sc, sc->value, sc->regs.args));
 		}
 
 	case OP_RDQUOTE:
@@ -1165,84 +1177,86 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		s_return(sc,cons(sc, sc->UNQUOTESP, cons(sc, sc->value, sc->NIL)));
 
 	case OP_RDVEC:
-		/*sc->code=cons(sc,mk_proc(sc,OP_VECTOR),sc->value);
+		/*sc->regs.code=cons(sc,mk_proc(sc,OP_VECTOR),sc->value);
 	  s_goto(sc,OP_EVAL); Cannot be quoted*/
 		/*x=cons(sc,mk_proc(sc,OP_VECTOR),sc->value);
 	  s_return(sc,x); Cannot be part of pairs*/
-		/*sc->code=mk_proc(sc,OP_VECTOR);
-	  sc->args=sc->value;
+		/*sc->regs.code=mk_proc(sc,OP_VECTOR);
+	  sc->regs.args=sc->value;
 	  s_goto(sc,OP_APPLY);*/
-		sc->args=sc->value;
-		s_goto(sc,OP_VECTOR);
+		sc->regs.args	= sc->value;
+		s_goto(sc, OP_VECTOR);
 
 		/* ========== printing part ========== */
 	case OP_P0LIST:
-		if(is_vector(sc->args)) {
+		if( is_vector(sc->regs.args) ) {
 			putstr(sc,"#(");
-			sc->args=cons(sc,sc->args,mk_integer(sc,0));
-			s_goto(sc,OP_PVECFROM);
-		} else if(is_environment(sc->args)) {
+			sc->regs.args = cons(sc,sc->regs.args, mk_integer(sc, 0));
+			s_goto(sc, OP_PVECFROM);
+		} else if( is_environment(sc->regs.args) ) {
 			putstr(sc,"#<ENVIRONMENT>");
-			s_return(sc,sc->T);
-		} else if (!is_pair(sc->args)) {
-			printatom(sc, sc->args, sc->print_flag);
-			s_return(sc,sc->T);
-		} else if (car(sc->args) == sc->QUOTE && ok_abbrev(cdr(sc->args))) {
+			s_return(sc, sc->T);
+		} else if( !is_pair(sc->regs.args) ) {
+			printatom(sc, sc->regs.args, sc->print_flag);
+			s_return(sc, sc->T);
+		} else if( car(sc->regs.args) == sc->QUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
 			putstr(sc, "'");
-			sc->args = cadr(sc->args);
-			s_goto(sc,OP_P0LIST);
-		} else if (car(sc->args) == sc->QQUOTE && ok_abbrev(cdr(sc->args))) {
+			sc->regs.args = cadr(sc->regs.args);
+			s_goto(sc, OP_P0LIST);
+		} else if( car(sc->regs.args) == sc->QQUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
 			putstr(sc, "`");
-			sc->args = cadr(sc->args);
+			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
-		} else if (car(sc->args) == sc->UNQUOTE && ok_abbrev(cdr(sc->args))) {
+		} else if (car(sc->regs.args) == sc->UNQUOTE && ok_abbrev(cdr(sc->regs.args))) {
 			putstr(sc, ",");
-			sc->args = cadr(sc->args);
-			s_goto(sc,OP_P0LIST);
-		} else if (car(sc->args) == sc->UNQUOTESP && ok_abbrev(cdr(sc->args))) {
+			sc->regs.args = cadr(sc->regs.args);
+			s_goto(sc, OP_P0LIST);
+		} else if (car(sc->regs.args) == sc->UNQUOTESP && ok_abbrev(cdr(sc->regs.args))) {
 			putstr(sc, ",@");
-			sc->args = cadr(sc->args);
+			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
 		} else {
 			putstr(sc, "(");
-			s_save(sc,OP_P1LIST, cdr(sc->args), sc->NIL);
-			sc->args = car(sc->args);
+			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->NIL);
+			sc->regs.args = car(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
 		}
 
 	case OP_P1LIST:
-		if (is_pair(sc->args)) {
-			s_save(sc,OP_P1LIST, cdr(sc->args), sc->NIL);
+		if( is_pair(sc->regs.args) ) {
+			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->NIL);
 			putstr(sc, " ");
-			sc->args = car(sc->args);
-			s_goto(sc,OP_P0LIST);
-		} else if(is_vector(sc->args)) {
-			s_save(sc,OP_P1LIST,sc->NIL,sc->NIL);
+			sc->regs.args = car(sc->regs.args);
+			s_goto(sc, OP_P0LIST);
+		} else if(is_vector(sc->regs.args)) {
+			s_save(sc, OP_P1LIST, sc->NIL, sc->NIL);
 			putstr(sc, " . ");
-			s_goto(sc,OP_P0LIST);
+			s_goto(sc, OP_P0LIST);
 		} else {
-			if (sc->args != sc->NIL) {
+			if (sc->regs.args != sc->NIL) {
 				putstr(sc, " . ");
-				printatom(sc, sc->args, sc->print_flag);
+				printatom(sc, sc->regs.args, sc->print_flag);
 			}
 			putstr(sc, ")");
-			s_return(sc,sc->T);
+			s_return(sc, sc->T);
 		}
+
 	case OP_PVECFROM: {
-		int i=ivalue_unchecked(cdr(sc->args));
-		cell_ptr_t vec=car(sc->args);
-		int len=ivalue_unchecked(vec);
-		if(i==len) {
-			putstr(sc,")");
-			s_return(sc,sc->T);
+		int i=ivalue_unchecked(cdr(sc->regs.args));
+		cell_ptr_t vec = car(sc->regs.args);
+		int len = ivalue_unchecked(vec);
+		if( i == len ) {
+			putstr(sc, ")");
+			s_return(sc, sc->T);
 		} else {
 			cell_ptr_t elem=vector_elem(vec,i);
-			ivalue_unchecked(cdr(sc->args))=i+1;
-			s_save(sc,OP_PVECFROM, sc->args, sc->NIL);
-			sc->args=elem;
-			if (i > 0)
-				putstr(sc," ");
-			s_goto(sc,OP_P0LIST);
+			ivalue_unchecked(cdr(sc->regs.args)) = i + 1;
+			s_save(sc,OP_PVECFROM, sc->regs.args, sc->NIL);
+			sc->regs.args = elem;
+			if( i > 0 ) {
+				putstr(sc, " ");
+			}
+			s_goto(sc, OP_P0LIST);
 		}
 	}
 
@@ -1336,7 +1350,7 @@ eval_cycle(scheme_t *sc,
 		if( pcd->name != 0 ) { /* if built-in function, check arguments */
 			char	msg[STRBUFFSIZE];
 			bool	ok	= true;
-			int	n	= list_length(sc, sc->args);
+			int	n	= list_length(sc, sc->regs.args);
 
 			/* Check number of arguments */
 			if( n < pcd->min_arity ) {
@@ -1360,7 +1374,7 @@ eval_cycle(scheme_t *sc,
 					int i	= 0;
 					int j;
 					const char *t	= pcd->arg_tests_encoding;
-					cell_ptr_t arglist	= sc->args;
+					cell_ptr_t arglist	= sc->regs.args;
 					do {
 						cell_ptr_t arg	= car(arglist);
 						j	= (int)t[0];
@@ -1604,7 +1618,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 
 	sc->memory.gc_verbose		= false;
 	dump_stack_initialize(sc);
-	sc->code			= sc->NIL;
+	sc->regs.code			= sc->NIL;
 	sc->tracing			= 0;
 
 	/* init sc->NIL */
@@ -1625,7 +1639,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->oblist			= oblist_initial_value(sc);
 	/* init global_env */
 	new_frame_in_env(sc, sc->NIL);
-	sc->global_env			= sc->envir;
+	sc->global_env			= sc->regs.envir;
 	/* init else */
 	x = mk_symbol(sc,"else");
 	new_slot_in_env(sc, x, sc->T);
@@ -1699,9 +1713,9 @@ void scheme_deinit(scheme_t *sc)
 	sc->oblist	= sc->NIL;
 	sc->global_env	= sc->NIL;
 	dump_stack_free(sc);
-	sc->envir	= sc->NIL;
-	sc->code	= sc->NIL;
-	sc->args	= sc->NIL;
+	sc->regs.envir	= sc->NIL;
+	sc->regs.code	= sc->NIL;
+	sc->regs.args	= sc->NIL;
 	sc->value	= sc->NIL;
 
 	if( is_port(sc->inport) ) {
@@ -1749,7 +1763,7 @@ scheme_load_file(scheme_t *sc,
 
 void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 	dump_stack_reset(sc);
-	sc->envir	= sc->global_env;
+	sc->regs.envir	= sc->global_env;
 	sc->file_i	= 0;
 	sc->load_stack[0].kind.value		= port_input | port_file;
 	sc->load_stack[0].rep.stdio.file	= fin;
@@ -1765,8 +1779,8 @@ void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 		sc->load_stack[0].rep.stdio.filename = store_string(sc, strlen(filename), filename, 0);
 #endif
 
-	sc->inport=sc->loadport;
-	sc->args = mk_integer(sc,sc->file_i);
+	sc->inport	= sc->loadport;
+	sc->regs.args	= mk_integer(sc,sc->file_i);
 	eval_cycle(sc, OP_T0LVL);
 	typeflag(sc->loadport)	= T_ATOM;
 	if( sc->retcode == 0 ) {
@@ -1779,7 +1793,7 @@ scheme_load_string(scheme_t *sc,
 		   const char *cmd)
 {
 	dump_stack_reset(sc);
-	sc->envir	= sc->global_env;
+	sc->regs.envir	= sc->global_env;
 	sc->file_i	= 0;
 	sc->load_stack[0].kind.value		= port_input | port_string;
 	sc->load_stack[0].rep.string.start	= (char*)cmd; /* This func respects const */
@@ -1789,7 +1803,7 @@ scheme_load_string(scheme_t *sc,
 	sc->retcode	= 0;
 	sc->interactive_repl	= 0;
 	sc->inport	= sc->loadport;
-	sc->args	= mk_integer(sc, sc->file_i);
+	sc->regs.args	= mk_integer(sc, sc->file_i);
 	eval_cycle(sc, OP_T0LVL);
 	typeflag(sc->loadport)	= T_ATOM;
 	if( sc->retcode == 0 ) {
@@ -1837,7 +1851,7 @@ void save_from_C_call(scheme_t *sc)
 			cons(sc,
 			     car(sc->sink),
 			     cons(sc,
-				  sc->envir,
+				  sc->regs.envir,
 				  sc->dump));
 	/* Push */
 	sc->c_nest = cons(sc, saved_data, sc->c_nest);
@@ -1848,7 +1862,7 @@ void save_from_C_call(scheme_t *sc)
 void restore_from_C_call(scheme_t *sc)
 {
 	car(sc->sink) = caar(sc->c_nest);
-	sc->envir = cadar(sc->c_nest);
+	sc->regs.envir = cadar(sc->c_nest);
 	sc->dump = cdr(cdar(sc->c_nest));
 	/* Pop */
 	sc->c_nest = cdr(sc->c_nest);
@@ -1860,9 +1874,9 @@ cell_ptr_t scheme_call(scheme_t *sc, cell_ptr_t func, cell_ptr_t args)
 	int old_repl = sc->interactive_repl;
 	sc->interactive_repl = 0;
 	save_from_C_call(sc);
-	sc->envir = sc->global_env;
-	sc->args = args;
-	sc->code = func;
+	sc->regs.envir = sc->global_env;
+	sc->regs.args = args;
+	sc->regs.code = func;
 	sc->retcode = 0;
 	Eval_Cycle(sc, OP_APPLY);
 	sc->interactive_repl = old_repl;
@@ -1875,8 +1889,8 @@ cell_ptr_t scheme_eval(scheme_t *sc, cell_ptr_t obj)
 	int old_repl = sc->interactive_repl;
 	sc->interactive_repl = 0;
 	save_from_C_call(sc);
-	sc->args = sc->NIL;
-	sc->code = obj;
+	sc->regs.args = sc->NIL;
+	sc->regs.code = obj;
 	sc->retcode = 0;
 	Eval_Cycle(sc, OP_EVAL);
 	sc->interactive_repl = old_repl;

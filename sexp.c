@@ -116,8 +116,8 @@ void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
 		new_frame = sc->NIL;
 	}
 
-	sc->envir = immutable_cons(sc, new_frame, old_env);
-	setenvironment(sc->envir);
+	sc->regs.envir = immutable_cons(sc, new_frame, old_env);
+	setenvironment(sc->regs.envir);
 }
 
 
@@ -156,8 +156,8 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
 
 static INLINE void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
 {
-	sc->envir = immutable_cons(sc, sc->NIL, old_env);
-	setenvironment(sc->envir);
+	sc->regs.envir = immutable_cons(sc, sc->NIL, old_env);
+	setenvironment(sc->regs.envir);
 }
 
 static INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,

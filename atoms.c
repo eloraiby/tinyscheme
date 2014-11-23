@@ -329,8 +329,12 @@ INTERFACE cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill) {
 	return (x);
 }
 
-INTERFACE cell_ptr_t mk_vector(scheme_t *sc, int len)
-{ return get_vector_object(sc,len,sc->NIL); }
+INTERFACE cell_ptr_t
+mk_vector(scheme_t *sc,
+	  int len)
+{
+	return get_vector_object(sc,len,sc->NIL);
+}
 
 void fill_vector(cell_ptr_t vec, cell_ptr_t obj) {
 	int i;

@@ -152,48 +152,48 @@ X       T_LAST_SYSTEM_TYPE=14
 >          int fill=0;
 >          int len;
 >
->          if(!isnumber(car(sc->args))) {
->               Error_1(sc,"make-block: not a number:",car(sc->args));
+>          if(!isnumber(car(sc->regs.args))) {
+>               Error_1(sc,"make-block: not a number:",car(sc->regs.args));
 >          }
->          len=ivalue(car(sc->args));
+>          len=ivalue(car(sc->regs.args));
 >          if(len<=0) {
->               Error_1(sc,"make-block: not positive:",car(sc->args));
+>               Error_1(sc,"make-block: not positive:",car(sc->regs.args));
 >          }
 >
->          if(cdr(sc->args)!=sc->NIL) {
->               if(!isnumber(cadr(sc->args)) || ivalue(cadr(sc->args))<0) {
->                    Error_1(sc,"make-block: not a positive number:",cadr(sc->args));
+>          if(cdr(sc->regs.args)!=sc->NIL) {
+>               if(!isnumber(cadr(sc->regs.args)) || ivalue(cadr(sc->regs.args))<0) {
+>                    Error_1(sc,"make-block: not a positive number:",cadr(sc->regs.args));
 >               }
->               fill=charvalue(cadr(sc->args))%255;
+>               fill=charvalue(cadr(sc->regs.args))%255;
 >          }
 >          s_return(sc,mk_memblock(sc,len,(char)fill));
 >     }
 >
 >     case OP_BLOCKLEN:  /* block-length */
->          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-length: not a memory block:",car(sc->args));
+>          if(!ismemblock(car(sc->regs.args))) {
+>               Error_1(sc,"block-length: not a memory block:",car(sc->regs.args));
 >          }
->          s_return(sc,mk_integer(sc,keynum(car(sc->args))));
+>          s_return(sc,mk_integer(sc,keynum(car(sc->regs.args))));
 >
 >     case OP_BLOCKREF: { /* block-ref */
 >          char *str;
 >          int index;
 >
->          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-ref: not a memory block:",car(sc->args));
+>          if(!ismemblock(car(sc->regs.args))) {
+>               Error_1(sc,"block-ref: not a memory block:",car(sc->regs.args));
 >          }
->          str=strvalue(car(sc->args));
+>          str=strvalue(car(sc->regs.args));
 >
->          if(cdr(sc->args)==sc->NIL) {
+>          if(cdr(sc->regs.args)==sc->NIL) {
 >               Error_0(sc,"block-ref: needs two arguments");
 >          }
->          if(!isnumber(cadr(sc->args))) {
->               Error_1(sc,"block-ref: not a number:",cadr(sc->args));
+>          if(!isnumber(cadr(sc->regs.args))) {
+>               Error_1(sc,"block-ref: not a number:",cadr(sc->regs.args));
 >          }
->          index=ivalue(cadr(sc->args));
+>          index=ivalue(cadr(sc->regs.args));
 >
->          if(index<0 || index>=keynum(car(sc->args))) {
->               Error_1(sc,"block-ref: out of bounds:",cadr(sc->args));
+>          if(index<0 || index>=keynum(car(sc->regs.args))) {
+>               Error_1(sc,"block-ref: out of bounds:",cadr(sc->regs.args));
 >          }
 >
 >          s_return(sc,mk_integer(sc,str[index]));
@@ -204,41 +204,41 @@ X       T_LAST_SYSTEM_TYPE=14
 >          int index;
 >          int c;
 >
->          if(!ismemblock(car(sc->args))) {
->               Error_1(sc,"block-set!: not a memory block:",car(sc->args));
+>          if(!ismemblock(car(sc->regs.args))) {
+>               Error_1(sc,"block-set!: not a memory block:",car(sc->regs.args));
 >          }
->          if(isimmutable(car(sc->args))) {
->               Error_1(sc,"block-set!: unable to alter immutable memory block:",car(sc->args));
+>          if(isimmutable(car(sc->regs.args))) {
+>               Error_1(sc,"block-set!: unable to alter immutable memory block:",car(sc->regs.args));
 >          }
->          str=strvalue(car(sc->args));
+>          str=strvalue(car(sc->regs.args));
 >
->          if(cdr(sc->args)==sc->NIL) {
+>          if(cdr(sc->regs.args)==sc->NIL) {
 >               Error_0(sc,"block-set!: needs three arguments");
 >          }
->          if(!isnumber(cadr(sc->args))) {
->               Error_1(sc,"block-set!: not a number:",cadr(sc->args));
+>          if(!isnumber(cadr(sc->regs.args))) {
+>               Error_1(sc,"block-set!: not a number:",cadr(sc->regs.args));
 >          }
->          index=ivalue(cadr(sc->args));
->          if(index<0 || index>=keynum(car(sc->args))) {
->               Error_1(sc,"block-set!: out of bounds:",cadr(sc->args));
+>          index=ivalue(cadr(sc->regs.args));
+>          if(index<0 || index>=keynum(car(sc->regs.args))) {
+>               Error_1(sc,"block-set!: out of bounds:",cadr(sc->regs.args));
 >          }
 >
->          if(cddr(sc->args)==sc->NIL) {
+>          if(cddr(sc->regs.args)==sc->NIL) {
 >               Error_0(sc,"block-set!: needs three arguments");
 >          }
->          if(!isinteger(caddr(sc->args))) {
->               Error_1(sc,"block-set!: not an integer:",caddr(sc->args));
+>          if(!isinteger(caddr(sc->regs.args))) {
+>               Error_1(sc,"block-set!: not an integer:",caddr(sc->regs.args));
 >          }
->          c=ivalue(caddr(sc->args))%255;
+>          c=ivalue(caddr(sc->regs.args))%255;
 >
 >          str[index]=(char)c;
->          s_return(sc,car(sc->args));
+>          s_return(sc,car(sc->regs.args));
 >     }
 
      Finally, do the same for the predicate in opexe_3.
 
 |     case OP_VECTORP:     /* vector? */
-|          s_retbool(is_vector(car(sc->args)));
+|          s_retbool(is_vector(car(sc->regs.args)));
 >     case OP_BLOCKP:     /* block? */
->          s_retbool(is_memblock(car(sc->args)));
+>          s_retbool(is_memblock(car(sc->regs.args)));
 |     case OP_EQ:         /* eq? */
