@@ -98,27 +98,27 @@ cell_ptr_t scm_load_ext(scheme_t *sc, cell_ptr_t args)
 	HMODULE dll_handle;
 	void (*module_init)(scheme_t *sc);
 
-	if ((args != sc->NIL) && is_string((first_arg = pair_car(args)))) {
+	if ((args != sc->syms.NIL) && is_string((first_arg = pair_car(args)))) {
 		name = string_value(first_arg);
 		make_filename(name,filename);
 		make_init_fn(name,init_fn);
 		dll_handle = dl_attach(filename);
 		if (dll_handle == 0) {
-			retval = sc -> F;
+			retval = sc->syms.F;
 		}
 		else {
 			module_init = (void(*)(scheme_t *))dl_proc(dll_handle, init_fn);
 			if (module_init != 0) {
 				(*module_init)(sc);
-				retval = sc -> T;
+				retval = sc->syms.T;
 			}
 			else {
-				retval = sc->F;
+				retval = sc->syms.F;
 			}
 		}
 	}
 	else {
-		retval = sc -> F;
+		retval = sc->syms.F;
 	}
 
 	return(retval);

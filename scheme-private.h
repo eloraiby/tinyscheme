@@ -120,10 +120,10 @@ struct scheme_t {
 
 	/* We use 4 registers. */
 	struct {
-		cell_ptr_t args;            /* register for arguments of function */
-		cell_ptr_t envir;           /* stack register for current environment */
-		cell_ptr_t code;            /* register for current code */
-		cell_ptr_t dump;            /* stack register for next evaluation */
+		cell_ptr_t	args;            /* register for arguments of function */
+		cell_ptr_t	envir;           /* stack register for current environment */
+		cell_ptr_t	code;            /* register for current code */
+		cell_ptr_t	dump;            /* stack register for next evaluation */
 	} regs;
 
 	int interactive_repl;    /* are we in an interactive REPL? */
@@ -131,32 +131,36 @@ struct scheme_t {
 	number_t num_zero;
 	number_t num_one;
 
-	cell_t _sink;
-	cell_ptr_t sink;            /* when mem. alloc. fails */
-	cell_t _NIL;
-	cell_ptr_t NIL;             /* special cell representing empty cell */
-	cell_t _HASHT;
-	cell_ptr_t T;               /* special cell representing #t */
-	cell_t _HASHF;
-	cell_ptr_t F;               /* special cell representing #f */
-	cell_t _EOF_OBJ;
-	cell_ptr_t EOF_OBJ;         /* special cell representing end-of-file object */
+	struct {
+		cell_t		_sink;
+		cell_ptr_t	sink;            /* when mem. alloc. fails */
+		cell_t		_NIL;
+		cell_ptr_t	NIL;             /* special cell representing empty cell */
+		cell_t		_HASHT;
+		cell_ptr_t	T;               /* special cell representing #t */
+		cell_t		_HASHF;
+		cell_ptr_t F;			 /* special cell representing #f */
+		cell_t		_EOF_OBJ;
+		cell_ptr_t	EOF_OBJ;         /* special cell representing end-of-file object */
+
+		/* global pointers to special symbols */
+		cell_ptr_t	LAMBDA;          /* cell_ptr_t to syntax lambda */
+		cell_ptr_t	QUOTE;           /* cell_ptr_t to syntax quote */
+
+		cell_ptr_t	QQUOTE;          /* cell_ptr_t to symbol quasiquote */
+		cell_ptr_t	UNQUOTE;         /* cell_ptr_t to symbol unquote */
+		cell_ptr_t	UNQUOTESP;       /* cell_ptr_t to symbol unquote-splicing */
+		cell_ptr_t	FEED_TO;         /* => */
+		cell_ptr_t	COLON_HOOK;      /* *colon-hook* */
+		cell_ptr_t	ERROR_HOOK;      /* *error-hook* */
+		cell_ptr_t	SHARP_HOOK;	 /* *sharp-hook* */
+		cell_ptr_t	COMPILE_HOOK;    /* *compile-hook* */
+	} syms;
+
 	cell_ptr_t oblist;          /* cell_ptr_t to symbol table */
 	cell_ptr_t global_env;      /* cell_ptr_t to global environment */
 	cell_ptr_t c_nest;          /* stack for nested calls from C */
 
-	/* global pointers to special symbols */
-	cell_ptr_t LAMBDA;               /* cell_ptr_t to syntax lambda */
-	cell_ptr_t QUOTE;           /* cell_ptr_t to syntax quote */
-
-	cell_ptr_t QQUOTE;               /* cell_ptr_t to symbol quasiquote */
-	cell_ptr_t UNQUOTE;         /* cell_ptr_t to symbol unquote */
-	cell_ptr_t UNQUOTESP;       /* cell_ptr_t to symbol unquote-splicing */
-	cell_ptr_t FEED_TO;         /* => */
-	cell_ptr_t COLON_HOOK;      /* *colon-hook* */
-	cell_ptr_t ERROR_HOOK;      /* *error-hook* */
-	cell_ptr_t SHARP_HOOK;  /* *sharp-hook* */
-	cell_ptr_t COMPILE_HOOK;  /* *compile-hook* */
 
 
 	cell_ptr_t inport;
@@ -238,7 +242,7 @@ INLINE int num_is_integer(cell_ptr_t p) {
 #define car(p)			((p)->object.pair.head)
 #define cdr(p)			((p)->object.pair.tail)
 
-#define s_retbool(tf)		s_return(sc, (tf) ? sc->T : sc->F)
+#define s_retbool(tf)		s_return(sc, (tf) ? sc->syms.T : sc->syms.F)
 
 #define procnum(p)		ivalue(p)
 
@@ -246,8 +250,8 @@ INLINE int num_is_integer(cell_ptr_t p) {
 
 /* true or false value macro */
 /* () is #t in R5RS */
-#define is_true(p)		((p) != sc->F)
-#define is_false(p)		((p) == sc->F)
+#define is_true(p)		((p) != sc->syms.F)
+#define is_false(p)		((p) == sc->syms.F)
 
 
 #define is_atom(p)		(typeflag(p) & T_ATOM)
@@ -281,11 +285,11 @@ INLINE int num_is_integer(cell_ptr_t p) {
 # define  BEGIN			do {
 # define  END			} while (0)
 
-#define s_goto(sc,a)		BEGIN \
+#define s_goto(sc, a)		BEGIN \
 				sc->op = (int)(a); \
-				return sc->T; END
+				return sc->syms.T; END
 
-#define s_return(sc,a)		return _s_return(sc,a)
+#define s_return(sc, a)		return _s_return(sc, a)
 
 cell_ptr_t	_s_return(scheme_t *sc, cell_ptr_t a);
 void		s_save(scheme_t *sc, enum scheme_opcodes op, cell_ptr_t args, cell_ptr_t code);

@@ -160,17 +160,17 @@ alloc_cellseg(scheme_t *sc,
 		for( p = newp; p <= last; p++ ) {
 			typeflag(p)	= 0;
 			cdr(p)		= p + 1;
-			car(p)		= sc->NIL;
+			car(p)		= sc->syms.NIL;
 		}
 
 		/* insert new cells in address order on free list */
-		if( sc->memory.free_cell == sc->NIL || p < sc->memory.free_cell ) {
+		if( sc->memory.free_cell == sc->syms.NIL || p < sc->memory.free_cell ) {
 			cdr(last)		= sc->memory.free_cell;
 			sc->memory.free_cell	= newp;
 		} else {
 			p	= sc->memory.free_cell;
 
-			while( cdr(p) != sc->NIL && newp > cdr(p) ) {
+			while( cdr(p) != sc->syms.NIL && newp > cdr(p) ) {
 				p = cdr(p);
 			}
 
@@ -186,7 +186,7 @@ get_cell_x(scheme_t *sc,
 	   cell_ptr_t a,
 	   cell_ptr_t b)
 {
-	if( sc->memory.free_cell != sc->NIL ) {
+	if( sc->memory.free_cell != sc->syms.NIL ) {
 		cell_ptr_t x		= sc->memory.free_cell;
 		sc->memory.free_cell	= cdr(x);
 		--sc->memory.fcells;
@@ -205,17 +205,17 @@ _get_cell(scheme_t *sc,
 	cell_ptr_t x;
 
 	if( sc->memory.no_memory ) {
-		return sc->sink;
+		return sc->syms.sink;
 	}
 
-	if( sc->memory.free_cell == sc->NIL ) {
+	if( sc->memory.free_cell == sc->syms.NIL ) {
 		int min_to_be_recovered = sc->memory.last_cell_seg * 8;
 		gc(sc, a, b);
-		if( sc->memory.fcells < min_to_be_recovered || sc->memory.free_cell == sc->NIL ) {
+		if( sc->memory.fcells < min_to_be_recovered || sc->memory.free_cell == sc->syms.NIL ) {
 			/* if only a few recovered, get more to avoid fruitless gc's */
-			if( !alloc_cellseg(sc, 1) && sc->memory.free_cell == sc->NIL ) {
+			if( !alloc_cellseg(sc, 1) && sc->memory.free_cell == sc->syms.NIL ) {
 				sc->memory.no_memory	= true;
-				return sc->sink;
+				return sc->syms.sink;
 			}
 		}
 	}
@@ -233,28 +233,28 @@ reserve_cells(scheme_t *sc,
 	      int n)
 {
 	if( sc->memory.no_memory ) {
-		return sc->NIL;
+		return sc->syms.NIL;
 	}
 
 	/* Are there enough cells available? */
 	if( sc->memory.fcells < n ) {
 		/* If not, try gc'ing some */
-		gc(sc, sc->NIL, sc->NIL);
+		gc(sc, sc->syms.NIL, sc->syms.NIL);
 		if( sc->memory.fcells < n ) {
 			/* If there still aren't, try getting more heap */
 			if (!alloc_cellseg(sc, 1)) {
 				sc->memory.no_memory	= true;
-				return sc->NIL;
+				return sc->syms.NIL;
 			}
 		}
 
 		if( sc->memory.fcells < n ) {
 			/* If all fail, report failure */
 			sc->memory.no_memory	= true;
-			return sc->NIL;
+			return sc->syms.NIL;
 		}
 	}
-	return (sc->T);
+	return (sc->syms.T);
 }
 #endif
 
@@ -264,30 +264,30 @@ get_consecutive_cells(scheme_t *sc,
 {
 	cell_ptr_t x;
 
-	if( sc->memory.no_memory ) { return sc->sink; }
+	if( sc->memory.no_memory ) { return sc->syms.sink; }
 
 	/* Are there any cells available? */
 	x	= find_consecutive_cells(sc, n);
-	if( x != sc->NIL ) { return x; }
+	if( x != sc->syms.NIL ) { return x; }
 
 	/* If not, try gc'ing some */
-	gc(sc, sc->NIL, sc->NIL);
+	gc(sc, sc->syms.NIL, sc->syms.NIL);
 	x	= find_consecutive_cells(sc, n);
 
-	if( x != sc->NIL ) { return x; }
+	if( x != sc->syms.NIL ) { return x; }
 
 	/* If there still aren't, try getting more heap */
 	if( !alloc_cellseg(sc, 1) ) {
 		sc->memory.no_memory	= true;
-		return sc->sink;
+		return sc->syms.sink;
 	}
 
 	x	= find_consecutive_cells(sc, n);
-	if( x != sc->NIL ) { return x; }
+	if( x != sc->syms.NIL ) { return x; }
 
 	/* If all fail, report failure */
 	sc->memory.no_memory	= true;
-	return sc->sink;
+	return sc->syms.sink;
 }
 
 static int
@@ -310,7 +310,7 @@ find_consecutive_cells(scheme_t *sc,
 	cell_ptr_t*	pp	= &sc->memory.free_cell;
 	int		cnt;
 
-	while( *pp != sc->NIL ) {
+	while( *pp != sc->syms.NIL ) {
 		cnt	= count_consecutive_cells(*pp, n);
 		if( cnt >= n ) {
 
@@ -323,7 +323,7 @@ find_consecutive_cells(scheme_t *sc,
 		pp	= &cdr(*pp + cnt - 1);
 	}
 
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 /* To retain recent allocs before interpreter knows about them -
@@ -334,8 +334,8 @@ void push_recent_alloc(scheme_t *sc, cell_ptr_t recent, cell_ptr_t extra)
 	cell_ptr_t holder = get_cell_x(sc, recent, extra);
 	typeflag(holder) = T_PAIR | T_IMMUTABLE;
 	car(holder) = recent;
-	cdr(holder) = car(sc->sink);
-	car(sc->sink) = holder;
+	cdr(holder) = car(sc->syms.sink);
+	car(sc->syms.sink) = holder;
 }
 
 
@@ -348,7 +348,7 @@ cell_ptr_t get_cell(scheme_t *sc, cell_ptr_t a, cell_ptr_t b)
 	typeflag(cell) = T_PAIR;
 	car(cell) = a;
 	cdr(cell) = b;
-	push_recent_alloc(sc, cell, sc->NIL);
+	push_recent_alloc(sc, cell, sc->syms.NIL);
 	return cell;
 }
 
@@ -360,7 +360,7 @@ get_vector_object(scheme_t *sc,
 	cell_ptr_t cells	= get_consecutive_cells(sc, len / 2 + len % 2 + 1);
 
 	if( sc->memory.no_memory ) {
-		return sc->sink;
+		return sc->syms.sink;
 	}
 
 	/* Record it as a vector so that gc understands it. */
@@ -368,13 +368,13 @@ get_vector_object(scheme_t *sc,
 	ivalue_unchecked(cells)	= len;
 	set_num_integer(cells);
 	fill_vector(cells, init);
-	push_recent_alloc(sc, cells, sc->NIL);
+	push_recent_alloc(sc, cells, sc->syms.NIL);
 	return cells;
 }
 
 INLINE void ok_to_freely_gc(scheme_t *sc)
 {
-	car(sc->sink) = sc->NIL;
+	car(sc->syms.sink) = sc->syms.NIL;
 }
 
 
@@ -506,7 +506,7 @@ gc(scheme_t *sc,
 	mark(sc->loadport);
 
 	/* Mark recent objects the interpreter doesn't know about yet. */
-	mark(car(sc->sink));
+	mark(car(sc->syms.sink));
 	/* Mark any older stuff above nested C calls */
 	mark(sc->c_nest);
 
@@ -515,9 +515,9 @@ gc(scheme_t *sc,
 	mark(b);
 
 	/* garbage collect */
-	clrmark(sc->NIL);
+	clrmark(sc->syms.NIL);
 	sc->memory.fcells	= 0;
-	sc->memory.free_cell	= sc->NIL;
+	sc->memory.free_cell	= sc->syms.NIL;
 	/* free-list is kept sorted by address so as to maintain consecutive
 	   ranges, if possible, for use with vectors. Here we scan the cells
 	   (which are also kept sorted by address) downwards to build the
@@ -533,7 +533,7 @@ gc(scheme_t *sc,
 				if( typeflag(p) != 0 ) {
 					finalize_cell(sc, p);
 					typeflag(p) = 0;
-					car(p) = sc->NIL;
+					car(p) = sc->syms.NIL;
 				}
 				++sc->memory.fcells;
 				cdr(p) = sc->memory.free_cell;
@@ -638,7 +638,7 @@ readstrexp(scheme_t *sc)
 	for(;;) {
 		c	= inchar(sc);
 		if( c == EOF || (size_t)(p - sc->strbuff) > sizeof(sc->strbuff) - 1) {
-			return sc->F;
+			return sc->syms.F;
 		}
 		switch(state) {
 		case st_ok:
@@ -710,7 +710,7 @@ readstrexp(scheme_t *sc)
 					state=st_ok;
 				}
 			} else {
-				return sc->F;
+				return sc->syms.F;
 			}
 			break;
 		case st_oct1:
@@ -724,7 +724,7 @@ readstrexp(scheme_t *sc)
 			else
 			{
 				if (state==st_oct2 && c1 >= 32)
-					return sc->F;
+					return sc->syms.F;
 
 				c1=(c1<<3)+(c-'0');
 
@@ -860,7 +860,7 @@ static int token(scheme_t *sc) {
 
 
 /* ========== Evaluation Cycle ========== */
-#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == sc->NIL)
+#define   ok_abbrev(x)   (is_pair(x) && cdr(x) == sc->syms.NIL)
 
 
 cell_ptr_t
@@ -871,7 +871,7 @@ _error_1(scheme_t *sc,
 	const char *str = s;
 #if USE_ERROR_HOOK
 	cell_ptr_t x;
-	cell_ptr_t hdl=sc->ERROR_HOOK;
+	cell_ptr_t hdl=sc->syms.ERROR_HOOK;
 #endif
 
 #if SHOW_ERROR_LINE
@@ -896,36 +896,36 @@ _error_1(scheme_t *sc,
 
 #if USE_ERROR_HOOK
 	x=find_slot_in_env(sc, sc->regs.envir, hdl, 1);
-	if (x != sc->NIL) {
+	if (x != sc->syms.NIL) {
 		if(a!=0) {
-			sc->regs.code = cons(sc, cons(sc, sc->QUOTE, cons(sc,(a), sc->NIL)), sc->NIL);
+			sc->regs.code = cons(sc, cons(sc, sc->syms.QUOTE, cons(sc,(a), sc->syms.NIL)), sc->syms.NIL);
 		} else {
-			sc->regs.code = sc->NIL;
+			sc->regs.code = sc->syms.NIL;
 		}
 		sc->regs.code = cons(sc, mk_string(sc, str), sc->regs.code);
 		setimmutable(car(sc->regs.code));
 		sc->regs.code = cons(sc, slot_value_in_env(x), sc->regs.code);
 		sc->op = (int)OP_EVAL;
-		return sc->T;
+		return sc->syms.T;
 	}
 #endif
 
 	if( a != 0 ) {
-		sc->regs.args = cons(sc, (a), sc->NIL);
+		sc->regs.args = cons(sc, (a), sc->syms.NIL);
 	} else {
-		sc->regs.args = sc->NIL;
+		sc->regs.args = sc->syms.NIL;
 	}
 	sc->regs.args = cons(sc, mk_string(sc, str), sc->regs.args);
 	setimmutable(car(sc->regs.args));
 	sc->op = (int)OP_ERR0;
-	return sc->T;
+	return sc->syms.T;
 }
 
 
 INLINE void
 dump_stack_reset(scheme_t *sc)
 {
-	sc->regs.dump = sc->NIL;
+	sc->regs.dump = sc->syms.NIL;
 }
 
 INLINE void
@@ -937,7 +937,7 @@ dump_stack_initialize(scheme_t *sc)
 static void
 dump_stack_free(scheme_t *sc)
 {
-	sc->regs.dump = sc->NIL;
+	sc->regs.dump = sc->syms.NIL;
 }
 
 cell_ptr_t
@@ -945,13 +945,13 @@ _s_return(scheme_t *sc,
 	  cell_ptr_t a)
 {
 	sc->value = (a);
-	if( sc->regs.dump == sc->NIL ) return sc->NIL;
+	if( sc->regs.dump == sc->syms.NIL ) return sc->syms.NIL;
 	sc->op		= ivalue(car(sc->regs.dump));
 	sc->regs.args	= cadr(sc->regs.dump);
 	sc->regs.envir	= caddr(sc->regs.dump);
 	sc->regs.code	= cadddr(sc->regs.dump);
 	sc->regs.dump	= cddddr(sc->regs.dump);
-	return sc->T;
+	return sc->syms.T;
 }
 
 void
@@ -999,7 +999,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		/* If we reached the end of file, this loop is done. */
 		if( sc->loadport->object.port->kind.value & port_saw_EOF ) {
 			if( sc->file_i == 0 ) {
-				sc->regs.args = sc->NIL;
+				sc->regs.args = sc->syms.NIL;
 				s_goto(sc, OP_QUIT);
 			} else {
 				file_pop(sc);
@@ -1020,9 +1020,9 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		sc->nesting=0;
 		sc->save_inport=sc->inport;
 		sc->inport = sc->loadport;
-		s_save(sc,OP_T0LVL, sc->NIL, sc->NIL);
-		s_save(sc,OP_VALUEPRINT, sc->NIL, sc->NIL);
-		s_save(sc,OP_T1LVL, sc->NIL, sc->NIL);
+		s_save(sc,OP_T0LVL, sc->syms.NIL, sc->syms.NIL);
+		s_save(sc,OP_VALUEPRINT, sc->syms.NIL, sc->syms.NIL);
+		s_save(sc,OP_T1LVL, sc->syms.NIL, sc->syms.NIL);
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_T1LVL: /* top level */
@@ -1032,13 +1032,13 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 
 	case OP_READ_INTERNAL:       /* internal read */
 		sc->tok = token(sc);
-		if( sc->tok == TOK_EOF ){ s_return(sc, sc->EOF_OBJ); }
+		if( sc->tok == TOK_EOF ){ s_return(sc, sc->syms.EOF_OBJ); }
 		s_goto(sc,OP_RDSEXPR);
 
 	case OP_RDSEXPR:
 		switch (sc->tok) {
 		case TOK_EOF:
-			s_return(sc,sc->EOF_OBJ);
+			s_return(sc, sc->syms.EOF_OBJ);
 			/* NOTREACHED */
 			/*
 			 * Commented out because we now skip comments in the scanner
@@ -1052,61 +1052,61 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 				  }
 			*/
 		case TOK_VEC:
-			s_save(sc,OP_RDVEC,sc->NIL,sc->NIL);
+			s_save(sc,OP_RDVEC,sc->syms.NIL,sc->syms.NIL);
 			/* fall through */
 		case TOK_LPAREN:
 			sc->tok = token(sc);
 			if (sc->tok == TOK_RPAREN) {
-				s_return(sc,sc->NIL);
+				s_return(sc,sc->syms.NIL);
 			} else if (sc->tok == TOK_DOT) {
 				error_0(sc,"syntax error: illegal dot expression");
 			} else {
 				sc->nesting_stack[sc->file_i]++;
-				s_save(sc,OP_RDLIST, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDLIST, sc->syms.NIL, sc->syms.NIL);
 				s_goto(sc,OP_RDSEXPR);
 			}
 		case TOK_QUOTE:
-			s_save(sc,OP_RDQUOTE, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDQUOTE, sc->syms.NIL, sc->syms.NIL);
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_BQUOTE:
 			sc->tok = token(sc);
 			if(sc->tok==TOK_VEC) {
-				s_save(sc,OP_RDQQUOTEVEC, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDQQUOTEVEC, sc->syms.NIL, sc->syms.NIL);
 				sc->tok=TOK_LPAREN;
 				s_goto(sc,OP_RDSEXPR);
 			} else {
-				s_save(sc,OP_RDQQUOTE, sc->NIL, sc->NIL);
+				s_save(sc,OP_RDQQUOTE, sc->syms.NIL, sc->syms.NIL);
 			}
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_COMMA:
-			s_save(sc,OP_RDUNQUOTE, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDUNQUOTE, sc->syms.NIL, sc->syms.NIL);
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_ATMARK:
-			s_save(sc,OP_RDUQTSP, sc->NIL, sc->NIL);
+			s_save(sc,OP_RDUQTSP, sc->syms.NIL, sc->syms.NIL);
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		case TOK_ATOM:
 			s_return(sc,mk_atom(sc, readstr_upto(sc, DELIMITERS)));
 		case TOK_DQUOTE:
 			x=readstrexp(sc);
-			if( x == sc->F ) {
+			if( x == sc->syms.F ) {
 				error_0(sc, "Error reading string");
 			}
 			setimmutable(x);
 			s_return(sc, x);
 		case TOK_SHARP: {
-			cell_ptr_t f	= find_slot_in_env(sc, sc->regs.envir, sc->SHARP_HOOK, 1);
-			if( f == sc->NIL ) {
+			cell_ptr_t f	= find_slot_in_env(sc, sc->regs.envir, sc->syms.SHARP_HOOK, 1);
+			if( f == sc->syms.NIL ) {
 				error_0(sc, "undefined sharp expression");
 			} else {
-				sc->regs.code	= cons(sc, slot_value_in_env(f), sc->NIL);
-				s_goto(sc,OP_EVAL);
+				sc->regs.code	= cons(sc, slot_value_in_env(f), sc->syms.NIL);
+				s_goto(sc, OP_EVAL);
 			}
 		}
 		case TOK_SHARP_CONST:
-			if ((x = mk_sharp_const(sc, readstr_upto(sc, DELIMITERS))) == sc->NIL) {
+			if ((x = mk_sharp_const(sc, readstr_upto(sc, DELIMITERS))) == sc->syms.NIL) {
 				error_0(sc,"undefined sharp expression");
 			} else {
 				s_return(sc,x);
@@ -1128,7 +1128,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	  }
 */
 		if (sc->tok == TOK_EOF)
-		{ s_return(sc,sc->EOF_OBJ); }
+		{ s_return(sc, sc->syms.EOF_OBJ); }
 		else if (sc->tok == TOK_RPAREN) {
 			int c = inchar(sc);
 			if (c != '\n')
@@ -1138,13 +1138,13 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 			sc->nesting_stack[sc->file_i]--;
-			s_return(sc, reverse_in_place(sc, sc->NIL, sc->regs.args));
+			s_return(sc, reverse_in_place(sc, sc->syms.NIL, sc->regs.args));
 		} else if (sc->tok == TOK_DOT) {
-			s_save(sc, OP_RDDOT, sc->regs.args, sc->NIL);
+			s_save(sc, OP_RDDOT, sc->regs.args, sc->syms.NIL);
 			sc->tok = token(sc);
 			s_goto(sc,OP_RDSEXPR);
 		} else {
-			s_save(sc, OP_RDLIST, sc->regs.args, sc->NIL);;
+			s_save(sc, OP_RDLIST, sc->regs.args, sc->syms.NIL);;
 			s_goto(sc, OP_RDSEXPR);
 		}
 	}
@@ -1158,23 +1158,23 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		}
 
 	case OP_RDQUOTE:
-		s_return(sc,cons(sc, sc->QUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->syms.QUOTE, cons(sc, sc->value, sc->syms.NIL)));
 
 	case OP_RDQQUOTE:
-		s_return(sc,cons(sc, sc->QQUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->syms.QQUOTE, cons(sc, sc->value, sc->syms.NIL)));
 
 	case OP_RDQQUOTEVEC:
 		s_return(sc,cons(sc, mk_symbol(sc,"apply"),
 				 cons(sc, mk_symbol(sc,"vector"),
-				      cons(sc,cons(sc, sc->QQUOTE,
-						   cons(sc,sc->value,sc->NIL)),
-					   sc->NIL))));
+				      cons(sc,cons(sc, sc->syms.QQUOTE,
+						   cons(sc,sc->value,sc->syms.NIL)),
+					   sc->syms.NIL))));
 
 	case OP_RDUNQUOTE:
-		s_return(sc,cons(sc, sc->UNQUOTE, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->syms.UNQUOTE, cons(sc, sc->value, sc->syms.NIL)));
 
 	case OP_RDUQTSP:
-		s_return(sc,cons(sc, sc->UNQUOTESP, cons(sc, sc->value, sc->NIL)));
+		s_return(sc,cons(sc, sc->syms.UNQUOTESP, cons(sc, sc->value, sc->syms.NIL)));
 
 	case OP_RDVEC:
 		/*sc->regs.code=cons(sc,mk_proc(sc,OP_VECTOR),sc->value);
@@ -1195,50 +1195,50 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 			s_goto(sc, OP_PVECFROM);
 		} else if( is_environment(sc->regs.args) ) {
 			putstr(sc,"#<ENVIRONMENT>");
-			s_return(sc, sc->T);
+			s_return(sc, sc->syms.T);
 		} else if( !is_pair(sc->regs.args) ) {
 			printatom(sc, sc->regs.args, sc->print_flag);
-			s_return(sc, sc->T);
-		} else if( car(sc->regs.args) == sc->QUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
+			s_return(sc, sc->syms.T);
+		} else if( car(sc->regs.args) == sc->syms.QUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
 			putstr(sc, "'");
 			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc, OP_P0LIST);
-		} else if( car(sc->regs.args) == sc->QQUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
+		} else if( car(sc->regs.args) == sc->syms.QQUOTE && ok_abbrev(cdr(sc->regs.args)) ) {
 			putstr(sc, "`");
 			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
-		} else if (car(sc->regs.args) == sc->UNQUOTE && ok_abbrev(cdr(sc->regs.args))) {
+		} else if (car(sc->regs.args) == sc->syms.UNQUOTE && ok_abbrev(cdr(sc->regs.args))) {
 			putstr(sc, ",");
 			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc, OP_P0LIST);
-		} else if (car(sc->regs.args) == sc->UNQUOTESP && ok_abbrev(cdr(sc->regs.args))) {
+		} else if (car(sc->regs.args) == sc->syms.UNQUOTESP && ok_abbrev(cdr(sc->regs.args))) {
 			putstr(sc, ",@");
 			sc->regs.args = cadr(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
 		} else {
 			putstr(sc, "(");
-			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->NIL);
+			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->syms.NIL);
 			sc->regs.args = car(sc->regs.args);
 			s_goto(sc,OP_P0LIST);
 		}
 
 	case OP_P1LIST:
 		if( is_pair(sc->regs.args) ) {
-			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->NIL);
+			s_save(sc, OP_P1LIST, cdr(sc->regs.args), sc->syms.NIL);
 			putstr(sc, " ");
 			sc->regs.args = car(sc->regs.args);
 			s_goto(sc, OP_P0LIST);
 		} else if(is_vector(sc->regs.args)) {
-			s_save(sc, OP_P1LIST, sc->NIL, sc->NIL);
+			s_save(sc, OP_P1LIST, sc->syms.NIL, sc->syms.NIL);
 			putstr(sc, " . ");
 			s_goto(sc, OP_P0LIST);
 		} else {
-			if (sc->regs.args != sc->NIL) {
+			if (sc->regs.args != sc->syms.NIL) {
 				putstr(sc, " . ");
 				printatom(sc, sc->regs.args, sc->print_flag);
 			}
 			putstr(sc, ")");
-			s_return(sc, sc->T);
+			s_return(sc, sc->syms.T);
 		}
 
 	case OP_PVECFROM: {
@@ -1247,11 +1247,11 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		int len = ivalue_unchecked(vec);
 		if( i == len ) {
 			putstr(sc, ")");
-			s_return(sc, sc->T);
+			s_return(sc, sc->syms.T);
 		} else {
 			cell_ptr_t elem=vector_elem(vec,i);
 			ivalue_unchecked(cdr(sc->regs.args)) = i + 1;
-			s_save(sc,OP_PVECFROM, sc->regs.args, sc->NIL);
+			s_save(sc,OP_PVECFROM, sc->regs.args, sc->syms.NIL);
 			sc->regs.args = elem;
 			if( i > 0 ) {
 				putstr(sc, " ");
@@ -1264,7 +1264,7 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
 		error_0(sc,sc->strbuff);
 	}
-	return sc->T; /* NOTREACHED */
+	return sc->syms.T; /* NOTREACHED */
 }
 
 typedef cell_ptr_t (*dispatch_func)(scheme_t *, enum scheme_opcodes);
@@ -1380,7 +1380,7 @@ eval_cycle(scheme_t *sc,
 						j	= (int)t[0];
 
 						if( j == TST_LIST[0] ) {
-							if( arg != sc->NIL && !is_pair(arg) )
+							if( arg != sc->syms.NIL && !is_pair(arg) )
 								break;
 						} else {
 							if( !tests[j].fct(arg) ) break;
@@ -1405,7 +1405,7 @@ eval_cycle(scheme_t *sc,
 			}
 
 			if( !ok ) {
-				if(_error_1(sc, msg, 0) == sc->NIL) {
+				if(_error_1(sc, msg, 0) == sc->syms.NIL) {
 					return;
 				}
 
@@ -1415,7 +1415,7 @@ eval_cycle(scheme_t *sc,
 
 		ok_to_freely_gc(sc);
 
-		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->NIL ) {
+		if( pcd->func(sc, (enum scheme_opcodes)sc->op) == sc->syms.NIL ) {
 			return;
 		}
 
@@ -1595,19 +1595,19 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->gensym_cnt			= 0;
 	sc->malloc			= malloc;
 	sc->free			= free;
-	sc->sink			= &sc->_sink;
-	sc->NIL				= &sc->_NIL;
-	sc->T				= &sc->_HASHT;
-	sc->F				= &sc->_HASHF;
-	sc->EOF_OBJ			= &sc->_EOF_OBJ;
-	sc->memory.free_cell		= &sc->_NIL;
+	sc->syms.sink			= &sc->syms._sink;
+	sc->syms.NIL			= &sc->syms._NIL;
+	sc->syms.T			= &sc->syms._HASHT;
+	sc->syms.F			= &sc->syms._HASHF;
+	sc->syms.EOF_OBJ		= &sc->syms._EOF_OBJ;
+	sc->memory.free_cell		= &sc->syms._NIL;
 	sc->memory.fcells		= 0;
 	sc->memory.last_cell_seg	= -1;
 	sc->memory.no_memory		= false;
-	sc->inport			= sc->NIL;
-	sc->outport			= sc->NIL;
-	sc->save_inport			= sc->NIL;
-	sc->loadport			= sc->NIL;
+	sc->inport			= sc->syms.NIL;
+	sc->outport			= sc->syms.NIL;
+	sc->save_inport			= sc->syms.NIL;
+	sc->loadport			= sc->syms.NIL;
 	sc->nesting			= 0;
 	sc->interactive_repl		= 0;
 
@@ -1618,31 +1618,31 @@ scheme_init_custom_alloc(scheme_t *sc,
 
 	sc->memory.gc_verbose		= false;
 	dump_stack_initialize(sc);
-	sc->regs.code			= sc->NIL;
+	sc->regs.code			= sc->syms.NIL;
 	sc->tracing			= 0;
 
-	/* init sc->NIL */
-	typeflag(sc->NIL)		= T_ATOM | MARK;
-	car(sc->NIL) = cdr(sc->NIL)	= sc->NIL;
+	/* init sc->syms.NIL */
+	typeflag(sc->syms.NIL)		= T_ATOM | MARK;
+	car(sc->syms.NIL) = cdr(sc->syms.NIL)	= sc->syms.NIL;
 	/* init T */
-	typeflag(sc->T)			= T_ATOM | MARK;
-	car(sc->T) = cdr(sc->T)		= sc->T;
+	typeflag(sc->syms.T)			= T_ATOM | MARK;
+	car(sc->syms.T) = cdr(sc->syms.T)		= sc->syms.T;
 	/* init F */
-	typeflag(sc->F)			= T_ATOM | MARK;
-	car(sc->F) = cdr(sc->F)		= sc->F;
+	typeflag(sc->syms.F)			= T_ATOM | MARK;
+	car(sc->syms.F) = cdr(sc->syms.F)		= sc->syms.F;
 	/* init sink */
-	typeflag(sc->sink)		= T_PAIR | MARK;
-	car(sc->sink)			= sc->NIL;
+	typeflag(sc->syms.sink)		= T_PAIR | MARK;
+	car(sc->syms.sink)			= sc->syms.NIL;
 	/* init c_nest */
-	sc->c_nest			= sc->NIL;
+	sc->c_nest			= sc->syms.NIL;
 
 	sc->oblist			= oblist_initial_value(sc);
 	/* init global_env */
-	new_frame_in_env(sc, sc->NIL);
+	new_frame_in_env(sc, sc->syms.NIL);
 	sc->global_env			= sc->regs.envir;
 	/* init else */
 	x = mk_symbol(sc,"else");
-	new_slot_in_env(sc, x, sc->T);
+	new_slot_in_env(sc, x, sc->syms.T);
 
 	assign_syntax(sc, "lambda");
 	assign_syntax(sc, "quote");
@@ -1668,16 +1668,16 @@ scheme_init_custom_alloc(scheme_t *sc,
 	}
 
 	/* initialization of global pointers to special symbols */
-	sc->LAMBDA	= mk_symbol(sc, "lambda");
-	sc->QUOTE	= mk_symbol(sc, "quote");
-	sc->QQUOTE	= mk_symbol(sc, "quasiquote");
-	sc->UNQUOTE	= mk_symbol(sc, "unquote");
-	sc->UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
-	sc->FEED_TO	= mk_symbol(sc, "=>");
-	sc->COLON_HOOK	= mk_symbol(sc,"*colon-hook*");
-	sc->ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
-	sc->SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
-	sc->COMPILE_HOOK	= mk_symbol(sc, "*compile-hook*");
+	sc->syms.LAMBDA		= mk_symbol(sc, "lambda");
+	sc->syms.QUOTE		= mk_symbol(sc, "quote");
+	sc->syms.QQUOTE		= mk_symbol(sc, "quasiquote");
+	sc->syms.UNQUOTE	= mk_symbol(sc, "unquote");
+	sc->syms.UNQUOTESP	= mk_symbol(sc, "unquote-splicing");
+	sc->syms.FEED_TO	= mk_symbol(sc, "=>");
+	sc->syms.COLON_HOOK	= mk_symbol(sc,"*colon-hook*");
+	sc->syms.ERROR_HOOK	= mk_symbol(sc, "*error-hook*");
+	sc->syms.SHARP_HOOK	= mk_symbol(sc, "*sharp-hook*");
+	sc->syms.COMPILE_HOOK	= mk_symbol(sc, "*compile-hook*");
 
 	return !sc->memory.no_memory;
 }
@@ -1710,33 +1710,33 @@ void scheme_deinit(scheme_t *sc)
 	char *fname;
 #endif
 
-	sc->oblist	= sc->NIL;
-	sc->global_env	= sc->NIL;
+	sc->oblist	= sc->syms.NIL;
+	sc->global_env	= sc->syms.NIL;
 	dump_stack_free(sc);
-	sc->regs.envir	= sc->NIL;
-	sc->regs.code	= sc->NIL;
-	sc->regs.args	= sc->NIL;
-	sc->value	= sc->NIL;
+	sc->regs.envir	= sc->syms.NIL;
+	sc->regs.code	= sc->syms.NIL;
+	sc->regs.args	= sc->syms.NIL;
+	sc->value	= sc->syms.NIL;
 
 	if( is_port(sc->inport) ) {
 		typeflag(sc->inport) = T_ATOM;
 	}
 
-	sc->inport	= sc->NIL;
-	sc->outport	= sc->NIL;
+	sc->inport	= sc->syms.NIL;
+	sc->outport	= sc->syms.NIL;
 
 	if( is_port(sc->save_inport)) {
 		typeflag(sc->save_inport) = T_ATOM;
 	}
 
-	sc->save_inport	= sc->NIL;
+	sc->save_inport	= sc->syms.NIL;
 	if( is_port(sc->loadport) ) {
 		typeflag(sc->loadport) = T_ATOM;
 	}
 
-	sc->loadport	= sc->NIL;
+	sc->loadport	= sc->syms.NIL;
 	sc->memory.gc_verbose	= false;
-	gc(sc, sc->NIL, sc->NIL);
+	gc(sc, sc->syms.NIL, sc->syms.NIL);
 
 	for( i = 0; i <= sc->memory.last_cell_seg; i++ ) {
 		sc->free(sc->memory.alloc_seg[i]);
@@ -1815,7 +1815,7 @@ void scheme_define(scheme_t *sc, cell_ptr_t envir, cell_ptr_t symbol, cell_ptr_t
 	cell_ptr_t x;
 
 	x=find_slot_in_env(sc,envir,symbol,0);
-	if (x != sc->NIL) {
+	if (x != sc->syms.NIL) {
 		set_slot_in_env(sc, x, value);
 	} else {
 		new_slot_spec_in_env(sc, envir, symbol, value);
@@ -1843,13 +1843,13 @@ void scheme_register_foreign_func_list(scheme_t * sc,
 }
 
 cell_ptr_t scheme_apply0(scheme_t *sc, const char *procname)
-{ return scheme_eval(sc, cons(sc,mk_symbol(sc,procname),sc->NIL)); }
+{ return scheme_eval(sc, cons(sc,mk_symbol(sc,procname),sc->syms.NIL)); }
 
 void save_from_C_call(scheme_t *sc)
 {
 	cell_ptr_t saved_data =
 			cons(sc,
-			     car(sc->sink),
+			     car(sc->syms.sink),
 			     cons(sc,
 				  sc->regs.envir,
 				  sc->dump));
@@ -1861,7 +1861,7 @@ void save_from_C_call(scheme_t *sc)
 }
 void restore_from_C_call(scheme_t *sc)
 {
-	car(sc->sink) = caar(sc->c_nest);
+	car(sc->syms.sink) = caar(sc->c_nest);
 	sc->regs.envir = cadar(sc->c_nest);
 	sc->dump = cdr(cdar(sc->c_nest));
 	/* Pop */
@@ -1889,7 +1889,7 @@ cell_ptr_t scheme_eval(scheme_t *sc, cell_ptr_t obj)
 	int old_repl = sc->interactive_repl;
 	sc->interactive_repl = 0;
 	save_from_C_call(sc);
-	sc->regs.args = sc->NIL;
+	sc->regs.args = sc->syms.NIL;
 	sc->regs.code = obj;
 	sc->retcode = 0;
 	Eval_Cycle(sc, OP_EVAL);
@@ -1957,7 +1957,7 @@ int main(int argc, char **argv) {
 		if(strcmp(file_name,"-")==0) {
 			fin=stdin;
 		} else if(strcmp(file_name,"-1")==0 || strcmp(file_name,"-c")==0) {
-			cell_ptr_t args=sc.NIL;
+			cell_ptr_t args=sc.syms.NIL;
 			isfile=file_name[1]=='1';
 			file_name=*argv++;
 			if(strcmp(file_name,"-")==0) {
@@ -1969,7 +1969,7 @@ int main(int argc, char **argv) {
 				cell_ptr_t value=mk_string(&sc,*argv);
 				args=cons(&sc,value,args);
 			}
-			args=reverse_in_place(&sc,sc.NIL,args);
+			args=reverse_in_place(&sc,sc.syms.NIL,args);
 			scheme_define(&sc,sc.global_env,mk_symbol(&sc,"*args*"),args);
 
 		} else {

@@ -225,7 +225,7 @@ cell_ptr_t
 mk_port(scheme_t *sc,
 	port_t *p)
 {
-	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x	= get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 
 	typeflag(x)	= T_PORT | T_ATOM;
 	x->object.port	= p;
@@ -236,7 +236,7 @@ cell_ptr_t
 mk_foreign_func(scheme_t *sc,
 		foreign_func f)
 {
-	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x	= get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 
 	typeflag(x)	= T_FOREIGN | T_ATOM;
 	x->object.ff	= f;
@@ -247,7 +247,7 @@ cell_ptr_t
 mk_character(scheme_t *sc,
 	     int c)
 {
-	cell_ptr_t x	= get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x	= get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 
 	typeflag(x)	= T_CHARACTER | T_ATOM;
 	ivalue_unchecked(x)	= c;
@@ -257,7 +257,7 @@ mk_character(scheme_t *sc,
 
 /* get number atom (integer) */
 INTERFACE cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc,sc->syms.NIL, sc->syms.NIL);
 
 	typeflag(x) = (T_NUMBER | T_ATOM);
 	ivalue_unchecked(x)= number_t;
@@ -266,7 +266,7 @@ INTERFACE cell_ptr_t mk_integer(scheme_t *sc, long number_t) {
 }
 
 INTERFACE cell_ptr_t mk_real(scheme_t *sc, double n) {
-	cell_ptr_t x = get_cell(sc,sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc,sc->syms.NIL, sc->syms.NIL);
 
 	typeflag(x) = (T_NUMBER | T_ATOM);
 	rvalue_unchecked(x)= n;
@@ -314,7 +314,7 @@ INTERFACE cell_ptr_t mk_string(scheme_t *sc, const char *str) {
 }
 
 INTERFACE cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 	typeflag(x) = (T_STRING | T_ATOM);
 	strvalue(x) = store_string(sc,len,str,0);
 	strlength(x) = len;
@@ -322,7 +322,7 @@ INTERFACE cell_ptr_t mk_counted_string(scheme_t *sc, const char *str, int len) {
 }
 
 INTERFACE cell_ptr_t mk_empty_string(scheme_t *sc, int len, char fill) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, sc->NIL);
+	cell_ptr_t x = get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 	typeflag(x) = (T_STRING | T_ATOM);
 	strvalue(x) = store_string(sc,len,0,fill);
 	strlength(x) = len;
@@ -333,7 +333,7 @@ INTERFACE cell_ptr_t
 mk_vector(scheme_t *sc,
 	  int len)
 {
-	return get_vector_object(sc,len,sc->NIL);
+	return get_vector_object(sc,len,sc->syms.NIL);
 }
 
 void fill_vector(cell_ptr_t vec, cell_ptr_t obj) {
@@ -371,7 +371,7 @@ INTERFACE cell_ptr_t mk_symbol(scheme_t *sc, const char *name) {
 
 	/* first check oblist */
 	x = oblist_find_by_name(sc, name);
-	if (x != sc->NIL) {
+	if (x != sc->syms.NIL) {
 		return (x);
 	} else {
 		x = oblist_add_by_name(sc, name);
@@ -389,7 +389,7 @@ INTERFACE cell_ptr_t gensym(scheme_t *sc) {
 		/* first check oblist */
 		x = oblist_find_by_name(sc, name);
 
-		if (x != sc->NIL) {
+		if (x != sc->syms.NIL) {
 			continue;
 		} else {
 			x = oblist_add_by_name(sc, name);
@@ -397,7 +397,7 @@ INTERFACE cell_ptr_t gensym(scheme_t *sc) {
 		}
 	}
 
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 /* make symbol or number atom from string */
@@ -412,12 +412,12 @@ mk_atom(scheme_t *sc,
 #if USE_COLON_HOOK
 	if((p=strstr(q,"::"))!=0) {
 		*p=0;
-		return cons(sc, sc->COLON_HOOK,
+		return cons(sc, sc->syms.COLON_HOOK,
 			    cons(sc,
 				 cons(sc,
-				      sc->QUOTE,
-				      cons(sc, mk_atom(sc,p+2), sc->NIL)),
-				 cons(sc, mk_symbol(sc,strlwr(q)), sc->NIL)));
+				      sc->syms.QUOTE,
+				      cons(sc, mk_atom(sc,p+2), sc->syms.NIL)),
+				 cons(sc, mk_symbol(sc,strlwr(q)), sc->syms.NIL)));
 	}
 #endif
 
@@ -531,9 +531,9 @@ mk_sharp_const(scheme_t *sc,
 	char    tmp[STRBUFFSIZE];
 
 	if (!strcmp(name, "t"))
-		return (sc->T);
+		return (sc->syms.T);
 	else if (!strcmp(name, "f"))
-		return (sc->F);
+		return (sc->syms.F);
 	else if (*name == 'o') {/* #o (octal) */
 		snprintf(tmp, STRBUFFSIZE, "0%s", name+1);
 		sscanf(tmp, "%lo", (long unsigned *)&x);
@@ -563,7 +563,7 @@ mk_sharp_const(scheme_t *sc,
 			if( sscanf(name+2,"%x",(unsigned int *)&c1)==1 && c1 < UCHAR_MAX ) {
 				c=c1;
 			} else {
-				return sc->NIL;
+				return sc->syms.NIL;
 			}
 #if USE_ASCII_NAMES
 		} else if(is_ascii_name(name+1,&c)) {
@@ -572,11 +572,11 @@ mk_sharp_const(scheme_t *sc,
 		} else if(name[2]==0) {
 			c=name[1];
 		} else {
-			return sc->NIL;
+			return sc->syms.NIL;
 		}
 		return mk_character(sc,c);
 	} else
-		return (sc->NIL);
+		return (sc->syms.NIL);
 }
 
 /* equivalence of atoms */
@@ -673,13 +673,13 @@ void printatom(scheme_t *sc, cell_ptr_t l, int f) {
 void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	char *p;
 
-	if (l == sc->NIL) {
+	if (l == sc->syms.NIL) {
 		p = "()";
-	} else if (l == sc->T) {
+	} else if (l == sc->syms.T) {
 		p = "#t";
-	} else if (l == sc->F) {
+	} else if (l == sc->syms.F) {
 		p = "#f";
-	} else if (l == sc->EOF_OBJ) {
+	} else if (l == sc->syms.EOF_OBJ) {
 		p = "#<EOF>";
 	} else if (is_port(l)) {
 		p = sc->strbuff;

@@ -43,7 +43,7 @@ eval_op(scheme_t *sc,
 	case OP_EVAL:       /* main part of evaluation */
 #if USE_TRACING
 		if(sc->tracing) {
-			/*s_save(sc,OP_VALUEPRINT,sc->NIL,sc->NIL);*/
+			/*s_save(sc,OP_VALUEPRINT,sc->syms.NIL,sc->syms.NIL);*/
 			s_save(sc,OP_REAL_EVAL,sc->regs.args, sc->regs.code);
 			sc->regs.args = sc->regs.code;
 			putstr(sc,"\nEval: ");
@@ -54,7 +54,7 @@ eval_op(scheme_t *sc,
 #endif
 		if (is_symbol(sc->regs.code)) {    /* symbol */
 			x=find_slot_in_env(sc,sc->regs.envir,sc->regs.code,1);
-			if (x != sc->NIL) {
+			if (x != sc->syms.NIL) {
 				s_return(sc,slot_value_in_env(x));
 			} else {
 				error_1(sc,"eval: unbound variable:", sc->regs.code);
@@ -64,8 +64,8 @@ eval_op(scheme_t *sc,
 				sc->regs.code = cdr(sc->regs.code);
 				s_goto(sc,syntaxnum(x));
 			} else {/* first, eval top element and eval arguments */
-				s_save(sc,OP_E0ARGS, sc->NIL, sc->regs.code);
-				/* If no macros => s_save(sc,OP_E1ARGS, sc->NIL, cdr(sc->regs.code));*/
+				s_save(sc,OP_E0ARGS, sc->syms.NIL, sc->regs.code);
+				/* If no macros => s_save(sc,OP_E1ARGS, sc->syms.NIL, cdr(sc->regs.code));*/
 				sc->regs.code = car(sc->regs.code);
 				s_goto(sc,OP_EVAL);
 			}
@@ -75,8 +75,8 @@ eval_op(scheme_t *sc,
 
 	case OP_E0ARGS:     /* eval arguments */
 		if (is_macro(sc->value)) {    /* macro expansion */
-			s_save(sc,OP_DOMACRO, sc->NIL, sc->NIL);
-			sc->regs.args = cons(sc,sc->regs.code, sc->NIL);
+			s_save(sc,OP_DOMACRO, sc->syms.NIL, sc->syms.NIL);
+			sc->regs.args = cons(sc,sc->regs.code, sc->syms.NIL);
 			sc->regs.code = sc->value;
 			s_goto(sc,OP_APPLY);
 		} else {
@@ -89,10 +89,10 @@ eval_op(scheme_t *sc,
 		if (is_pair(sc->regs.code)) { /* continue */
 			s_save(sc,OP_E1ARGS, sc->regs.args, cdr(sc->regs.code));
 			sc->regs.code = car(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_EVAL);
 		} else {  /* end */
-			sc->regs.args = reverse_in_place(sc, sc->NIL, sc->regs.args);
+			sc->regs.args = reverse_in_place(sc, sc->syms.NIL, sc->regs.args);
 			sc->regs.code = car(sc->regs.args);
 			sc->regs.args = cdr(sc->regs.args);
 			s_goto(sc,OP_APPLY);
@@ -122,7 +122,7 @@ eval_op(scheme_t *sc,
 			s_goto(sc, procnum(sc->regs.code));   /* PROCEDURE */
 		} else if( is_foreign(sc->regs.code) ) {
 			/* Keep nested calls from GC'ing the arglist */
-			push_recent_alloc(sc, sc->regs.args, sc->NIL);
+			push_recent_alloc(sc, sc->regs.args, sc->syms.NIL);
 			x = sc->regs.code->object.ff(sc, sc->regs.args);
 			s_return(sc,x);
 		} else if( is_closure(sc->regs.code) || is_macro(sc->regs.code) || is_promise(sc->regs.code) ) { /* CLOSURE */
@@ -131,15 +131,15 @@ eval_op(scheme_t *sc,
 			new_frame_in_env(sc, closure_env(sc->regs.code));
 			for (x = car(closure_code(sc->regs.code)), y = sc->regs.args;
 			     is_pair(x); x = cdr(x), y = cdr(y)) {
-				if (y == sc->NIL) {
+				if (y == sc->syms.NIL) {
 					error_0(sc,"not enough arguments");
 				} else {
 					new_slot_in_env(sc, car(x), car(y));
 				}
 			}
-			if (x == sc->NIL) {
+			if (x == sc->syms.NIL) {
 				/*--
-		     * if (y != sc->NIL) {
+		     * if (y != sc->syms.NIL) {
 		     *   error_0(sc,"too many arguments");
 		     * }
 		     */
@@ -149,11 +149,11 @@ eval_op(scheme_t *sc,
 				error_1(sc,"syntax error in closure: not a symbol:", x);
 			}
 			sc->regs.code = cdr(closure_code(sc->regs.code));
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_BEGIN);
 		} else if (is_continuation(sc->regs.code)) { /* CONTINUATION */
 			sc->regs.dump = cont_dump(sc->regs.code);
-			s_return(sc,sc->regs.args != sc->NIL ? car(sc->regs.args) : sc->NIL);
+			s_return(sc,sc->regs.args != sc->syms.NIL ? car(sc->regs.args) : sc->syms.NIL);
 		} else {
 			error_0(sc,"illegal function");
 		}
@@ -167,13 +167,13 @@ eval_op(scheme_t *sc,
 	/* If the hook is defined, apply it to sc->regs.code, otherwise
 	   set sc->value fall thru */
 	{
-		cell_ptr_t f=find_slot_in_env(sc,sc->regs.envir,sc->COMPILE_HOOK,1);
-		if(f==sc->NIL) {
+		cell_ptr_t f=find_slot_in_env(sc,sc->regs.envir,sc->syms.COMPILE_HOOK,1);
+		if(f==sc->syms.NIL) {
 			sc->value = sc->regs.code;
 			/* Fallthru */
 		} else {
 			s_save(sc,OP_LAMBDA1,sc->regs.args,sc->regs.code);
-			sc->regs.args=cons(sc,sc->regs.code,sc->NIL);
+			sc->regs.args=cons(sc,sc->regs.code,sc->syms.NIL);
 			sc->regs.code=slot_value_in_env(f);
 			s_goto(sc,OP_APPLY);
 		}
@@ -190,10 +190,10 @@ eval_op(scheme_t *sc,
 
 	case OP_MKCLOSURE: /* make-closure */
 		x=car(sc->regs.args);
-		if(car(x)==sc->LAMBDA) {
+		if(car(x)==sc->syms.LAMBDA) {
 			x=cdr(x);
 		}
-		if(cdr(sc->regs.args)==sc->NIL) {
+		if(cdr(sc->regs.args)==sc->syms.NIL) {
 			y=sc->regs.envir;
 		} else {
 			y=cadr(sc->regs.args);
@@ -209,7 +209,7 @@ eval_op(scheme_t *sc,
 
 		if (is_pair(car(sc->regs.code))) {
 			x = caar(sc->regs.code);
-			sc->regs.code = cons(sc, sc->LAMBDA, cons(sc, cdar(sc->regs.code), cdr(sc->regs.code)));
+			sc->regs.code = cons(sc, sc->syms.LAMBDA, cons(sc, cdar(sc->regs.code), cdr(sc->regs.code)));
 		} else {
 			x = car(sc->regs.code);
 			sc->regs.code = cadr(sc->regs.code);
@@ -217,12 +217,12 @@ eval_op(scheme_t *sc,
 		if (!is_symbol(x)) {
 			error_0(sc,"variable is not a symbol");
 		}
-		s_save(sc,OP_DEF1, sc->NIL, x);
+		s_save(sc,OP_DEF1, sc->syms.NIL, x);
 		s_goto(sc,OP_EVAL);
 
 	case OP_DEF1:  /* define */
 		x=find_slot_in_env(sc,sc->regs.envir,sc->regs.code,0);
-		if (x != sc->NIL) {
+		if (x != sc->syms.NIL) {
 			set_slot_in_env(sc, x, sc->value);
 		} else {
 			new_slot_in_env(sc, sc->regs.code, sc->value);
@@ -232,21 +232,21 @@ eval_op(scheme_t *sc,
 
 	case OP_DEFP:  /* defined? */
 		x=sc->regs.envir;
-		if(cdr(sc->regs.args)!=sc->NIL) {
+		if(cdr(sc->regs.args)!=sc->syms.NIL) {
 			x=cadr(sc->regs.args);
 		}
-		s_retbool(find_slot_in_env(sc,x,car(sc->regs.args),1)!=sc->NIL);
+		s_retbool(find_slot_in_env(sc,x,car(sc->regs.args),1)!=sc->syms.NIL);
 
 	case OP_SET0:       /* set! */
 		if(is_immutable(car(sc->regs.code)))
 			error_1(sc,"set!: unable to alter immutable variable",car(sc->regs.code));
-		s_save(sc,OP_SET1, sc->NIL, car(sc->regs.code));
+		s_save(sc,OP_SET1, sc->syms.NIL, car(sc->regs.code));
 		sc->regs.code = cadr(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_SET1:       /* set! */
 		y=find_slot_in_env(sc,sc->regs.envir,sc->regs.code,1);
-		if (y != sc->NIL) {
+		if (y != sc->syms.NIL) {
 			set_slot_in_env(sc, y, sc->value);
 			s_return(sc,sc->value);
 		} else {
@@ -258,14 +258,14 @@ eval_op(scheme_t *sc,
 		if (!is_pair(sc->regs.code)) {
 			s_return(sc,sc->regs.code);
 		}
-		if (cdr(sc->regs.code) != sc->NIL) {
-			s_save(sc,OP_BEGIN, sc->NIL, cdr(sc->regs.code));
+		if (cdr(sc->regs.code) != sc->syms.NIL) {
+			s_save(sc,OP_BEGIN, sc->syms.NIL, cdr(sc->regs.code));
 		}
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_IF0:        /* if */
-		s_save(sc,OP_IF1, sc->NIL, cdr(sc->regs.code));
+		s_save(sc,OP_IF1, sc->syms.NIL, cdr(sc->regs.code));
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
@@ -274,11 +274,11 @@ eval_op(scheme_t *sc,
 			sc->regs.code = car(sc->regs.code);
 		else
 			sc->regs.code = cadr(sc->regs.code);  /* (if #f 1) ==> () because
-					    * car(sc->NIL) = sc->NIL */
+					    * car(sc->syms.NIL) = sc->syms.NIL */
 		s_goto(sc,OP_EVAL);
 
 	case OP_LET0:       /* let */
-		sc->regs.args = sc->NIL;
+		sc->regs.args = sc->syms.NIL;
 		sc->value = sc->regs.code;
 		sc->regs.code = is_symbol(car(sc->regs.code)) ? cadr(sc->regs.code) : car(sc->regs.code);
 		s_goto(sc,OP_LET1);
@@ -292,10 +292,10 @@ eval_op(scheme_t *sc,
 			}
 			s_save(sc,OP_LET1, sc->regs.args, cdr(sc->regs.code));
 			sc->regs.code = cadar(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_EVAL);
 		} else {  /* end */
-			sc->regs.args = reverse_in_place(sc, sc->NIL, sc->regs.args);
+			sc->regs.args = reverse_in_place(sc, sc->syms.NIL, sc->regs.args);
 			sc->regs.code = car(sc->regs.args);
 			sc->regs.args = cdr(sc->regs.args);
 			s_goto(sc,OP_LET2);
@@ -304,29 +304,29 @@ eval_op(scheme_t *sc,
 	case OP_LET2:       /* let */
 		new_frame_in_env(sc, sc->regs.envir);
 		for (x = is_symbol(car(sc->regs.code)) ? cadr(sc->regs.code) : car(sc->regs.code), y = sc->regs.args;
-		     y != sc->NIL; x = cdr(x), y = cdr(y)) {
+		     y != sc->syms.NIL; x = cdr(x), y = cdr(y)) {
 			new_slot_in_env(sc, caar(x), car(y));
 		}
 		if (is_symbol(car(sc->regs.code))) {    /* named let */
-			for (x = cadr(sc->regs.code), sc->regs.args = sc->NIL; x != sc->NIL; x = cdr(x)) {
+			for (x = cadr(sc->regs.code), sc->regs.args = sc->syms.NIL; x != sc->syms.NIL; x = cdr(x)) {
 				if (!is_pair(x))
 					error_1(sc, "Bad syntax of binding in let :", x);
 				if (!is_list(sc, car(x)))
 					error_1(sc, "Bad syntax of binding in let :", car(x));
 				sc->regs.args = cons(sc, caar(x), sc->regs.args);
 			}
-			x = mk_closure(sc, cons(sc, reverse_in_place(sc, sc->NIL, sc->regs.args), cddr(sc->regs.code)), sc->regs.envir);
+			x = mk_closure(sc, cons(sc, reverse_in_place(sc, sc->syms.NIL, sc->regs.args), cddr(sc->regs.code)), sc->regs.envir);
 			new_slot_in_env(sc, car(sc->regs.code), x);
 			sc->regs.code = cddr(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 		} else {
 			sc->regs.code = cdr(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 		}
 		s_goto(sc,OP_BEGIN);
 
 	case OP_LET0AST:    /* let* */
-		if (car(sc->regs.code) == sc->NIL) {
+		if (car(sc->regs.code) == sc->syms.NIL) {
 			new_frame_in_env(sc, sc->regs.envir);
 			sc->regs.code = cdr(sc->regs.code);
 			s_goto(sc,OP_BEGIN);
@@ -348,18 +348,18 @@ eval_op(scheme_t *sc,
 		if (is_pair(sc->regs.code)) { /* continue */
 			s_save(sc,OP_LET2AST, sc->regs.args, sc->regs.code);
 			sc->regs.code = cadar(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_EVAL);
 		} else {  /* end */
 			sc->regs.code = sc->regs.args;
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_BEGIN);
 		}
 
 	/* =================== binding operations ==================*/
 	case OP_LET0REC:    /* letrec */
 		new_frame_in_env(sc, sc->regs.envir);
-		sc->regs.args = sc->NIL;
+		sc->regs.args = sc->syms.NIL;
 		sc->value = sc->regs.code;
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_LET1REC);
@@ -373,113 +373,113 @@ eval_op(scheme_t *sc,
 			}
 			s_save(sc,OP_LET1REC, sc->regs.args, cdr(sc->regs.code));
 			sc->regs.code = cadar(sc->regs.code);
-			sc->regs.args = sc->NIL;
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_EVAL);
 		} else {  /* end */
-			sc->regs.args = reverse_in_place(sc, sc->NIL, sc->regs.args);
+			sc->regs.args = reverse_in_place(sc, sc->syms.NIL, sc->regs.args);
 			sc->regs.code = car(sc->regs.args);
 			sc->regs.args = cdr(sc->regs.args);
 			s_goto(sc,OP_LET2REC);
 		}
 
 	case OP_LET2REC:    /* letrec */
-		for (x = car(sc->regs.code), y = sc->regs.args; y != sc->NIL; x = cdr(x), y = cdr(y)) {
+		for (x = car(sc->regs.code), y = sc->regs.args; y != sc->syms.NIL; x = cdr(x), y = cdr(y)) {
 			new_slot_in_env(sc, caar(x), car(y));
 		}
 		sc->regs.code = cdr(sc->regs.code);
-		sc->regs.args = sc->NIL;
+		sc->regs.args = sc->syms.NIL;
 		s_goto(sc,OP_BEGIN);
 
 	case OP_COND0:      /* cond */
 		if (!is_pair(sc->regs.code)) {
 			error_0(sc,"syntax error in cond");
 		}
-		s_save(sc,OP_COND1, sc->NIL, sc->regs.code);
+		s_save(sc,OP_COND1, sc->syms.NIL, sc->regs.code);
 		sc->regs.code = caar(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_COND1:      /* cond */
 		if (is_true(sc->value)) {
-			if ((sc->regs.code = cdar(sc->regs.code)) == sc->NIL) {
+			if ((sc->regs.code = cdar(sc->regs.code)) == sc->syms.NIL) {
 				s_return(sc,sc->value);
 			}
-			if(car(sc->regs.code)==sc->FEED_TO) {
+			if(car(sc->regs.code)==sc->syms.FEED_TO) {
 				if(!is_pair(cdr(sc->regs.code))) {
 					error_0(sc,"syntax error in cond");
 				}
-				x=cons(sc, sc->QUOTE, cons(sc, sc->value, sc->NIL));
-				sc->regs.code=cons(sc,cadr(sc->regs.code),cons(sc,x,sc->NIL));
+				x=cons(sc, sc->syms.QUOTE, cons(sc, sc->value, sc->syms.NIL));
+				sc->regs.code=cons(sc,cadr(sc->regs.code),cons(sc,x,sc->syms.NIL));
 				s_goto(sc,OP_EVAL);
 			}
 			s_goto(sc,OP_BEGIN);
 		} else {
-			if ((sc->regs.code = cdr(sc->regs.code)) == sc->NIL) {
-				s_return(sc,sc->NIL);
+			if ((sc->regs.code = cdr(sc->regs.code)) == sc->syms.NIL) {
+				s_return(sc,sc->syms.NIL);
 			} else {
-				s_save(sc,OP_COND1, sc->NIL, sc->regs.code);
+				s_save(sc,OP_COND1, sc->syms.NIL, sc->regs.code);
 				sc->regs.code = caar(sc->regs.code);
 				s_goto(sc,OP_EVAL);
 			}
 		}
 
 	case OP_DELAY:      /* delay */
-		x = mk_closure(sc, cons(sc, sc->NIL, sc->regs.code), sc->regs.envir);
+		x = mk_closure(sc, cons(sc, sc->syms.NIL, sc->regs.code), sc->regs.envir);
 		typeflag(x)=T_PROMISE;
 		s_return(sc,x);
 
 	case OP_AND0:       /* and */
-		if (sc->regs.code == sc->NIL) {
-			s_return(sc,sc->T);
+		if (sc->regs.code == sc->syms.NIL) {
+			s_return(sc,sc->syms.T);
 		}
-		s_save(sc,OP_AND1, sc->NIL, cdr(sc->regs.code));
+		s_save(sc,OP_AND1, sc->syms.NIL, cdr(sc->regs.code));
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_AND1:       /* and */
 		if (is_false(sc->value)) {
 			s_return(sc,sc->value);
-		} else if (sc->regs.code == sc->NIL) {
+		} else if (sc->regs.code == sc->syms.NIL) {
 			s_return(sc,sc->value);
 		} else {
-			s_save(sc,OP_AND1, sc->NIL, cdr(sc->regs.code));
+			s_save(sc,OP_AND1, sc->syms.NIL, cdr(sc->regs.code));
 			sc->regs.code = car(sc->regs.code);
 			s_goto(sc,OP_EVAL);
 		}
 
 	case OP_OR0:        /* or */
-		if (sc->regs.code == sc->NIL) {
-			s_return(sc,sc->F);
+		if (sc->regs.code == sc->syms.NIL) {
+			s_return(sc,sc->syms.F);
 		}
-		s_save(sc,OP_OR1, sc->NIL, cdr(sc->regs.code));
+		s_save(sc,OP_OR1, sc->syms.NIL, cdr(sc->regs.code));
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_OR1:        /* or */
 		if (is_true(sc->value)) {
 			s_return(sc,sc->value);
-		} else if (sc->regs.code == sc->NIL) {
+		} else if (sc->regs.code == sc->syms.NIL) {
 			s_return(sc,sc->value);
 		} else {
-			s_save(sc,OP_OR1, sc->NIL, cdr(sc->regs.code));
+			s_save(sc,OP_OR1, sc->syms.NIL, cdr(sc->regs.code));
 			sc->regs.code = car(sc->regs.code);
 			s_goto(sc,OP_EVAL);
 		}
 
 	case OP_C0STREAM:   /* cons-stream */
-		s_save(sc,OP_C1STREAM, sc->NIL, cdr(sc->regs.code));
+		s_save(sc,OP_C1STREAM, sc->syms.NIL, cdr(sc->regs.code));
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_C1STREAM:   /* cons-stream */
 		sc->regs.args = sc->value;  /* save sc->value to register sc->regs.args for gc */
-		x = mk_closure(sc, cons(sc, sc->NIL, sc->regs.code), sc->regs.envir);
+		x = mk_closure(sc, cons(sc, sc->syms.NIL, sc->regs.code), sc->regs.envir);
 		typeflag(x)=T_PROMISE;
 		s_return(sc,cons(sc, sc->regs.args, x));
 
 	case OP_MACRO0:     /* macro */
 		if (is_pair(car(sc->regs.code))) {
 			x = caar(sc->regs.code);
-			sc->regs.code = cons(sc, sc->LAMBDA, cons(sc, cdar(sc->regs.code), cdr(sc->regs.code)));
+			sc->regs.code = cons(sc, sc->syms.LAMBDA, cons(sc, cdar(sc->regs.code), cdr(sc->regs.code)));
 		} else {
 			x = car(sc->regs.code);
 			sc->regs.code = cadr(sc->regs.code);
@@ -487,13 +487,13 @@ eval_op(scheme_t *sc,
 		if (!is_symbol(x)) {
 			error_0(sc,"variable is not a symbol");
 		}
-		s_save(sc,OP_MACRO1, sc->NIL, x);
+		s_save(sc,OP_MACRO1, sc->syms.NIL, x);
 		s_goto(sc,OP_EVAL);
 
 	case OP_MACRO1:     /* macro */
 		typeflag( sc->value ) = T_MACRO;
 		x = find_slot_in_env(sc, sc->regs.envir, sc->regs.code, 0);
-		if( x != sc->NIL ) {
+		if( x != sc->syms.NIL ) {
 			set_slot_in_env(sc, x, sc->value);
 		} else {
 			new_slot_in_env(sc, sc->regs.code, sc->value);
@@ -501,44 +501,44 @@ eval_op(scheme_t *sc,
 		s_return(sc,sc->regs.code);
 
 	case OP_CASE0:      /* case */
-		s_save(sc,OP_CASE1, sc->NIL, cdr(sc->regs.code));
+		s_save(sc,OP_CASE1, sc->syms.NIL, cdr(sc->regs.code));
 		sc->regs.code = car(sc->regs.code);
 		s_goto(sc,OP_EVAL);
 
 	case OP_CASE1:      /* case */
-		for( x = sc->regs.code; x != sc->NIL; x = cdr(x) ) {
+		for( x = sc->regs.code; x != sc->syms.NIL; x = cdr(x) ) {
 			if (!is_pair(y = caar(x))) {
 				break;
 			}
 
-			for( ; y != sc->NIL; y = cdr(y) ) {
+			for( ; y != sc->syms.NIL; y = cdr(y) ) {
 				if (eqv(car(y), sc->value)) {
 					break;
 				}
 			}
 
-			if( y != sc->NIL ) {
+			if( y != sc->syms.NIL ) {
 				break;
 			}
 		}
-		if (x != sc->NIL) {
+		if (x != sc->syms.NIL) {
 			if( is_pair(caar(x)) ) {
 				sc->regs.code = cdar(x);
 				s_goto(sc,OP_BEGIN);
 			} else {/* else */
-				s_save(sc,OP_CASE2, sc->NIL, cdar(x));
+				s_save(sc,OP_CASE2, sc->syms.NIL, cdar(x));
 				sc->regs.code = caar(x);
 				s_goto(sc,OP_EVAL);
 			}
 		} else {
-			s_return(sc,sc->NIL);
+			s_return(sc,sc->syms.NIL);
 		}
 
 	case OP_CASE2:      /* case */
 		if (is_true(sc->value)) {
 			s_goto(sc,OP_BEGIN);
 		} else {
-			s_return(sc,sc->NIL);
+			s_return(sc,sc->syms.NIL);
 		}
 
 	case OP_PAPPLY:     /* apply */
@@ -548,7 +548,7 @@ eval_op(scheme_t *sc,
 		s_goto(sc,OP_APPLY);
 
 	case OP_PEVAL: /* eval */
-		if(cdr(sc->regs.args)!=sc->NIL) {
+		if(cdr(sc->regs.args)!=sc->syms.NIL) {
 			sc->regs.envir=cadr(sc->regs.args);
 		}
 		sc->regs.code = car(sc->regs.args);
@@ -556,7 +556,7 @@ eval_op(scheme_t *sc,
 
 	case OP_CONTINUATION:    /* call-with-current-continuation */
 		sc->regs.code = car(sc->regs.args);
-		sc->regs.args = cons(sc, mk_continuation(sc, sc->regs.dump), sc->NIL);
+		sc->regs.args = cons(sc, mk_continuation(sc, sc->regs.dump), sc->syms.NIL);
 		s_goto(sc,OP_APPLY);
 
 	/* ============== Math starts here ====================== */
@@ -601,7 +601,7 @@ eval_op(scheme_t *sc,
 
 	case OP_ATAN:
 		x=car(sc->regs.args);
-		if(cdr(sc->regs.args)==sc->NIL) {
+		if(cdr(sc->regs.args)==sc->syms.NIL) {
 			s_return(sc, mk_real(sc, atan(rvalue(x))));
 		} else {
 			cell_ptr_t y=cadr(sc->regs.args);
@@ -669,40 +669,40 @@ eval_op(scheme_t *sc,
 
 	case OP_ADD:        /* + */
 		n = sc->num_zero;
-		for( x = sc->regs.args; x != sc->NIL; x = cdr(x) ) {
+		for( x = sc->regs.args; x != sc->syms.NIL; x = cdr(x) ) {
 			n = num_add(n, nvalue(car(x)));
 		}
 		s_return(sc, mk_number(sc, n));
 
 	case OP_MUL:        /* * */
 		n = sc->num_one;
-		for (x = sc->regs.args; x != sc->NIL; x = cdr(x)) {
+		for (x = sc->regs.args; x != sc->syms.NIL; x = cdr(x)) {
 			n = num_mul(n, nvalue(car(x)));
 		}
 		s_return(sc, mk_number(sc, n));
 
 	case OP_SUB:        /* - */
-		if( cdr(sc->regs.args) == sc->NIL ) {
+		if( cdr(sc->regs.args) == sc->syms.NIL ) {
 			x = sc->regs.args;
 			n = sc->num_zero;
 		} else {
 			x = cdr(sc->regs.args);
 			n = nvalue(car(sc->regs.args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
+		for (; x != sc->syms.NIL; x = cdr(x)) {
 			n = num_sub(n, nvalue(car(x)));
 		}
 		s_return(sc, mk_number(sc, n));
 
 	case OP_DIV:        /* / */
-		if(cdr(sc->regs.args) == sc->NIL) {
+		if(cdr(sc->regs.args) == sc->syms.NIL) {
 			x = sc->regs.args;
 			n = sc->num_one;
 		} else {
 			x = cdr(sc->regs.args);
 			n = nvalue(car(sc->regs.args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
+		for (; x != sc->syms.NIL; x = cdr(x)) {
 			if (!is_zero_double(rvalue(car(x))))
 				n = num_div(n, nvalue(car(x)));
 			else {
@@ -712,14 +712,14 @@ eval_op(scheme_t *sc,
 		s_return(sc, mk_number(sc, n));
 
 	case OP_INTDIV:        /* quotient */
-		if(cdr(sc->regs.args)==sc->NIL) {
+		if(cdr(sc->regs.args)==sc->syms.NIL) {
 			x = sc->regs.args;
 			n = sc->num_one;
 		} else {
 			x = cdr(sc->regs.args);
 			n = nvalue(car(sc->regs.args));
 		}
-		for (; x != sc->NIL; x = cdr(x)) {
+		for (; x != sc->syms.NIL; x = cdr(x)) {
 			if (ivalue(car(x)) != 0)
 				n = num_intdiv(n, nvalue(car(x)));
 			else {
@@ -804,7 +804,7 @@ eval_op(scheme_t *sc,
 	case OP_STR2ATOM: /* string->atom */ {
 		char *s=strvalue(car(sc->regs.args));
 		long pf = 0;
-		if(cdr(sc->regs.args)!=sc->NIL) {
+		if(cdr(sc->regs.args)!=sc->syms.NIL) {
 			/* we know cadr(sc->regs.args) is a natural number */
 			/* see if it is 2, 8, 10, or 16, or error */
 			pf = ivalue_unchecked(cadr(sc->regs.args));
@@ -830,7 +830,7 @@ eval_op(scheme_t *sc,
 					s_return(sc, mk_integer(sc, iv));
 				}
 				else {
-					s_return(sc, sc->F);
+					s_return(sc, sc->syms.F);
 				}
 			}
 		}
@@ -844,7 +844,7 @@ eval_op(scheme_t *sc,
 	case OP_ATOM2STR: /* atom->string */ {
 		long pf = 0;
 		x=car(sc->regs.args);
-		if(cdr(sc->regs.args)!=sc->NIL) {
+		if(cdr(sc->regs.args)!=sc->syms.NIL) {
 			/* we know cadr(sc->regs.args) is a natural number */
 			/* see if it is 2, 8, 10, or 16, or error */
 			pf = ivalue_unchecked(cadr(sc->regs.args));
@@ -873,7 +873,7 @@ eval_op(scheme_t *sc,
 
 		len=ivalue(car(sc->regs.args));
 
-		if(cdr(sc->regs.args)!=sc->NIL) {
+		if(cdr(sc->regs.args)!=sc->syms.NIL) {
 			fill=charvalue(cadr(sc->regs.args));
 		}
 		s_return(sc,mk_empty_string(sc,len,(char)fill));
@@ -926,12 +926,12 @@ eval_op(scheme_t *sc,
 		char *pos;
 
 		/* compute needed length for new string */
-		for (x = sc->regs.args; x != sc->NIL; x = cdr(x)) {
+		for (x = sc->regs.args; x != sc->syms.NIL; x = cdr(x)) {
 			len += strlength(car(x));
 		}
 		newstr = mk_empty_string(sc, len, ' ');
 		/* store the contents of the argument strings into the new string */
-		for (pos = strvalue(newstr), x = sc->regs.args; x != sc->NIL;
+		for (pos = strvalue(newstr), x = sc->regs.args; x != sc->syms.NIL;
 		     pos += strlength(car(x)), x = cdr(x)) {
 			memcpy(pos, strvalue(car(x)), strlength(car(x)));
 		}
@@ -952,7 +952,7 @@ eval_op(scheme_t *sc,
 			error_1(sc,"substring: start out of bounds:",cadr(sc->regs.args));
 		}
 
-		if( cddr(sc->regs.args) != sc->NIL) {
+		if( cddr(sc->regs.args) != sc->syms.NIL) {
 			index1	= (unsigned int)ivalue(caddr(sc->regs.args));
 			if( index1 > strlength(car(sc->regs.args)) || index1 < index0 ) {
 				error_1(sc, "substring: end out of bounds:", caddr(sc->regs.args));
@@ -977,7 +977,7 @@ eval_op(scheme_t *sc,
 			error_1(sc, "vector: not a proper list:", sc->regs.args);
 		}
 		vec	= mk_vector(sc, len);
-		if( sc->memory.no_memory ) { s_return(sc, sc->sink); }
+		if( sc->memory.no_memory ) { s_return(sc, sc->syms.sink); }
 		for( x = sc->regs.args, i = 0; is_pair(x); x = cdr(x), i++ ) {
 			set_vector_elem(vec, i, car(x));
 		}
@@ -985,19 +985,19 @@ eval_op(scheme_t *sc,
 	}
 
 	case OP_MKVECTOR: { /* make-vector */
-		cell_ptr_t	fill = sc->NIL;
+		cell_ptr_t	fill = sc->syms.NIL;
 		int		len;
 		cell_ptr_t	vec;
 
 		len	= ivalue(car(sc->regs.args));
 
-		if( cdr(sc->regs.args) != sc->NIL ) {
+		if( cdr(sc->regs.args) != sc->syms.NIL ) {
 			fill	= cadr(sc->regs.args);
 		}
 
 		vec	= mk_vector(sc, len);
-		if( sc->memory.no_memory ) { s_return(sc, sc->sink); }
-		if( fill != sc->NIL ) {
+		if( sc->memory.no_memory ) { s_return(sc, sc->syms.sink); }
+		if( fill != sc->syms.NIL ) {
 			fill_vector(vec, fill);
 		}
 		s_return(sc, vec);
@@ -1038,11 +1038,11 @@ eval_op(scheme_t *sc,
 	case OP_NOT:        /* not */
 		s_retbool(is_false(car(sc->regs.args)));
 	case OP_BOOLP:       /* boolean? */
-		s_retbool(car(sc->regs.args) == sc->F || car(sc->regs.args) == sc->T);
+		s_retbool(car(sc->regs.args) == sc->syms.F || car(sc->regs.args) == sc->syms.T);
 	case OP_EOFOBJP:       /* boolean? */
-		s_retbool(car(sc->regs.args) == sc->EOF_OBJ);
+		s_retbool(car(sc->regs.args) == sc->syms.EOF_OBJ);
 	case OP_NULLP:       /* null? */
-		s_retbool(car(sc->regs.args) == sc->NIL);
+		s_retbool(car(sc->regs.args) == sc->syms.NIL);
 	case OP_NUMEQ:      /* = */
 	case OP_LESS:       /* < */
 	case OP_GRE:        /* > */
@@ -1062,7 +1062,7 @@ eval_op(scheme_t *sc,
 		n=nvalue(car(x));
 		x=cdr(x);
 
-		for (; x != sc->NIL; x = cdr(x)) {
+		for (; x != sc->syms.NIL; x = cdr(x)) {
 			if(!comp_func(n,nvalue(car(x)))) {
 				s_retbool(0);
 			}
@@ -1125,8 +1125,8 @@ eval_op(scheme_t *sc,
 		sc->regs.code = car(sc->regs.args);
 		if (is_promise(sc->regs.code)) {
 			/* Should change type to closure here */
-			s_save(sc, OP_SAVE_FORCED, sc->NIL, sc->regs.code);
-			sc->regs.args = sc->NIL;
+			s_save(sc, OP_SAVE_FORCED, sc->syms.NIL, sc->regs.code);
+			sc->regs.args = sc->syms.NIL;
 			s_goto(sc,OP_APPLY);
 		} else {
 			s_return(sc,sc->regs.code);
@@ -1141,8 +1141,8 @@ eval_op(scheme_t *sc,
 	case OP_WRITE_CHAR: /* write-char */
 		if(is_pair(cdr(sc->regs.args))) {
 			if(cadr(sc->regs.args)!=sc->outport) {
-				x=cons(sc,sc->outport,sc->NIL);
-				s_save(sc,OP_SET_OUTPORT, x, sc->NIL);
+				x=cons(sc,sc->outport,sc->syms.NIL);
+				s_save(sc,OP_SET_OUTPORT, x, sc->syms.NIL);
 				sc->outport=cadr(sc->regs.args);
 			}
 		}
@@ -1157,13 +1157,13 @@ eval_op(scheme_t *sc,
 	case OP_NEWLINE:    /* newline */
 		if(is_pair(sc->regs.args)) {
 			if(car(sc->regs.args)!=sc->outport) {
-				x=cons(sc,sc->outport,sc->NIL);
-				s_save(sc,OP_SET_OUTPORT, x, sc->NIL);
+				x=cons(sc,sc->outport,sc->syms.NIL);
+				s_save(sc,OP_SET_OUTPORT, x, sc->syms.NIL);
 				sc->outport=car(sc->regs.args);
 			}
 		}
 		putstr(sc, "\n");
-		s_return(sc,sc->T);
+		s_return(sc,sc->syms.T);
 
 	case OP_ERR0:  /* error */
 		sc->retcode=-1;
@@ -1178,8 +1178,8 @@ eval_op(scheme_t *sc,
 
 	case OP_ERR1:  /* error */
 		putstr(sc, " ");
-		if (sc->regs.args != sc->NIL) {
-			s_save(sc,OP_ERR1, cdr(sc->regs.args), sc->NIL);
+		if (sc->regs.args != sc->syms.NIL) {
+			s_save(sc,OP_ERR1, cdr(sc->regs.args), sc->syms.NIL);
 			sc->regs.args = car(sc->regs.args);
 			sc->print_flag = 1;
 			s_goto(sc,OP_P0LIST);
@@ -1188,7 +1188,7 @@ eval_op(scheme_t *sc,
 			if(sc->interactive_repl) {
 				s_goto(sc,OP_T0LVL);
 			} else {
-				return sc->NIL;
+				return sc->syms.NIL;
 			}
 		}
 
@@ -1199,7 +1199,7 @@ eval_op(scheme_t *sc,
 		s_return(sc,list_star(sc,sc->regs.args));
 
 	case OP_APPEND:    /* append */
-		x = sc->NIL;
+		x = sc->syms.NIL;
 		y = sc->regs.args;
 		if (y == x) {
 			s_return(sc, x);
@@ -1207,10 +1207,10 @@ eval_op(scheme_t *sc,
 
 		/* cdr() in the while condition is not a typo. If car() */
 		/* is used (append '() 'a) will return the wrong result.*/
-		while (cdr(y) != sc->NIL) {
+		while (cdr(y) != sc->syms.NIL) {
 			x = revappend(sc, x, car(y));
 			y = cdr(y);
-			if (x == sc->F) {
+			if (x == sc->syms.F) {
 				error_0(sc, "non-list argument to append");
 			}
 		}
@@ -1222,47 +1222,47 @@ eval_op(scheme_t *sc,
 		if (!hasprop(car(sc->regs.args)) || !hasprop(cadr(sc->regs.args))) {
 			error_0(sc,"illegal use of put");
 		}
-		for (x = symprop(car(sc->regs.args)), y = cadr(sc->regs.args); x != sc->NIL; x = cdr(x)) {
+		for (x = symprop(car(sc->regs.args)), y = cadr(sc->regs.args); x != sc->syms.NIL; x = cdr(x)) {
 			if (caar(x) == y) {
 				break;
 			}
 		}
-		if (x != sc->NIL)
+		if (x != sc->syms.NIL)
 			cdar(x) = caddr(sc->regs.args);
 		else
 			symprop(car(sc->regs.args)) = cons(sc, cons(sc, y, caddr(sc->regs.args)),
 						      symprop(car(sc->regs.args)));
-		s_return(sc,sc->T);
+		s_return(sc,sc->syms.T);
 
 	case OP_GET:        /* get */
 		if (!hasprop(car(sc->regs.args)) || !hasprop(cadr(sc->regs.args))) {
 			error_0(sc,"illegal use of get");
 		}
-		for (x = symprop(car(sc->regs.args)), y = cadr(sc->regs.args); x != sc->NIL; x = cdr(x)) {
+		for (x = symprop(car(sc->regs.args)), y = cadr(sc->regs.args); x != sc->syms.NIL; x = cdr(x)) {
 			if (caar(x) == y) {
 				break;
 			}
 		}
-		if (x != sc->NIL) {
+		if (x != sc->syms.NIL) {
 			s_return(sc,cdar(x));
 		} else {
-			s_return(sc,sc->NIL);
+			s_return(sc,sc->syms.NIL);
 		}
 #endif /* USE_PLIST */
 	case OP_QUIT:       /* quit */
 		if(is_pair(sc->regs.args)) {
 			sc->retcode=ivalue(car(sc->regs.args));
 		}
-		return (sc->NIL);
+		return (sc->syms.NIL);
 
 	case OP_GC:         /* gc */
-		gc(sc, sc->NIL, sc->NIL);
-		s_return(sc,sc->T);
+		gc(sc, sc->syms.NIL, sc->syms.NIL);
+		s_return(sc,sc->syms.T);
 
 	case OP_GCVERB:          /* gc-verbose */
 	{    int  was = sc->memory.gc_verbose;
 
-		sc->memory.gc_verbose = (car(sc->regs.args) != sc->F);
+		sc->memory.gc_verbose = (car(sc->regs.args) != sc->syms.F);
 		s_retbool(was);
 	}
 
@@ -1271,7 +1271,7 @@ eval_op(scheme_t *sc,
 			error_0(sc,"new-segment: argument must be a number");
 		}
 		alloc_cellseg(sc, (int) ivalue(car(sc->regs.args)));
-		s_return(sc,sc->T);
+		s_return(sc,sc->syms.T);
 
 	case OP_OBLIST: /* oblist */
 		s_return(sc, oblist_all_symbols(sc));
@@ -1296,8 +1296,8 @@ eval_op(scheme_t *sc,
 			exit(1);
 		}
 		p=port_from_filename(sc,strvalue(car(sc->regs.args)),prop);
-		if(p==sc->NIL) {
-			s_return(sc,sc->F);
+		if(p==sc->syms.NIL) {
+			s_return(sc,sc->syms.F);
 		}
 		s_return(sc,p);
 	}
@@ -1316,24 +1316,24 @@ eval_op(scheme_t *sc,
 		}
 		p=port_from_string(sc, strvalue(car(sc->regs.args)),
 				   strvalue(car(sc->regs.args))+strlength(car(sc->regs.args)), prop);
-		if(p==sc->NIL) {
-			s_return(sc,sc->F);
+		if(p==sc->syms.NIL) {
+			s_return(sc,sc->syms.F);
 		}
 		s_return(sc,p);
 	}
 	case OP_OPEN_OUTSTRING: /* open-output-string */ {
 		cell_ptr_t p;
-		if(car(sc->regs.args)==sc->NIL) {
+		if(car(sc->regs.args)==sc->syms.NIL) {
 			p=port_from_scratch(sc);
-			if(p==sc->NIL) {
-				s_return(sc,sc->F);
+			if(p==sc->syms.NIL) {
+				s_return(sc,sc->syms.F);
 			}
 		} else {
 			p=port_from_string(sc, strvalue(car(sc->regs.args)),
 					   strvalue(car(sc->regs.args))+strlength(car(sc->regs.args)),
 					   port_output);
-			if(p==sc->NIL) {
-				s_return(sc,sc->F);
+			if(p==sc->syms.NIL) {
+				s_return(sc,sc->syms.F);
 			}
 		}
 		s_return(sc,p);
@@ -1357,17 +1357,17 @@ eval_op(scheme_t *sc,
 				s_return(sc, s);
 			}
 		}
-		s_return(sc,sc->F);
+		s_return(sc,sc->syms.F);
 	}
 #endif
 
 	case OP_CLOSE_INPORT: /* close-input-port */
 		port_close(sc,car(sc->regs.args),port_input);
-		s_return(sc,sc->T);
+		s_return(sc,sc->syms.T);
 
 	case OP_CLOSE_OUTPORT: /* close-output-port */
 		port_close(sc,car(sc->regs.args),port_output);
-		s_return(sc,sc->T);
+		s_return(sc,sc->syms.T);
 
 	case OP_INT_ENV: /* interaction-environment */
 		s_return(sc,sc->global_env);
@@ -1395,20 +1395,20 @@ eval_op(scheme_t *sc,
 		if (is_pair(y)) {
 			s_return(sc,car(y));
 		} else {
-			s_return(sc,sc->F);
+			s_return(sc,sc->syms.F);
 		}
 
 
 	case OP_GET_CLOSURE:     /* get-closure-code */   /* a.k */
 		sc->regs.args = car(sc->regs.args);
-		if (sc->regs.args == sc->NIL) {
-			s_return(sc,sc->F);
+		if (sc->regs.args == sc->syms.NIL) {
+			s_return(sc,sc->syms.F);
 		} else if (is_closure(sc->regs.args)) {
-			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
+			s_return(sc,cons(sc, sc->syms.LAMBDA, closure_code(sc->value)));
 		} else if (is_macro(sc->regs.args)) {
-			s_return(sc,cons(sc, sc->LAMBDA, closure_code(sc->value)));
+			s_return(sc,cons(sc, sc->syms.LAMBDA, closure_code(sc->value)));
 		} else {
-			s_return(sc,sc->F);
+			s_return(sc,sc->syms.F);
 		}
 	case OP_CLOSUREP:        /* closure? */
 		/*
@@ -1432,8 +1432,8 @@ eval_op(scheme_t *sc,
 		}
 		x=sc->inport;
 		sc->inport=car(sc->regs.args);
-		x=cons(sc,x,sc->NIL);
-		s_save(sc,OP_SET_INPORT, x, sc->NIL);
+		x=cons(sc,x,sc->syms.NIL);
+		s_save(sc,OP_SET_INPORT, x, sc->syms.NIL);
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_READ_CHAR: /* read-char */
@@ -1442,14 +1442,14 @@ eval_op(scheme_t *sc,
 		if(is_pair(sc->regs.args)) {
 			if(car(sc->regs.args)!=sc->inport) {
 				x=sc->inport;
-				x=cons(sc,x,sc->NIL);
-				s_save(sc,OP_SET_INPORT, x, sc->NIL);
+				x=cons(sc,x,sc->syms.NIL);
+				s_save(sc,OP_SET_INPORT, x, sc->syms.NIL);
 				sc->inport=car(sc->regs.args);
 			}
 		}
 		c=inchar(sc);
 		if(c==EOF) {
-			s_return(sc,sc->EOF_OBJ);
+			s_return(sc,sc->syms.EOF_OBJ);
 		}
 		if(sc->op==OP_PEEK_CHAR) {
 			backchar(sc,c);
@@ -1478,5 +1478,5 @@ eval_op(scheme_t *sc,
 		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
 		error_0(sc,sc->strbuff);
 	}
-	return sc->T;
+	return sc->syms.T;
 }

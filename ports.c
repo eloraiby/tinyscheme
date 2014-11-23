@@ -32,7 +32,7 @@ cell_ptr_t port_from_filename(scheme_t *sc, const char *fn, int prop) {
 	port_t *pt;
 	pt=port_rep_from_filename(sc,fn,prop);
 	if(pt==0) {
-		return sc->NIL;
+		return sc->syms.NIL;
 	}
 	return mk_port(sc,pt);
 }
@@ -61,7 +61,7 @@ port_from_file(scheme_t *sc,
 	port_t* pt = port_rep_from_file(sc, f, prop);
 
 	if( pt == 0 ) {
-		return sc->NIL;
+		return sc->syms.NIL;
 	}
 
 	return mk_port(sc, pt);
@@ -92,7 +92,7 @@ port_from_string(scheme_t *sc,
 {
 	port_t* pt	= port_rep_from_string(sc, start, past_the_end, prop);
 	if( pt == 0 ) {
-		return sc->NIL;
+		return sc->syms.NIL;
 	}
 	return mk_port(sc, pt);
 }
@@ -130,7 +130,7 @@ port_from_scratch(scheme_t *sc)
 {
 	port_t*	pt = port_rep_from_scratch(sc);
 	if( pt == 0 ) {
-		return sc->NIL;
+		return sc->syms.NIL;
 	}
 	return mk_port(sc, pt);
 }

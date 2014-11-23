@@ -60,7 +60,7 @@ Version 1.39
     Bugs fixed:
         Fix for the load bug
         Fixed parsing of octal coded characters. Fixes bug #1818018.
-        Added tests for when mk_vector is out of memory. Can't rely on sc->sink.
+        Added tests for when mk_vector is out of memory. Can't rely on sc->syms.sink.
         Fix for bug #1794369
         Finished feature-request 1599947: scheme_apply0 etc return values.
         Partly provided feature-request 1599947: Expose list_length, eqv, etc

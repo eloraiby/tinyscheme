@@ -68,9 +68,9 @@ X       T_LAST_SYSTEM_TYPE=14
 >          char *p=(char*)sc->malloc(len);
 >
 >          if(p==0) {
->               return sc->NIL;
+>               return sc->syms.NIL;
 >          }
->          x = get_cell(sc, sc->NIL, sc->NIL);
+>          x = get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 >
 >          typeflag(x) = T_MEMBLOCK|T_ATOM;
 >          strvalue(x)=p;
@@ -160,7 +160,7 @@ X       T_LAST_SYSTEM_TYPE=14
 >               Error_1(sc,"make-block: not positive:",car(sc->regs.args));
 >          }
 >
->          if(cdr(sc->regs.args)!=sc->NIL) {
+>          if(cdr(sc->regs.args)!=sc->syms.NIL) {
 >               if(!isnumber(cadr(sc->regs.args)) || ivalue(cadr(sc->regs.args))<0) {
 >                    Error_1(sc,"make-block: not a positive number:",cadr(sc->regs.args));
 >               }
@@ -184,7 +184,7 @@ X       T_LAST_SYSTEM_TYPE=14
 >          }
 >          str=strvalue(car(sc->regs.args));
 >
->          if(cdr(sc->regs.args)==sc->NIL) {
+>          if(cdr(sc->regs.args)==sc->syms.NIL) {
 >               Error_0(sc,"block-ref: needs two arguments");
 >          }
 >          if(!isnumber(cadr(sc->regs.args))) {
@@ -212,7 +212,7 @@ X       T_LAST_SYSTEM_TYPE=14
 >          }
 >          str=strvalue(car(sc->regs.args));
 >
->          if(cdr(sc->regs.args)==sc->NIL) {
+>          if(cdr(sc->regs.args)==sc->syms.NIL) {
 >               Error_0(sc,"block-set!: needs three arguments");
 >          }
 >          if(!isnumber(cadr(sc->regs.args))) {
@@ -223,7 +223,7 @@ X       T_LAST_SYSTEM_TYPE=14
 >               Error_1(sc,"block-set!: out of bounds:",cadr(sc->regs.args));
 >          }
 >
->          if(cddr(sc->regs.args)==sc->NIL) {
+>          if(cddr(sc->regs.args)==sc->syms.NIL) {
 >               Error_0(sc,"block-set!: needs three arguments");
 >          }
 >          if(!isinteger(caddr(sc->regs.args))) {

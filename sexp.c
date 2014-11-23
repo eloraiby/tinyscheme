@@ -20,7 +20,7 @@ cell_ptr_t mk_closure(scheme_t *sc, cell_ptr_t c, cell_ptr_t e) {
 
 /* make continuation. */
 cell_ptr_t mk_continuation(scheme_t *sc, cell_ptr_t d) {
-	cell_ptr_t x = get_cell(sc, sc->NIL, d);
+	cell_ptr_t x = get_cell(sc, sc->syms.NIL, d);
 
 	typeflag(x) = T_CONTINUATION;
 	cont_dump(x) = d;
@@ -30,7 +30,7 @@ cell_ptr_t mk_continuation(scheme_t *sc, cell_ptr_t d) {
 cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op) {
 	cell_ptr_t y;
 
-	y = get_cell(sc, sc->NIL, sc->NIL);
+	y = get_cell(sc, sc->syms.NIL, sc->syms.NIL);
 	typeflag(y) = (T_PROC | T_ATOM);
 	ivalue_unchecked(y) = (long) op;
 	set_num_integer(y);
@@ -50,13 +50,13 @@ int list_length(scheme_t *sc, cell_ptr_t a) {
 	slow = fast = a;
 	while (1)
 	{
-		if (fast == sc->NIL)
+		if (fast == sc->syms.NIL)
 			return i;
 		if (!is_pair(fast))
 			return -2 - i;
 		fast = cdr(fast);
 		++i;
-		if (fast == sc->NIL)
+		if (fast == sc->syms.NIL)
 			return i;
 		if (!is_pair(fast))
 			return -2 - i;
@@ -110,10 +110,10 @@ void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
 	cell_ptr_t new_frame;
 
 	/* The interaction-environment has about 300 variables in it. */
-	if (old_env == sc->NIL) {
+	if (old_env == sc->syms.NIL) {
 		new_frame = mk_vector(sc, 461);
 	} else {
-		new_frame = sc->NIL;
+		new_frame = sc->syms.NIL;
 	}
 
 	sc->regs.envir = immutable_cons(sc, new_frame, old_env);
@@ -127,36 +127,36 @@ cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int al
 	cell_ptr_t x,y;
 	int location;
 
-	for (x = env; x != sc->NIL; x = cdr(x)) {
+	for (x = env; x != sc->syms.NIL; x = cdr(x)) {
 		if (is_vector(car(x))) {
 			location = hash_fn(symname(hdl), ivalue_unchecked(car(x)));
 			y = vector_elem(car(x), location);
 		} else {
 			y = car(x);
 		}
-		for ( ; y != sc->NIL; y = cdr(y)) {
+		for ( ; y != sc->syms.NIL; y = cdr(y)) {
 			if (caar(y) == hdl) {
 				break;
 			}
 		}
-		if (y != sc->NIL) {
+		if (y != sc->syms.NIL) {
 			break;
 		}
 		if(!all) {
-			return sc->NIL;
+			return sc->syms.NIL;
 		}
 	}
-	if (x != sc->NIL) {
+	if (x != sc->syms.NIL) {
 		return car(y);
 	}
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 #else /* USE_ALIST_ENV */
 
 static INLINE void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
 {
-	sc->regs.envir = immutable_cons(sc, sc->NIL, old_env);
+	sc->regs.envir = immutable_cons(sc, sc->syms.NIL, old_env);
 	setenvironment(sc->regs.envir);
 }
 
@@ -169,23 +169,23 @@ static INLINE void new_slot_spec_in_env(scheme_t *sc, cell_ptr_t env,
 static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all)
 {
 	cell_ptr_t x,y;
-	for (x = env; x != sc->NIL; x = cdr(x)) {
-		for (y = car(x); y != sc->NIL; y = cdr(y)) {
+	for (x = env; x != sc->syms.NIL; x = cdr(x)) {
+		for (y = car(x); y != sc->syms.NIL; y = cdr(y)) {
 			if (caar(y) == hdl) {
 				break;
 			}
 		}
-		if (y != sc->NIL) {
+		if (y != sc->syms.NIL) {
 			break;
 		}
 		if(!all) {
-			return sc->NIL;
+			return sc->syms.NIL;
 		}
 	}
-	if (x != sc->NIL) {
+	if (x != sc->syms.NIL) {
 		return car(y);
 	}
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 #endif /* USE_ALIST_ENV else */
@@ -205,7 +205,7 @@ cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name)
 	cell_ptr_t x;
 	int location;
 
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
+	x = immutable_cons(sc, mk_string(sc, name), sc->syms.NIL);
 	typeflag(x) = T_SYMBOL;
 	setimmutable(car(x));
 
@@ -222,24 +222,24 @@ cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name)
 	char *s;
 
 	location = hash_fn(name, ivalue_unchecked(sc->oblist));
-	for (x = vector_elem(sc->oblist, location); x != sc->NIL; x = cdr(x)) {
+	for (x = vector_elem(sc->oblist, location); x != sc->syms.NIL; x = cdr(x)) {
 		s = symname(car(x));
 		/* case-insensitive, per R5RS section 2. */
 		if(stricmp(name, s) == 0) {
 			return car(x);
 		}
 	}
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 cell_ptr_t oblist_all_symbols(scheme_t *sc)
 {
 	int i;
 	cell_ptr_t x;
-	cell_ptr_t ob_list = sc->NIL;
+	cell_ptr_t ob_list = sc->syms.NIL;
 
 	for (i = 0; i < ivalue_unchecked(sc->oblist); i++) {
-		for (x  = vector_elem(sc->oblist, i); x != sc->NIL; x = cdr(x)) {
+		for (x  = vector_elem(sc->oblist, i); x != sc->syms.NIL; x = cdr(x)) {
 			ob_list = cons(sc, x, ob_list);
 		}
 	}
@@ -250,7 +250,7 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc)
 
 cell_ptr_t oblist_initial_value(scheme_t *sc)
 {
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name)
@@ -258,14 +258,14 @@ cell_ptr_t oblist_find_by_name(scheme_t *sc, const char *name)
 	cell_ptr_t x;
 	char    *s;
 
-	for (x = sc->oblist; x != sc->NIL; x = cdr(x)) {
+	for (x = sc->oblist; x != sc->syms.NIL; x = cdr(x)) {
 		s = symname(car(x));
 		/* case-insensitive, per R5RS section 2. */
 		if(stricmp(name, s) == 0) {
 			return car(x);
 		}
 	}
-	return sc->NIL;
+	return sc->syms.NIL;
 }
 
 /* returns the new symbol */
@@ -273,7 +273,7 @@ cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name)
 {
 	cell_ptr_t x;
 
-	x = immutable_cons(sc, mk_string(sc, name), sc->NIL);
+	x = immutable_cons(sc, mk_string(sc, name), sc->syms.NIL);
 	typeflag(x) = T_SYMBOL;
 	setimmutable(car(x));
 	sc->oblist = immutable_cons(sc, x, sc->oblist);
@@ -291,14 +291,14 @@ cell_ptr_t oblist_all_symbols(scheme_t *sc)
 
 cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d) {
 	cell_ptr_t p, q;
-	if(cdr(d)==sc->NIL) {
+	if(cdr(d)==sc->syms.NIL) {
 		return car(d);
 	}
 	p=cons(sc,car(d),cdr(d));
 	q=p;
-	while(cdr(cdr(p))!=sc->NIL) {
+	while(cdr(cdr(p))!=sc->syms.NIL) {
 		d=cons(sc,car(p),cdr(p));
-		if(cdr(cdr(p))!=sc->NIL) {
+		if(cdr(cdr(p))!=sc->syms.NIL) {
 			p=cdr(d);
 		}
 	}
@@ -309,7 +309,7 @@ cell_ptr_t list_star(scheme_t *sc, cell_ptr_t d) {
 /* reverse list -- produce new list */
 cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
 	/* a must be checked by gc */
-	cell_ptr_t p = sc->NIL;
+	cell_ptr_t p = sc->syms.NIL;
 
 	for ( ; is_pair(a); a = cdr(a)) {
 		p = cons(sc, car(a), p);
@@ -321,7 +321,7 @@ cell_ptr_t reverse(scheme_t *sc, cell_ptr_t a) {
 cell_ptr_t reverse_in_place(scheme_t *sc, cell_ptr_t term, cell_ptr_t list) {
 	cell_ptr_t p = list, result = term, q;
 
-	while (p != sc->NIL) {
+	while (p != sc->syms.NIL) {
 		q = cdr(p);
 		cdr(p) = result;
 		result = p;
@@ -340,9 +340,9 @@ cell_ptr_t revappend(scheme_t *sc, cell_ptr_t a, cell_ptr_t b) {
 		p = cdr(p);
 	}
 
-	if (p == sc->NIL) {
+	if (p == sc->syms.NIL) {
 		return result;
 	}
 
-	return sc->F;   /* signal an error */
+	return sc->syms.F;   /* signal an error */
 }
