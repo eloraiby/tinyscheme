@@ -122,33 +122,42 @@ void new_frame_in_env(scheme_t *sc, cell_ptr_t old_env)
 
 
 
-cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl, int all)
+cell_ptr_t
+find_slot_in_env(scheme_t *sc,
+		 cell_ptr_t env,
+		 cell_ptr_t hdl,
+		 int all)
 {
-	cell_ptr_t x,y;
-	int location;
+	cell_ptr_t	x, y;
+	int		location;
 
-	for (x = env; x != sc->syms.NIL; x = cdr(x)) {
-		if (is_vector(car(x))) {
-			location = hash_fn(symname(hdl), ivalue_unchecked(car(x)));
-			y = vector_elem(car(x), location);
+	for( x = env; x != sc->syms.NIL; x = cdr(x) ) {
+		if( is_vector(car(x)) ) {
+			location	= hash_fn(symname(hdl), ivalue_unchecked(car(x)));
+			y		= vector_elem(car(x), location);
 		} else {
-			y = car(x);
+			y		= car(x);
 		}
-		for ( ; y != sc->syms.NIL; y = cdr(y)) {
-			if (caar(y) == hdl) {
+
+		for( ; y != sc->syms.NIL; y = cdr(y) ) {
+			if( caar(y) == hdl ) {
 				break;
 			}
 		}
-		if (y != sc->syms.NIL) {
+
+		if( y != sc->syms.NIL ) {
 			break;
 		}
-		if(!all) {
+
+		if( !all ) {
 			return sc->syms.NIL;
 		}
 	}
-	if (x != sc->syms.NIL) {
+
+	if( x != sc->syms.NIL ) {
 		return car(y);
 	}
+
 	return sc->syms.NIL;
 }
 

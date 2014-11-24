@@ -1101,10 +1101,10 @@ eval_op(scheme_t *sc,
 		s_retbool(is_outport(car(sc->regs.args)));
 	case OP_PROCP:       /* procedure? */
 		/*--
-	      * continuation should be procedure by the example
-	      * (call-with-current-continuation procedure?) ==> #t
-		 * in R^3 report sec. 6.9
-	      */
+		* continuation should be procedure by the example
+		* (call-with-current-continuation procedure?) ==> #t
+		* in R^3 report sec. 6.9
+		*/
 		s_retbool(is_proc(car(sc->regs.args)) || is_closure(car(sc->regs.args))
 			  || is_continuation(car(sc->regs.args)) || is_foreign(car(sc->regs.args)));
 	case OP_PAIRP:       /* pair? */
@@ -1185,7 +1185,7 @@ eval_op(scheme_t *sc,
 			s_goto(sc,OP_P0LIST);
 		} else {
 			putstr(sc, "\n");
-			if(sc->interactive_repl) {
+			if( sc->interactive_repl ) {
 				s_goto(sc,OP_T0LVL);
 			} else {
 				return sc->syms.NIL;

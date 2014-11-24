@@ -126,20 +126,20 @@ struct scheme_t {
 		cell_ptr_t	dump;            /* stack register for next evaluation */
 	} regs;
 
-	int interactive_repl;    /* are we in an interactive REPL? */
+	bool		interactive_repl;    /* are we in an interactive REPL? */
 
 	number_t num_zero;
 	number_t num_one;
 
 	struct {
-		cell_t		_sink;
+		cell_t		_SINK;
 		cell_ptr_t	sink;            /* when mem. alloc. fails */
 		cell_t		_NIL;
 		cell_ptr_t	NIL;             /* special cell representing empty cell */
 		cell_t		_HASHT;
 		cell_ptr_t	T;               /* special cell representing #t */
 		cell_t		_HASHF;
-		cell_ptr_t F;			 /* special cell representing #f */
+		cell_ptr_t	F;		 /* special cell representing #f */
 		cell_t		_EOF_OBJ;
 		cell_ptr_t	EOF_OBJ;         /* special cell representing end-of-file object */
 

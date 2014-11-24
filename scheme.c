@@ -1595,7 +1595,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->gensym_cnt			= 0;
 	sc->malloc			= malloc;
 	sc->free			= free;
-	sc->syms.sink			= &sc->syms._sink;
+	sc->syms.sink			= &sc->syms._SINK;
 	sc->syms.NIL			= &sc->syms._NIL;
 	sc->syms.T			= &sc->syms._HASHT;
 	sc->syms.F			= &sc->syms._HASHF;
@@ -1609,7 +1609,7 @@ scheme_init_custom_alloc(scheme_t *sc,
 	sc->save_inport			= sc->syms.NIL;
 	sc->loadport			= sc->syms.NIL;
 	sc->nesting			= 0;
-	sc->interactive_repl		= 0;
+	sc->interactive_repl		= false;
 
 	if( alloc_cellseg(sc, FIRST_CELLSEGS) != FIRST_CELLSEGS ) {
 		sc->memory.no_memory	= true;
@@ -1761,7 +1761,11 @@ scheme_load_file(scheme_t *sc,
 	scheme_load_named_file(sc,fin,0);
 }
 
-void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
+void
+scheme_load_named_file(scheme_t *sc,
+		       FILE *fin,
+		       const char *filename)
+{
 	dump_stack_reset(sc);
 	sc->regs.envir	= sc->global_env;
 	sc->file_i	= 0;
@@ -1769,14 +1773,18 @@ void scheme_load_named_file(scheme_t *sc, FILE *fin, const char *filename) {
 	sc->load_stack[0].rep.stdio.file	= fin;
 	sc->loadport	= mk_port(sc, sc->load_stack);
 	sc->retcode	= 0;
+
 	if( fin == stdin ) {
-		sc->interactive_repl	= 1;
+		sc->interactive_repl	= true;
 	}
 
 #if SHOW_ERROR_LINE
 	sc->load_stack[0].rep.stdio.curr_line = 0;
-	if(fin!=stdin && filename)
+	if( fin != stdin && filename )
 		sc->load_stack[0].rep.stdio.filename = store_string(sc, strlen(filename), filename, 0);
+	else
+		sc->load_stack[0].rep.stdio.filename = NULL;
+
 #endif
 
 	sc->inport	= sc->loadport;
@@ -1801,7 +1809,7 @@ scheme_load_string(scheme_t *sc,
 	sc->load_stack[0].rep.string.curr	= (char*)cmd;
 	sc->loadport	= mk_port(sc, sc->load_stack);
 	sc->retcode	= 0;
-	sc->interactive_repl	= 0;
+	sc->interactive_repl	= false;
 	sc->inport	= sc->loadport;
 	sc->regs.args	= mk_integer(sc, sc->file_i);
 	eval_cycle(sc, OP_T0LVL);
@@ -1811,11 +1819,17 @@ scheme_load_string(scheme_t *sc,
 	}
 }
 
-void scheme_define(scheme_t *sc, cell_ptr_t envir, cell_ptr_t symbol, cell_ptr_t value) {
+void
+scheme_define(scheme_t *sc,
+	      cell_ptr_t envir,
+	      cell_ptr_t symbol,
+	      cell_ptr_t value)
+{
 	cell_ptr_t x;
 
-	x=find_slot_in_env(sc,envir,symbol,0);
-	if (x != sc->syms.NIL) {
+	x	= find_slot_in_env(sc, envir, symbol, 0);
+
+	if( x != sc->syms.NIL ) {
 		set_slot_in_env(sc, x, value);
 	} else {
 		new_slot_spec_in_env(sc, envir, symbol, value);
@@ -1872,7 +1886,7 @@ void restore_from_C_call(scheme_t *sc)
 cell_ptr_t scheme_call(scheme_t *sc, cell_ptr_t func, cell_ptr_t args)
 {
 	int old_repl = sc->interactive_repl;
-	sc->interactive_repl = 0;
+	sc->interactive_repl = false;
 	save_from_C_call(sc);
 	sc->regs.envir = sc->global_env;
 	sc->regs.args = args;
@@ -1887,7 +1901,7 @@ cell_ptr_t scheme_call(scheme_t *sc, cell_ptr_t func, cell_ptr_t args)
 cell_ptr_t scheme_eval(scheme_t *sc, cell_ptr_t obj)
 {
 	int old_repl = sc->interactive_repl;
-	sc->interactive_repl = 0;
+	sc->interactive_repl = false;
 	save_from_C_call(sc);
 	sc->regs.args = sc->syms.NIL;
 	sc->regs.code = obj;
