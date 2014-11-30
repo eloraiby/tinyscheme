@@ -295,7 +295,7 @@ store_string(scheme_t *sc,
 
 	if( q == 0 ) {
 		sc->memory.no_memory	= true;
-		return sc->strbuff;
+		return sc->regs.strbuff;
 	}
 
 	if( str != 0 ) {
@@ -682,10 +682,10 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	} else if (l == sc->syms.EOF_OBJ) {
 		p = "#<EOF>";
 	} else if (is_port(l)) {
-		p = sc->strbuff;
+		p = sc->regs.strbuff;
 		snprintf(p, STRBUFFSIZE, "#<PORT>");
 	} else if (is_number(l)) {
-		p = sc->strbuff;
+		p = sc->regs.strbuff;
 		if (f <= 1 || f == 10) /* f is the base for numbers if > 1 */ {
 			if(num_is_integer(l)) {
 				snprintf(p, STRBUFFSIZE, "%ld", ivalue_unchecked(l));
@@ -723,14 +723,14 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 		if (!f) {
 			p = strvalue(l);
 		} else { /* Hack, uses the fact that printing is needed */
-			*pp=sc->strbuff;
+			*pp=sc->regs.strbuff;
 			*plen=0;
 			printslashstring(sc, strvalue(l), strlength(l));
 			return;
 		}
 	} else if (is_character(l)) {
 		int c=charvalue(l);
-		p = sc->strbuff;
+		p = sc->regs.strbuff;
 		if (!f) {
 			p[0]=c;
 			p[1]=0;
@@ -766,7 +766,7 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	} else if (is_symbol(l)) {
 		p = symname(l);
 	} else if (is_proc(l)) {
-		p = sc->strbuff;
+		p = sc->regs.strbuff;
 		snprintf(p,STRBUFFSIZE,"#<%s PROCEDURE %ld>", procname(l),procnum(l));
 	} else if (is_macro(l)) {
 		p = "#<MACRO>";
@@ -775,7 +775,7 @@ void atom2str(scheme_t *sc, cell_ptr_t l, int f, char **pp, int *plen) {
 	} else if (is_promise(l)) {
 		p = "#<PROMISE>";
 	} else if (is_foreign(l)) {
-		p = sc->strbuff;
+		p = sc->regs.strbuff;
 		snprintf(p,STRBUFFSIZE,"#<FOREIGN PROCEDURE %ld>", procnum(l));
 	} else if (is_continuation(l)) {
 		p = "#<CONTINUATION>";

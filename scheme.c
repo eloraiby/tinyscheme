@@ -612,32 +612,32 @@ static char*
 readstr_upto(scheme_t *sc,
 	     char *delim)
 {
-	char* p = sc->strbuff;
+	char* p = sc->regs.strbuff;
 
-	while (((size_t)(p - sc->strbuff) < sizeof(sc->strbuff)) && !is_one_of(delim, (*p++ = (char)inchar(sc))));
+	while (((size_t)(p - sc->regs.strbuff) < sizeof(sc->regs.strbuff)) && !is_one_of(delim, (*p++ = (char)inchar(sc))));
 
-	if(p == sc->strbuff + 2 && p[-2] == '\\') {
+	if(p == sc->regs.strbuff + 2 && p[-2] == '\\') {
 		*p	= 0;
 	} else {
 		backchar(sc, p[-1]);
 		*--p	= '\0';
 	}
 
-	return sc->strbuff;
+	return sc->regs.strbuff;
 }
 
 /* read string expression "xxx...xxx" */
 static cell_ptr_t
 readstrexp(scheme_t *sc)
 {
-	char*	p = sc->strbuff;
+	char*	p = sc->regs.strbuff;
 	int	c;
 	int	c1 = 0;
 	enum { st_ok, st_bsl, st_x1, st_x2, st_oct1, st_oct2 } state	= st_ok;
 
 	for(;;) {
 		c	= inchar(sc);
-		if( c == EOF || (size_t)(p - sc->strbuff) > sizeof(sc->strbuff) - 1) {
+		if( c == EOF || (size_t)(p - sc->regs.strbuff) > sizeof(sc->regs.strbuff) - 1) {
 			return sc->syms.F;
 		}
 
@@ -649,7 +649,7 @@ readstrexp(scheme_t *sc)
 				break;
 			case '"':
 				*p	= 0;
-				return mk_counted_string(sc, sc->strbuff, p - sc->strbuff);
+				return mk_counted_string(sc, sc->regs.strbuff, p - sc->regs.strbuff);
 			default:
 				*p++	= c;
 				break;
@@ -1047,12 +1047,12 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		s_goto(sc,OP_EVAL);
 
 	case OP_READ_INTERNAL:       /* internal read */
-		sc->tok = token(sc);
-		if( sc->tok == TOK_EOF ){ s_return(sc, sc->syms.EOF_OBJ); }
-		s_goto(sc,OP_RDSEXPR);
+		sc->parser.tok = token(sc);
+		if( sc->parser.tok == TOK_EOF ){ s_return(sc, sc->syms.EOF_OBJ); }
+		s_goto(sc, OP_RDSEXPR);
 
 	case OP_RDSEXPR:
-		switch (sc->tok) {
+		switch (sc->parser.tok) {
 		case TOK_EOF:
 			s_return(sc, sc->syms.EOF_OBJ);
 			/* NOTREACHED */
@@ -1068,45 +1068,47 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 				  }
 			*/
 		case TOK_VEC:
-			s_save(sc,OP_RDVEC,sc->syms.NIL,sc->syms.NIL);
+			s_save(sc, OP_RDVEC, sc->syms.NIL, sc->syms.NIL);
 			/* fall through */
 		case TOK_LPAREN:
-			sc->tok = token(sc);
-			if (sc->tok == TOK_RPAREN) {
-				s_return(sc,sc->syms.NIL);
-			} else if (sc->tok == TOK_DOT) {
-				error_0(sc,"syntax error: illegal dot expression");
+			sc->parser.tok = token(sc);
+			if( sc->parser.tok == TOK_RPAREN ) {
+				s_return(sc, sc->syms.NIL);
+			} else if( sc->parser.tok == TOK_DOT ) {
+				error_0(sc, "syntax error: illegal dot expression");
 			} else {
 				sc->nesting_stack[sc->file_i]++;
-				s_save(sc,OP_RDLIST, sc->syms.NIL, sc->syms.NIL);
-				s_goto(sc,OP_RDSEXPR);
+				s_save(sc, OP_RDLIST, sc->syms.NIL, sc->syms.NIL);
+				s_goto(sc, OP_RDSEXPR);
 			}
 		case TOK_QUOTE:
-			s_save(sc,OP_RDQUOTE, sc->syms.NIL, sc->syms.NIL);
-			sc->tok = token(sc);
-			s_goto(sc,OP_RDSEXPR);
+			s_save(sc, OP_RDQUOTE, sc->syms.NIL, sc->syms.NIL);
+			sc->parser.tok = token(sc);
+			s_goto(sc, OP_RDSEXPR);
+
 		case TOK_BQUOTE:
-			sc->tok = token(sc);
-			if(sc->tok==TOK_VEC) {
-				s_save(sc,OP_RDQQUOTEVEC, sc->syms.NIL, sc->syms.NIL);
-				sc->tok=TOK_LPAREN;
-				s_goto(sc,OP_RDSEXPR);
+			sc->parser.tok = token(sc);
+			if( sc->parser.tok == TOK_VEC ) {
+				s_save(sc, OP_RDQQUOTEVEC, sc->syms.NIL, sc->syms.NIL);
+				sc->parser.tok = TOK_LPAREN;
+				s_goto(sc, OP_RDSEXPR);
 			} else {
-				s_save(sc,OP_RDQQUOTE, sc->syms.NIL, sc->syms.NIL);
+				s_save(sc, OP_RDQQUOTE, sc->syms.NIL, sc->syms.NIL);
 			}
-			s_goto(sc,OP_RDSEXPR);
+			s_goto(sc, OP_RDSEXPR);
+
 		case TOK_COMMA:
 			s_save(sc,OP_RDUNQUOTE, sc->syms.NIL, sc->syms.NIL);
-			sc->tok = token(sc);
-			s_goto(sc,OP_RDSEXPR);
+			sc->parser.tok = token(sc);
+			s_goto(sc, OP_RDSEXPR);
 		case TOK_ATMARK:
-			s_save(sc,OP_RDUQTSP, sc->syms.NIL, sc->syms.NIL);
-			sc->tok = token(sc);
-			s_goto(sc,OP_RDSEXPR);
+			s_save(sc, OP_RDUQTSP, sc->syms.NIL, sc->syms.NIL);
+			sc->parser.tok = token(sc);
+			s_goto(sc, OP_RDSEXPR);
 		case TOK_ATOM:
-			s_return(sc,mk_atom(sc, readstr_upto(sc, DELIMITERS)));
+			s_return(sc, mk_atom(sc, readstr_upto(sc, DELIMITERS)));
 		case TOK_DQUOTE:
-			x=readstrexp(sc);
+			x = readstrexp(sc);
 			if( x == sc->syms.F ) {
 				error_0(sc, "Error reading string");
 			}
@@ -1133,32 +1135,25 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		break;
 
 	case OP_RDLIST: {
-		sc->regs.args = cons(sc, sc->value, sc->regs.args);
-		sc->tok = token(sc);
-		/* We now skip comments in the scanner
-	  while (sc->tok == TOK_COMMENT) {
-	       int c;
-	       while ((c=inchar(sc)) != '\n' && c!=EOF)
-		    ;
-	       sc->tok = token(sc);
-	  }
-*/
-		if (sc->tok == TOK_EOF)	{
+		sc->regs.args	= cons(sc, sc->value, sc->regs.args);
+		sc->parser.tok	= token(sc);
+
+		if( sc->parser.tok == TOK_EOF ) {
 			s_return(sc, sc->syms.EOF_OBJ);
-		} else if (sc->tok == TOK_RPAREN) {
+		} else if( sc->parser.tok == TOK_RPAREN ) {
 			int c = inchar(sc);
-			if (c != '\n')
-				backchar(sc,c);
+			if( c != '\n' )
+				backchar(sc, c);
 #if SHOW_ERROR_LINE
 			else if (sc->load_stack[sc->file_i].kind.value & port_file)
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 			sc->nesting_stack[sc->file_i]--;
 			s_return(sc, reverse_in_place(sc, sc->syms.NIL, sc->regs.args));
-		} else if (sc->tok == TOK_DOT) {
+		} else if( sc->parser.tok == TOK_DOT ) {
 			s_save(sc, OP_RDDOT, sc->regs.args, sc->syms.NIL);
-			sc->tok = token(sc);
-			s_goto(sc,OP_RDSEXPR);
+			sc->parser.tok	= token(sc);
+			s_goto(sc, OP_RDSEXPR);
 		} else {
 			s_save(sc, OP_RDLIST, sc->regs.args, sc->syms.NIL);;
 			s_goto(sc, OP_RDSEXPR);
@@ -1277,8 +1272,8 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	}
 
 	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		error_0(sc,sc->strbuff);
+		snprintf(sc->regs.strbuff, STRBUFFSIZE,"%d: illegal operator", sc->op);
+		error_0(sc, sc->regs.strbuff);
 	}
 	return sc->syms.T; /* NOTREACHED */
 }

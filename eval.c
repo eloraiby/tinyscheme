@@ -1475,8 +1475,8 @@ eval_op(scheme_t *sc,
 		sc->outport=car(sc->regs.args);
 		s_return(sc,sc->value);
 	default:
-		snprintf(sc->strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
-		error_0(sc,sc->strbuff);
+		snprintf(sc->regs.strbuff,STRBUFFSIZE,"%d: illegal operator", sc->op);
+		error_0(sc, sc->regs.strbuff);
 	}
 	return sc->syms.T;
 }

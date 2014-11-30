@@ -118,18 +118,22 @@ struct scheme_t {
 		bool		no_memory;       /* Whether mem. alloc. has failed */
 	} memory;
 
-	/* We use 4 registers. */
+	/* We use 4 registers + 1 for strings. */
 	struct {
 		cell_ptr_t	args;            /* register for arguments of function */
 		cell_ptr_t	envir;           /* stack register for current environment */
 		cell_ptr_t	code;            /* register for current code */
 		cell_ptr_t	dump;            /* stack register for next evaluation */
+
+#define STRBUFFSIZE 256
+		char		strbuff[STRBUFFSIZE];
+
 	} regs;
 
 	bool		interactive_repl;    /* are we in an interactive REPL? */
 
-	number_t num_zero;
-	number_t num_one;
+	number_t	num_zero;
+	number_t	num_one;
 
 	struct {
 		cell_t		_SINK;
@@ -174,14 +178,13 @@ struct scheme_t {
 	int		file_i;
 	int		nesting;
 
-
+	struct {
 #define LINESIZE 1024
-	char		linebuff[LINESIZE];
-#define STRBUFFSIZE 256
-	char		strbuff[STRBUFFSIZE];
+		char		linebuff[LINESIZE];
+		int		tok;
+	} parser;
 
 	FILE*		tmpfp;
-	int		tok;
 	int		print_flag;
 	cell_ptr_t	value;
 	int		op;

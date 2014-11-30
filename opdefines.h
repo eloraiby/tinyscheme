@@ -184,7 +184,6 @@
     _OP_DEF(eval_op, "set-output-port",                1,  1,       TST_OUTPORT,                     OP_SET_OUTPORT      )
 
     _OP_DEF(opexe_5, "load",                           1,  1,       TST_STRING,                      OP_LOAD             )
-    _OP_DEF(opexe_5, "load-x",			       1,  1,       TST_STRING,                      OP_LOADX            )
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_T0LVL            )
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_T1LVL            )
     _OP_DEF(opexe_5, 0,                                0,  0,       0,                               OP_READ_INTERNAL    )
