@@ -640,17 +640,18 @@ readstrexp(scheme_t *sc)
 		if( c == EOF || (size_t)(p - sc->strbuff) > sizeof(sc->strbuff) - 1) {
 			return sc->syms.F;
 		}
+
 		switch(state) {
 		case st_ok:
 			switch(c) {
 			case '\\':
-				state=st_bsl;
+				state	= st_bsl;
 				break;
 			case '"':
-				*p=0;
-				return mk_counted_string(sc,sc->strbuff,p-sc->strbuff);
+				*p	= 0;
+				return mk_counted_string(sc, sc->strbuff, p - sc->strbuff);
 			default:
-				*p++=c;
+				*p++	= c;
 				break;
 			}
 			break;
@@ -664,50 +665,56 @@ readstrexp(scheme_t *sc)
 			case '5':
 			case '6':
 			case '7':
-				state=st_oct1;
-				c1=c-'0';
+				state	= st_oct1;
+				c1	= c - '0';
 				break;
+
 			case 'x':
 			case 'X':
-				state=st_x1;
-				c1=0;
+				state	= st_x1;
+				c1	= 0;
 				break;
+
 			case 'n':
-				*p++='\n';
-				state=st_ok;
+				*p++	= '\n';
+				state	= st_ok;
 				break;
+
 			case 't':
-				*p++='\t';
-				state=st_ok;
+				*p++	= '\t';
+				state	= st_ok;
 				break;
+
 			case 'r':
-				*p++='\r';
-				state=st_ok;
+				*p++	= '\r';
+				state	= st_ok;
 				break;
+
 			case '"':
-				*p++='"';
-				state=st_ok;
+				*p++	= '"';
+				state	= st_ok;
 				break;
 			default:
-				*p++=c;
-				state=st_ok;
+				*p++	= c;
+				state	= st_ok;
 				break;
 			}
 			break;
 		case st_x1:
 		case st_x2:
-			c=toupper(c);
-			if(c>='0' && c<='F') {
-				if(c<='9') {
-					c1=(c1<<4)+c-'0';
+			c	= toupper(c);
+			if( c >= '0' && c <= 'F' ) {
+				if( c <= '9' ) {
+					c1	= (c1 << 4) + c - '0';
 				} else {
-					c1=(c1<<4)+c-'A'+10;
+					c1	= (c1 << 4) + c - 'A' + 10;
 				}
-				if(state==st_x1) {
-					state=st_x2;
+
+				if( state == st_x1 ) {
+					state	= st_x2;
 				} else {
-					*p++=c1;
-					state=st_ok;
+					*p++	= c1;
+					state	= st_ok;
 				}
 			} else {
 				return sc->syms.F;
@@ -715,29 +722,26 @@ readstrexp(scheme_t *sc)
 			break;
 		case st_oct1:
 		case st_oct2:
-			if (c < '0' || c > '7')
+			if( c < '0' || c > '7' )
 			{
-				*p++=c1;
+				*p++	= c1;
 				backchar(sc, c);
-				state=st_ok;
-			}
-			else
-			{
-				if (state==st_oct2 && c1 >= 32)
+				state	= st_ok;
+			} else {
+				if( state == st_oct2 && c1 >= 32 )
 					return sc->syms.F;
 
-				c1=(c1<<3)+(c-'0');
+				c1	= (c1 << 3) + (c - '0');
 
-				if (state == st_oct1)
-					state=st_oct2;
+				if( state == st_oct1 )
+					state	= st_oct2;
 				else
 				{
-					*p++=c1;
-					state=st_ok;
+					*p++	= c1;
+					state	= st_ok;
 				}
 			}
 			break;
-
 		}
 	}
 }
@@ -782,79 +786,91 @@ INLINE int skipspace(scheme_t *sc) {
 
 /* get token */
 static int token(scheme_t *sc) {
-	int c;
-	c = skipspace(sc);
-	if(c == EOF) { return (TOK_EOF); }
-	switch (c=inchar(sc)) {
+	int c	= skipspace(sc);
+
+	if( c == EOF ) { return (TOK_EOF); }
+
+	switch( c = inchar(sc) ) {
 	case EOF:
-		return (TOK_EOF);
+		return TOK_EOF;
+
 	case '(':
-		return (TOK_LPAREN);
+		return TOK_LPAREN;
+
 	case ')':
-		return (TOK_RPAREN);
+		return TOK_RPAREN;
+
 	case '.':
-		c=inchar(sc);
-		if(is_one_of(" \n\t",c)) {
-			return (TOK_DOT);
+		c = inchar(sc);
+		if( is_one_of(" \n\t", c) ) {
+			return TOK_DOT;
 		} else {
-			backchar(sc,c);
-			backchar(sc,'.');
+			backchar(sc, c);
+			backchar(sc, '.');
 			return TOK_ATOM;
 		}
+
 	case '\'':
-		return (TOK_QUOTE);
+		return TOK_QUOTE;
+
 	case ';':
-		while ((c=inchar(sc)) != '\n' && c!=EOF)
+		while( (c = inchar(sc)) != '\n' && c != EOF )
 			;
 
 #if SHOW_ERROR_LINE
-		if(c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file)
+		if( c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file )
 			sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 
-		if(c == EOF)
-		{ return (TOK_EOF); }
-		else
-		{ return (token(sc));}
-	case '"':
-		return (TOK_DQUOTE);
-	case BACKQUOTE:
-		return (TOK_BQUOTE);
-	case ',':
-		if ((c=inchar(sc)) == '@') {
-			return (TOK_ATMARK);
+		if( c == EOF ) {
+			return TOK_EOF;
 		} else {
-			backchar(sc,c);
-			return (TOK_COMMA);
+			return token(sc);
 		}
+
+	case '"':
+		return TOK_DQUOTE;
+
+	case BACKQUOTE:
+		return TOK_BQUOTE;
+
+	case ',':
+		if( (c = inchar(sc)) == '@' ) {
+			return TOK_ATMARK;
+		} else {
+			backchar(sc, c);
+			return TOK_COMMA;
+		}
+
 	case '#':
-		c=inchar(sc);
-		if (c == '(') {
-			return (TOK_VEC);
-		} else if(c == '!') {
-			while ((c=inchar(sc)) != '\n' && c!=EOF)
+		c = inchar(sc);
+		if( c == '(' ) {
+			return TOK_VEC;
+		} else if( c == '!' ) {
+			while( (c = inchar(sc)) != '\n' && c != EOF )
 				;
 
 #if SHOW_ERROR_LINE
-			if(c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file)
+			if( c == '\n' && sc->load_stack[sc->file_i].kind.value & port_file )
 				sc->load_stack[sc->file_i].rep.stdio.curr_line++;
 #endif
 
-			if(c == EOF)
-			{ return (TOK_EOF); }
-			else
-			{ return (token(sc));}
+			if( c == EOF ) {
+				return TOK_EOF;
+			} else {
+				return token(sc);
+			}
 		} else {
-			backchar(sc,c);
-			if(is_one_of(" tfodxb\\",c)) {
+			backchar(sc, c);
+			if(is_one_of(" tfodxb\\", c)) {
 				return TOK_SHARP_CONST;
 			} else {
-				return (TOK_SHARP);
+				return TOK_SHARP;
 			}
 		}
 	default:
-		backchar(sc,c);
-		return (TOK_ATOM);
+		backchar(sc, c);
+		return TOK_ATOM;
 	}
 }
 
@@ -879,7 +895,7 @@ _error_1(scheme_t *sc,
 
 	/* make sure error is not in REPL */
 	if (sc->load_stack[sc->file_i].kind.value & port_file &&
-			sc->load_stack[sc->file_i].rep.stdio.file != stdin) {
+	    sc->load_stack[sc->file_i].rep.stdio.file != stdin) {
 		int ln = sc->load_stack[sc->file_i].rep.stdio.curr_line;
 		const char *fname = sc->load_stack[sc->file_i].rep.stdio.filename;
 
@@ -1017,17 +1033,17 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 		}
 
 		/* Set up another iteration of REPL */
-		sc->nesting=0;
-		sc->save_inport=sc->inport;
-		sc->inport = sc->loadport;
+		sc->nesting	= 0;
+		sc->save_inport	= sc->inport;
+		sc->inport	= sc->loadport;
 		s_save(sc,OP_T0LVL, sc->syms.NIL, sc->syms.NIL);
 		s_save(sc,OP_VALUEPRINT, sc->syms.NIL, sc->syms.NIL);
 		s_save(sc,OP_T1LVL, sc->syms.NIL, sc->syms.NIL);
 		s_goto(sc,OP_READ_INTERNAL);
 
 	case OP_T1LVL: /* top level */
-		sc->regs.code = sc->value;
-		sc->inport=sc->save_inport;
+		sc->regs.code	= sc->value;
+		sc->inport	= sc->save_inport;
 		s_goto(sc,OP_EVAL);
 
 	case OP_READ_INTERNAL:       /* internal read */
@@ -1127,9 +1143,9 @@ static cell_ptr_t opexe_5(scheme_t *sc, enum scheme_opcodes op) {
 	       sc->tok = token(sc);
 	  }
 */
-		if (sc->tok == TOK_EOF)
-		{ s_return(sc, sc->syms.EOF_OBJ); }
-		else if (sc->tok == TOK_RPAREN) {
+		if (sc->tok == TOK_EOF)	{
+			s_return(sc, sc->syms.EOF_OBJ);
+		} else if (sc->tok == TOK_RPAREN) {
 			int c = inchar(sc);
 			if (c != '\n')
 				backchar(sc,c);
@@ -1281,21 +1297,21 @@ static struct {
 	test_predicate fct;
 	const char *kind;
 } tests[] = {
-	{0,		0}, /* unused */
-	{is_any,	0},
-	{is_string,	"string"},
-	{is_symbol,	"symbol"},
-	{is_port,	"port"},
-	{is_inport,	"input port"},
-	{is_outport,	"output port"},
-	{is_environment, "environment"},
-	{is_pair,	"pair"},
-	{0,		"pair or '()"},
-	{is_character,	"character"},
-	{is_vector,	"vector"},
-	{is_number,	"number"},
-	{is_integer,	"integer"},
-	{is_nonneg,	"non-negative integer"}
+{0,		0}, /* unused */
+{is_any,	0},
+{is_string,	"string"},
+{is_symbol,	"symbol"},
+{is_port,	"port"},
+{is_inport,	"input port"},
+{is_outport,	"output port"},
+{is_environment, "environment"},
+{is_pair,	"pair"},
+{0,		"pair or '()"},
+{is_character,	"character"},
+{is_vector,	"vector"},
+{is_number,	"number"},
+{is_integer,	"integer"},
+{is_nonneg,	"non-negative integer"}
 };
 
 #define TST_NONE	0
@@ -1373,7 +1389,7 @@ eval_cycle(scheme_t *sc,
 				if( pcd->arg_tests_encoding != 0 ) {
 					int i	= 0;
 					int j;
-					const char *t	= pcd->arg_tests_encoding;
+					const char *t		= pcd->arg_tests_encoding;
 					cell_ptr_t arglist	= sc->regs.args;
 					do {
 						cell_ptr_t arg	= car(arglist);
@@ -1405,7 +1421,7 @@ eval_cycle(scheme_t *sc,
 			}
 
 			if( !ok ) {
-				if(_error_1(sc, msg, 0) == sc->syms.NIL) {
+				if( _error_1(sc, msg, 0) == sc->syms.NIL ) {
 					return;
 				}
 

@@ -9,7 +9,11 @@
 
 
 /* make closure. c is code. e is environment */
-cell_ptr_t mk_closure(scheme_t *sc, cell_ptr_t c, cell_ptr_t e) {
+cell_ptr_t
+mk_closure(scheme_t *sc,
+	   cell_ptr_t c,
+	   cell_ptr_t e)
+{
 	cell_ptr_t x = get_cell(sc, c, e);
 
 	typeflag(x) = T_CLOSURE;
@@ -19,7 +23,10 @@ cell_ptr_t mk_closure(scheme_t *sc, cell_ptr_t c, cell_ptr_t e) {
 }
 
 /* make continuation. */
-cell_ptr_t mk_continuation(scheme_t *sc, cell_ptr_t d) {
+cell_ptr_t
+mk_continuation(scheme_t *sc,
+		cell_ptr_t d)
+{
 	cell_ptr_t x = get_cell(sc, sc->syms.NIL, d);
 
 	typeflag(x) = T_CONTINUATION;
@@ -27,12 +34,15 @@ cell_ptr_t mk_continuation(scheme_t *sc, cell_ptr_t d) {
 	return (x);
 }
 
-cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op) {
+cell_ptr_t
+mk_proc(scheme_t *sc,
+	enum scheme_opcodes op)
+{
 	cell_ptr_t y;
 
 	y = get_cell(sc, sc->syms.NIL, sc->syms.NIL);
-	typeflag(y) = (T_PROC | T_ATOM);
-	ivalue_unchecked(y) = (long) op;
+	typeflag(y)		= T_PROC | T_ATOM;
+	ivalue_unchecked(y)	= (long) op;
 	set_num_integer(y);
 	return y;
 }
@@ -43,34 +53,34 @@ cell_ptr_t mk_proc(scheme_t *sc, enum scheme_opcodes op) {
    not even a pair: -2
    dotted list: -2 minus length before dot
 */
-int list_length(scheme_t *sc, cell_ptr_t a) {
-	int i=0;
-	cell_ptr_t slow, fast;
+int
+list_length(scheme_t *sc,
+	    cell_ptr_t a)
+{
+	int		i	= 0;
+	cell_ptr_t	slow, fast;
 
 	slow = fast = a;
-	while (1)
-	{
-		if (fast == sc->syms.NIL)
+	while( 1 ) {
+		if( fast == sc->syms.NIL )
 			return i;
-		if (!is_pair(fast))
+		if( !is_pair(fast) )
 			return -2 - i;
-		fast = cdr(fast);
+		fast	= cdr(fast);
 		++i;
-		if (fast == sc->syms.NIL)
+		if( fast == sc->syms.NIL )
 			return i;
-		if (!is_pair(fast))
+		if( !is_pair(fast) )
 			return -2 - i;
 		++i;
-		fast = cdr(fast);
+		fast	= cdr(fast);
 
-		/* Safe because we would have already returned if `fast'
-	   encountered a non-pair. */
-		slow = cdr(slow);
-		if (fast == slow)
-		{
+		/* Safe because we would have already returned if `fast' encountered a non-pair. */
+		slow	= cdr(slow);
+		if( fast == slow ) {
 			/* the fast cell_ptr_t has looped back around and caught up
-	       with the slow cell_ptr_t, hence the structure is circular,
-	       not of finite length, and therefore not a list */
+			   with the slow cell_ptr_t, hence the structure is circular,
+			   not of finite length, and therefore not a list */
 			return -1;
 		}
 	}
@@ -203,18 +213,21 @@ static cell_ptr_t find_slot_in_env(scheme_t *sc, cell_ptr_t env, cell_ptr_t hdl,
 
 #ifndef USE_OBJECT_LIST
 
-cell_ptr_t oblist_initial_value(scheme_t *sc)
+cell_ptr_t
+oblist_initial_value(scheme_t *sc)
 {
 	return mk_vector(sc, 461); /* probably should be bigger */
 }
 
 /* returns the new symbol */
-cell_ptr_t oblist_add_by_name(scheme_t *sc, const char *name)
+cell_ptr_t
+oblist_add_by_name(scheme_t *sc,
+		   const char *name)
 {
 	cell_ptr_t x;
 	int location;
 
-	x = immutable_cons(sc, mk_string(sc, name), sc->syms.NIL);
+	x	= immutable_cons(sc, mk_string(sc, name), sc->syms.NIL);
 	typeflag(x) = T_SYMBOL;
 	setimmutable(car(x));
 

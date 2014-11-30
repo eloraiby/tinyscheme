@@ -97,12 +97,12 @@ struct cell_t {
 
 struct scheme_t {
 	/* arrays for segments */
-	func_alloc malloc;
-	func_dealloc free;
+	func_alloc	malloc;
+	func_dealloc	free;
 
 	/* return code */
-	int retcode;
-	int tracing;
+	int		retcode;
+	int		tracing;
 
 
 #define CELL_SEGSIZE    5000  /* # of cells in one segment */
@@ -157,41 +157,41 @@ struct scheme_t {
 		cell_ptr_t	COMPILE_HOOK;    /* *compile-hook* */
 	} syms;
 
-	cell_ptr_t oblist;          /* cell_ptr_t to symbol table */
-	cell_ptr_t global_env;      /* cell_ptr_t to global environment */
-	cell_ptr_t c_nest;          /* stack for nested calls from C */
+	cell_ptr_t	oblist;          /* cell_ptr_t to symbol table */
+	cell_ptr_t	global_env;      /* cell_ptr_t to global environment */
+	cell_ptr_t	c_nest;          /* stack for nested calls from C */
 
 
 
-	cell_ptr_t inport;
-	cell_ptr_t outport;
-	cell_ptr_t save_inport;
-	cell_ptr_t loadport;
+	cell_ptr_t	inport;
+	cell_ptr_t	outport;
+	cell_ptr_t	save_inport;
+	cell_ptr_t	loadport;
 
 #define MAXFIL 64
-	port_t load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
-	int nesting_stack[MAXFIL];
-	int file_i;
-	int nesting;
+	port_t		load_stack[MAXFIL];     /* Stack of open files for port -1 (LOADing) */
+	int		nesting_stack[MAXFIL];
+	int		file_i;
+	int		nesting;
 
 
 #define LINESIZE 1024
-	char    linebuff[LINESIZE];
+	char		linebuff[LINESIZE];
 #define STRBUFFSIZE 256
-	char    strbuff[STRBUFFSIZE];
+	char		strbuff[STRBUFFSIZE];
 
-	FILE *tmpfp;
-	int tok;
-	int print_flag;
-	cell_ptr_t value;
-	int op;
+	FILE*		tmpfp;
+	int		tok;
+	int		print_flag;
+	cell_ptr_t	value;
+	int		op;
 
-	void *ext_data;     /* For the benefit of foreign functions */
-	long gensym_cnt;
+	void*		ext_data;	/* For the benefit of foreign functions */
+	long		gensym_cnt;
 
 	struct scheme_interface *vptr;
-	void *dump_base;    /* cell_ptr_t to base of allocated dump stack */
-	int dump_size;      /* number of frames allocated for dump stack */
+	void*		dump_base;	/* cell_ptr_t to base of allocated dump stack */
+	int		dump_size;	/* number of frames allocated for dump stack */
 };
 
 /* operator code */
@@ -202,8 +202,8 @@ enum scheme_opcodes {
 };
 
 
-#define cons(sc,a,b) _cons(sc,a,b,0)
-#define immutable_cons(sc,a,b) _cons(sc,a,b,1)
+#define cons(sc, a, b) _cons(sc, a, b, 0)
+#define immutable_cons(sc, a, b) _cons(sc, a, b, 1)
 
 
 number_t num_add(number_t a, number_t b);

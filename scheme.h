@@ -153,10 +153,10 @@ typedef void (*func_dealloc)(void *);
 
 /* number_t, for generic arithmetic */
 typedef struct number_t {
-     char is_integer;
+     bool	is_integer;
      union {
-          long ivalue;
-          double rvalue;
+	  long		ivalue;
+	  double	rvalue;
      } value;
 } number_t;
 

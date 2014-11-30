@@ -23,6 +23,17 @@ QMAKE_LINK	= gcc
 
 TEMPLATE = app
 
+lexer.target = lexer.c
+lexer.commands = ragel -C -o $$PWD/lexer.c $$PWD/lexer.rl
+lexer.depends =
+
+parser.target = parser.c
+parser.commands = lemon -T$$PWD/lempar.c_template $$PWD/parser.y
+parser.depends =
+
+QMAKE_EXTRA_TARGETS	+= lexer parser
+
+PRE_TARGETDEPS	+= lexer.c parser.c
 
 SOURCES += \
     dynload.c \
@@ -39,7 +50,10 @@ OTHER_FILES += \
     init.scm \
     Manual.txt \
     MiniSCHEMETribute.txt \
-    makefile
+    makefile \
+    lempar.c_template \
+    lexer.rl \
+    parser.y
 
 HEADERS += \
     CHANGES \

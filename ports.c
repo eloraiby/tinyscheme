@@ -187,12 +187,13 @@ inchar(scheme_t *sc)
 	return c;
 }
 
-int basic_inchar(port_t *pt) {
+int
+basic_inchar(port_t *pt)
+{
 	if(pt->kind.value & port_file) {
 		return fgetc(pt->rep.stdio.file);
 	} else {
-		if(*pt->rep.string.curr == 0 ||
-				pt->rep.string.curr == pt->rep.string.past_the_end) {
+		if( *pt->rep.string.curr == 0 || pt->rep.string.curr == pt->rep.string.past_the_end ) {
 			return EOF;
 		} else {
 			return *pt->rep.string.curr++;
